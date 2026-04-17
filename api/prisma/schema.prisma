@@ -1,0 +1,401 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ─────────────────────────────────────────────────────────────
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum AddressType {
+  BILLING
+  SHIPPING
+}
+
+// ─── User ──────────────────────────────────────────────────────────────
+
+model User {
+  id                   String    @id @default(cuid())
+  email                String    @unique
+  passwordHash         String
+  emailVerified        Boolean   @default(false)
+  emailVerifyToken     String?
+  role                 Role      @default(USER)
+  firstName            String?
+  lastName             String?
+  phone                String?
+  company              String?
+  siret                String?
+  tvaNumber            String?
+  loginCode            String?
+  loginCodeExpires     DateTime?
+  resetPasswordToken   String?
+  resetPasswordExpires DateTime?
+  deleted              Boolean   @default(false)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  refreshTokens  RefreshToken[]
+  authLogs       AuthLog[]
+  addresses      Address[]
+  blogArticles   BlogArticle[]
+  declarations   Declaration[]
+  auditActions   DeclarationAuditLog[] @relation("AuditAdmin")
+}
+
+// ─── Auth ──────────────────────────────────────────────────────────────
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  revoked   Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model AuthLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  email     String
+  action    String
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+}
+
+// ─── Address ───────────────────────────────────────────────────────────
+
+model Address {
+  id         String      @id @default(cuid())
+  userId     String
+  user       User        @relation(fields: [userId], references: [id])
+  type       AddressType
+  isDefault  Boolean     @default(false)
+  firstName  String
+  lastName   String
+  company    String?
+  street     String
+  street2    String?
+  city       String
+  postalCode String
+  country    String?
+  phone      String?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+// ─── Shop Settings ─────────────────────────────────────────────────────
+
+model ShopSettings {
+  id                     String   @id @default(cuid())
+  name                   String   @default("STAR aid")
+  address                String?
+  latitude               Float?
+  longitude              Float?
+  description            String?
+  companyName             String?
+  siret                  String?
+  tvaNumber              String?
+  companyStreet           String?
+  companyStreet2          String?
+  companyPostalCode       String?
+  companyCity             String?
+  legalFirstName          String?
+  legalLastName           String?
+  legalEmail              String?
+  slogan                 String?
+  siteIcon               String?
+  adminEmail             String?
+  timezone               String   @default("Europe/Paris")
+  maintenanceEnabled     Boolean  @default(false)
+  maintenanceMode        String   @default("FULL_BLOCK")
+  maintenanceTitle       String?
+  maintenanceDescription String?
+  smtpHost               String?
+  smtpPort               Int?
+  smtpUser               String?
+  smtpPass               String?
+  smtpFrom               String?
+  geodaeUsername          String?
+  geodaePassword          String?
+  geodaeEnabled           Boolean  @default(false)
+  geodaeTestMode          Boolean  @default(true)
+  geodaeMntSiren          String?  // SIREN du compte mainteneur GéoDAE
+  geodaeMntRais           String?  // Raison sociale mainteneur GéoDAE
+  deleted                Boolean  @default(false)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  images ShopImage[]
+}
+
+model ShopImage {
+  id             String       @id @default(cuid())
+  shopSettingsId String
+  shopSettings   ShopSettings @relation(fields: [shopSettingsId], references: [id])
+  url            String
+  alt            String?
+  position       Int          @default(0)
+  createdAt      DateTime     @default(now())
+}
+
+// ─── Subscription ─────────────────────────────────────────────────────
+
+enum SubscriptionStatus {
+  DRAFT
+  PENDING_SIGNATURE
+  SIGNED
+  ACTIVE
+  CANCELLED
+}
+
+model Subscription {
+  id                 String             @id @default(cuid())
+  quantity           Int                @default(1)
+  entityType         String?            // "organisation" | "particulier"
+  companyName        String?
+  siret              String?
+  companyAddress     String?
+  companyPostalCode  String?
+  companyCity        String?
+  firstName          String?
+  lastName           String?
+  fonction           String?
+  mobile             String?
+  email              String?
+  installAddress            String?
+  installAddressComplement  String?
+  installPostalCode         String?
+  installCity        String?
+  monthlyPriceHT     Decimal?
+  monthlyPriceTTC    Decimal?
+  signatureRequestId String?            // Yousign ID
+  signerId           String?            // Yousign signer ID
+  documentId         String?            // Yousign document ID
+  ip                 String?
+  status             SubscriptionStatus @default(DRAFT)
+  step               Int                @default(1)
+  notes              String?
+  signedAt           DateTime?
+  contractPdfUrl     String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+}
+
+// ─── Declaration ──────────────────────────────────────────────────────
+
+enum DeclarationStatus {
+  DRAFT
+  COMPLETE
+  VALIDATED
+  CANCELLED
+}
+
+model Declaration {
+  id               String            @id @default(cuid())
+  number           Int               @unique @default(autoincrement())
+
+  // ── Exploitant (GEO DAE: expt_*) ──
+  exptNom          String?           // Nom du contact
+  exptPrenom       String?           // Prénom du contact
+  exptRais         String?           // expt_rais — Raison sociale
+  exptSiren        String?           // expt_siren (OBLIGATOIRE)
+  exptSiret        String?           // expt_siret
+  exptTel1         String?           // expt_tel1 (OBLIGATOIRE)
+  exptTel1Prefix   String?           // Indicatif pays exploitant (code ISO, ex: "fr")
+  exptEmail        String?           // expt_email (OBLIGATOIRE)
+  exptNum          String?           // expt_num — Adresse exploitant
+  exptVoie         String?           // expt_voie
+  exptCp           String?           // expt_cp
+  exptCom          String?           // expt_com
+  exptType         String?           // expt_type — Code APE/NAF exploitant
+  exptInsee        String?           // expt_insee — Code INSEE commune exploitant
+
+  // ── Site / Établissement ──
+  nomEtablissement String?
+  typeERP          String?
+  categorieERP     String?
+
+  // ── Adresse du site (GEO DAE: adr_*) ──
+  adrNum           String?           // adr_num
+  adrVoie          String?           // adr_voie
+  adrComplement    String?           // Complément d'adresse
+  codePostal       String?           // com_cp
+  codeInsee        String?           // com_insee — Code INSEE commune
+  ville            String?           // com_nom
+  latCoor1         Float?            // lat_coor1 — GPS latitude (via BAN)
+  longCoor1        Float?            // long_coor1 — GPS longitude (via BAN)
+  xyPrecis         Float?            // xy_precis — Score de précision BAN (0-1)
+
+  // ── Contact site ──
+  tel1             String?           // tel1 — Téléphone sur site (OBLIGATOIRE)
+  tel1Prefix       String?           // Indicatif pays site (code ISO)
+  tel2             String?           // tel2
+  tel2Prefix       String?           // Indicatif pays site tel2 (code ISO)
+  siteEmail        String?           // site_email
+
+  // ── Utilisateur ──
+  userId           String?
+  user             User?             @relation(fields: [userId], references: [id])
+
+  // ── Meta ──
+  ip               String?
+  status           DeclarationStatus @default(DRAFT)
+  step             Int               @default(1)
+  notes            String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  daeDevices       DaeDevice[]
+  auditLogs        DeclarationAuditLog[]
+
+  @@index([userId])
+}
+
+model DaeDevice {
+  id               String      @id @default(cuid())
+  declarationId    String
+  declaration      Declaration @relation(fields: [declarationId], references: [id], onDelete: Cascade)
+  position         Int         @default(0)
+
+  // ── Identification ──
+  nom              String?     // Nom donné au DAE (OBLIGATOIRE)
+
+  // ── Accès ──
+  acc              String?     // intérieur/extérieur (OBLIGATOIRE)
+  accLib           String?     // OUI/NON — accès libre (OBLIGATOIRE)
+  accEtg           String?     // Étage
+  accComplt        String?     // Complément d'accès
+  accPcsec         String?     // Poste sécurité OUI/NON
+  accAcc           String?     // Accueil public OUI/NON
+  daeMobile        String?     // OUI/NON — itinérant (OBLIGATOIRE)
+
+  // ── Disponibilité ──
+  dispJ            String?     // Jours — JSON array (OBLIGATOIRE)
+  dispH            String?     // Heures — JSON array (OBLIGATOIRE)
+  dispComplt       String?     // Complément disponibilité
+
+  // ── État ──
+  etatFonct        String?     // En fonctionnement/Hors service/etc. (OBLIGATOIRE)
+
+  // ── Fabricant ──
+  fabRais          String?     // Raison sociale fabricant (OBLIGATOIRE)
+  fabSiren         String?     // SIREN fabricant
+  modele           String?     // Nom du modèle (OBLIGATOIRE)
+  numSerie         String?     // Numéro de série (OBLIGATOIRE)
+  typeDAE          String?     // DEA ou DSA
+  idEuro           String?     // IUD européen
+
+  // ── Maintenance ──
+  dateInstal       String?     // Date d'installation
+  dermnt           String?     // Date dernière maintenance (OBLIGATOIRE)
+  mntRais          String?     // Raison sociale mainteneur
+  mntSiren         String?     // SIREN mainteneur
+  freqMnt          String?     // Fréquence maintenance
+  dispSurv         String?     // Surveillance à distance OUI/NON
+
+  // ── Électrodes & batterie ──
+  lcPed            String?     // Électrodes pédiatriques OUI/NON
+  dtprLcped        String?     // Date péremption électrodes pédiatriques
+  dtprLcad         String?     // Date péremption électrodes adultes
+  dtprBat          String?     // Date péremption batterie
+
+  // ── Localisation DAE ──
+  daeLat           Float?      // GPS latitude du DAE
+  daeLng           Float?      // GPS longitude du DAE
+
+  // ── Photos ──
+  photo1           String?     // URL photo 1
+  photo2           String?     // URL photo 2
+
+  // ── GéoDAE sync ──
+  geodaeGid        Int?        // gid retourné par GéoDAE après POST
+  geodaeStatus     String?     // NOT_SENT | SENT | FAILED | UPDATED
+  geodaeLastSync   DateTime?   // Dernière synchro réussie
+  geodaeLastError  String?     // Message d'erreur (pour affichage admin)
+
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  @@index([declarationId])
+}
+
+// ─── Audit ───────────────────────────────────────────────────────────
+
+model DeclarationAuditLog {
+  id            String      @id @default(cuid())
+  declarationId String
+  declaration   Declaration @relation(fields: [declarationId], references: [id], onDelete: Cascade)
+  adminId       String?
+  admin         User?       @relation("AuditAdmin", fields: [adminId], references: [id])
+  action        String      // CREATED, FIELD_UPDATE, STATUS_CHANGE, DEVICE_UPDATE, USER_ATTACHED
+  fieldName     String?
+  oldValue      String?
+  newValue      String?
+  deviceId      String?
+  deviceName    String?
+  metadata      String?
+  createdAt     DateTime    @default(now())
+
+  @@index([declarationId])
+  @@index([createdAt])
+}
+
+// ─── Blog ────────────────────────────────────────────────────────────
+
+enum BlogArticleStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model BlogCategory {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  color       String?
+  position    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  articles BlogArticleCategory[]
+}
+
+model BlogArticle {
+  id              String            @id @default(cuid())
+  title           String
+  slug            String            @unique
+  excerpt         String?
+  featuredImage   String?
+  content         Json
+  status          BlogArticleStatus @default(DRAFT)
+  authorId        String
+  author          User              @relation(fields: [authorId], references: [id])
+  metaTitle       String?
+  metaDescription String?
+  readingTime     Int?
+  publishedAt     DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  categories BlogArticleCategory[]
+}
+
+model BlogArticleCategory {
+  articleId  String
+  article    BlogArticle  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  categoryId String
+  category   BlogCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, categoryId])
+}
