@@ -1,5 +1,6 @@
 import { Heart } from "lucide-react";
 import Link from "next/link";
+import CookieSettingsButton from "@/components/declarerdae/CookieSettingsButton";
 
 export default function Footer() {
   return (
@@ -75,6 +76,7 @@ export default function Footer() {
             <Link href="/contact" className="text-xs text-gray-500 hover:text-white transition-colors no-underline">
               Contact
             </Link>
+            <CookieSettingsButton />
           </div>
         </div>
       </div>

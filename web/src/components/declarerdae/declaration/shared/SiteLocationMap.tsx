@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { geocodeAddress, GeocodingResult } from "@/lib/geocoding";
 import { MapPin, Search, Loader2 } from "lucide-react";
 import dynamic from "next/dynamic";
+import MapConsentGate from "@/components/declarerdae/MapConsentGate";
 
 const LeafletMap = dynamic(() => import("./LeafletMap"), {
   ssr: false,
@@ -153,17 +154,19 @@ export default function SiteLocationMap({
       {/* Map + fields — visible only after address selection */}
       {hasPosition && (
         <>
-          <div className="relative rounded-sm overflow-hidden border border-[#CECECE] shadow-sm">
-            <LeafletMap
-              lat={lat}
-              lng={lng}
-              onPositionChange={handlePositionChange}
-              locatedZoom={16}
-            />
-            <div className="absolute bottom-2 right-2 z-[1000] bg-white/90 backdrop-blur-sm rounded px-2.5 py-1 shadow text-xs font-medium text-[#000091] pointer-events-none">
-              Glissez le marqueur pour ajuster
+          <MapConsentGate height={300}>
+            <div className="relative rounded-sm overflow-hidden border border-[#CECECE] shadow-sm">
+              <LeafletMap
+                lat={lat}
+                lng={lng}
+                onPositionChange={handlePositionChange}
+                locatedZoom={16}
+              />
+              <div className="absolute bottom-2 right-2 z-[1000] bg-white/90 backdrop-blur-sm rounded px-2.5 py-1 shadow text-xs font-medium text-[#000091] pointer-events-none">
+                Glissez le marqueur pour ajuster
+              </div>
             </div>
-          </div>
+          </MapConsentGate>
 
           {/* Address fields */}
           <div className="grid grid-cols-[80px_1fr] gap-2">

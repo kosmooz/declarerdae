@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
+import MapConsentGate from "@/components/declarerdae/MapConsentGate";
 import { Button } from "@/components/ui/button";
 import {
   Crosshair,
@@ -93,7 +94,7 @@ export default function FindDaeClient() {
   const [geoLoading, setGeoLoading] = useState(false);
 
   // Ref for address debounce
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   /* ---- Geolocation ---- */
 
@@ -381,15 +382,17 @@ export default function FindDaeClient() {
             className="rounded-lg overflow-hidden border border-[#E5E5E5] shadow-sm"
             style={{ height: "clamp(320px, 50vw, 520px)" }}
           >
-          <FindDaeMapInner
-            results={results}
-            userLat={userLat}
-            userLng={userLng}
-            selectedGid={selectedGid}
-            onSelectGid={setSelectedGid}
-            onMapMove={handleMapMove}
-            skipFitBounds={skipFitBounds}
-          />
+          <MapConsentGate height={520}>
+            <FindDaeMapInner
+              results={results}
+              userLat={userLat}
+              userLng={userLng}
+              selectedGid={selectedGid}
+              onSelectGid={setSelectedGid}
+              onMapMove={handleMapMove}
+              skipFitBounds={skipFitBounds}
+            />
+          </MapConsentGate>
           </div>
         </div>
 

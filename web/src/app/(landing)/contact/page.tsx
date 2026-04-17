@@ -8,14 +8,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle2, Clock, Mail, MapPin, Phone, Send } from "lucide-react";
+import { CheckCircle2, Clock, Mail, MapPin, Phone, Send, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
+import Link from "next/link";
 
 export default function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
+  const [consentRgpd, setConsentRgpd] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!consentRgpd) {
+      toast.error("Veuillez accepter la politique de confidentialite.");
+      return;
+    }
     setSubmitted(true);
     toast.success("Message envoyé avec succès !");
   };
@@ -168,6 +174,25 @@ export default function ContactPage() {
                           className="border-[#CECECE] focus:border-[#000091] focus:ring-[#000091] resize-none"
                         />
                       </div>
+
+                      <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={consentRgpd}
+                          onChange={(e) => setConsentRgpd(e.target.checked)}
+                          className="mt-0.5 h-4 w-4 rounded border-[#CECECE] accent-[#000091] cursor-pointer shrink-0"
+                        />
+                        <span className="text-xs text-[#3A3A3A] leading-relaxed">
+                          J&apos;accepte que mes donnees soient traitees pour repondre a ma demande, conformement a la{" "}
+                          <Link
+                            href="/politique-de-confidentialite"
+                            target="_blank"
+                            className="text-[#000091] underline font-medium"
+                          >
+                            politique de confidentialite
+                          </Link>.
+                        </span>
+                      </label>
 
                       <Button type="submit" className="bg-[#000091] hover:bg-[#000070] text-white font-semibold px-6">
                         <Send className="w-4 h-4 mr-2" />

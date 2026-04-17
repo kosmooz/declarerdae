@@ -16,6 +16,7 @@ import { DeclarationsModule } from "./declarations/declarations.module";
 import { HealthModule } from "./health/health.module";
 import { BlogModule } from "./blog/blog.module";
 import { GeodaeModule } from "./geodae/geodae.module";
+import { GdprModule } from "./gdpr/gdpr.module";
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { GeodaeModule } from "./geodae/geodae.module";
     HealthModule,
     BlogModule,
     GeodaeModule,
+    GdprModule,
   ],
   providers: [
     {

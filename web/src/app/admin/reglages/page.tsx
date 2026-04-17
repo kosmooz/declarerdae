@@ -8,7 +8,219 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Save, Send, Settings, Building2, Mail, AlertTriangle, Globe, CheckCircle, XCircle } from "lucide-react";
+import { Loader2, Save, Send, Settings, Building2, Mail, AlertTriangle, Globe, CheckCircle, XCircle, Shield, ExternalLink, CircleAlert, Trash2 } from "lucide-react";
+import Link from "next/link";
+
+interface ComplianceStats {
+  dpo: { name: string | null; email: string | null; address: string | null; configured: boolean };
+  company: { configured: boolean };
+  smtp: { configured: boolean };
+  consents: { total: number; declarations: number };
+  users: { total: number; deleted: number };
+  retention: { staleDrafts: number; oldAuthLogs: number };
+  declarations: { total: number };
+}
+
+interface CheckItem {
+  id: string;
+  article: string;
+  label: string;
+  description: string;
+  status: "ok" | "warning" | "error";
+  detail: string;
+  category: string;
+}
+
+function buildChecklist(stats: ComplianceStats | null, form: Record<string, any>): CheckItem[] {
+  const s = stats;
+  return [
+    // -- Gouvernance
+    {
+      id: "dpo",
+      article: "Art. 37-39",
+      label: "Delegue a la protection des donnees (DPO)",
+      description: "Un DPO doit etre designe et ses coordonnees communiquees a la CNIL et aux personnes concernees.",
+      status: s?.dpo.configured ? "ok" : "error",
+      detail: s?.dpo.configured
+        ? `${s.dpo.name} — ${s.dpo.email}`
+        : "Non renseigne. Completez les champs DPO ci-dessous.",
+      category: "Gouvernance",
+    },
+    {
+      id: "registre",
+      article: "Art. 30",
+      label: "Registre des traitements",
+      description: "Le responsable de traitement tient un registre ecrit de l'ensemble des traitements.",
+      status: "ok",
+      detail: "Registre disponible dans cette page (7 traitements documentes). Exportable en CSV.",
+      category: "Gouvernance",
+    },
+    {
+      id: "societe",
+      article: "Art. 13",
+      label: "Identification du responsable de traitement",
+      description: "L'identite et les coordonnees du responsable doivent figurer dans la politique de confidentialite.",
+      status: s?.company.configured ? "ok" : "warning",
+      detail: s?.company.configured
+        ? "Raison sociale et adresse renseignees dans l'onglet Societe."
+        : "Completez les informations societe dans l'onglet Societe.",
+      category: "Gouvernance",
+    },
+    // -- Information & consentement
+    {
+      id: "politique",
+      article: "Art. 13-14",
+      label: "Politique de confidentialite",
+      description: "Information claire et accessible sur les traitements : finalites, base legale, destinataires, durees, droits.",
+      status: "ok",
+      detail: "Page /politique-de-confidentialite en ligne — 11 sections couvrant toutes les obligations d'information. DPO affiche dynamiquement.",
+      category: "Information & Consentement",
+    },
+    {
+      id: "bandeau-cookies",
+      article: "Art. 7 + ePrivacy",
+      label: "Bandeau de consentement cookies",
+      description: "Consentement prealable requis avant tout depot de cookie non essentiel. Possibilite de refuser et de modifier son choix.",
+      status: "ok",
+      detail: "Bandeau custom actif — 2 categories (essentiels + cartographie). Boutons accepter/refuser/personnaliser. Lien \"Gerer mes cookies\" dans le footer.",
+      category: "Information & Consentement",
+    },
+    {
+      id: "blocage-cartes",
+      article: "Art. 7",
+      label: "Blocage effectif des services tiers sans consentement",
+      description: "Les services tiers (Mapbox, CartoDB) ne doivent pas etre charges avant que l'utilisateur ait consenti.",
+      status: "ok",
+      detail: "MapConsentGate bloque le rendu des composants Leaflet/Mapbox/CartoDB. Aucune requete reseau sans consentement. Verification par event listener reactif.",
+      category: "Information & Consentement",
+    },
+    {
+      id: "consent-formulaires",
+      article: "Art. 7",
+      label: "Consentement trace dans les formulaires",
+      description: "Preuve du consentement : case a cocher, horodatage, version du texte, IP, user-agent.",
+      status: s ? (s.consents.total > 0 ? "ok" : "warning") : "warning",
+      detail: s
+        ? `${s.consents.total} consentement(s) enregistre(s) dont ${s.consents.declarations} pour les declarations. Chaque consentement est horodate avec IP et user-agent.`
+        : "Systeme en place — en attente des premiers consentements.",
+      category: "Information & Consentement",
+    },
+    {
+      id: "fonts-selfhost",
+      article: "Art. 44-49",
+      label: "Polices auto-hebergees (pas de Google Fonts)",
+      description: "Les polices sont servies localement pour eviter tout transfert de donnees vers Google (IP, user-agent).",
+      status: "ok",
+      detail: "Libre Franklin et Source Sans 3 en WOFF2 depuis /fonts/. Aucune requete vers fonts.googleapis.com ou fonts.gstatic.com.",
+      category: "Information & Consentement",
+    },
+    // -- Droits des personnes
+    {
+      id: "droit-acces",
+      article: "Art. 15",
+      label: "Droit d'acces et de portabilite",
+      description: "Les personnes peuvent obtenir une copie de toutes leurs donnees dans un format structure.",
+      status: "ok",
+      detail: "Endpoint GET /api/gdpr/export — exporte profil, adresses, declarations, consentements, logs en JSON. Page \"Mes donnees\" dans le dashboard utilisateur.",
+      category: "Droits des personnes",
+    },
+    {
+      id: "droit-effacement",
+      article: "Art. 17",
+      label: "Droit a l'effacement",
+      description: "Les personnes peuvent demander la suppression de leur compte et l'anonymisation de leurs donnees.",
+      status: "ok",
+      detail: s
+        ? `Endpoint DELETE /api/gdpr/delete-account — anonymise les PII, conserve les declarations (obligation legale). ${s.users.deleted} compte(s) supprime(s) a ce jour.`
+        : "Endpoint DELETE /api/gdpr/delete-account en place. Page \"Mes donnees\" avec confirmation \"SUPPRIMER\".",
+      category: "Droits des personnes",
+    },
+    {
+      id: "droit-rectification",
+      article: "Art. 16",
+      label: "Droit de rectification",
+      description: "Les personnes peuvent modifier leurs donnees personnelles.",
+      status: "ok",
+      detail: "Page \"Modifier\" dans le dashboard utilisateur — modification du profil (nom, email, telephone). L'admin peut modifier les declarations via les formulaires d'edition.",
+      category: "Droits des personnes",
+    },
+    // -- Securite
+    {
+      id: "chiffrement",
+      article: "Art. 32",
+      label: "Chiffrement des communications",
+      description: "Les echanges de donnees sont chiffres via HTTPS/TLS.",
+      status: "ok",
+      detail: "HTTPS/TLS en production. Mots de passe hashes en argon2id. Tokens de refresh hashes en SHA-256. Cookies httpOnly + secure + sameSite.",
+      category: "Securite",
+    },
+    {
+      id: "acces-controle",
+      article: "Art. 32",
+      label: "Controle d'acces",
+      description: "Acces aux donnees restreint par authentification et par roles.",
+      status: "ok",
+      detail: "JWT (access 15 min + refresh 30 jours). RolesGuard admin. OptionalJwtGuard pour les routes publiques. Rate limiting (30 req/min).",
+      category: "Securite",
+    },
+    {
+      id: "audit-trail",
+      article: "Art. 5(2)",
+      label: "Tracabilite des modifications (audit trail)",
+      description: "Chaque modification de donnees personnelles est journalisee avec avant/apres, admin, horodatage.",
+      status: "ok",
+      detail: "DeclarationAuditLog : action, fieldName, oldValue, newValue, adminId, deviceId. AuthLog : connexions, echecs, reinitialisation.",
+      category: "Securite",
+    },
+    // -- Conservation
+    {
+      id: "retention",
+      article: "Art. 5(1)(e)",
+      label: "Politique de retention des donnees",
+      description: "Les donnees ne sont conservees que le temps necessaire. Purge automatique des donnees expirees.",
+      status: s ? (s.retention.staleDrafts === 0 && s.retention.oldAuthLogs === 0 ? "ok" : "warning") : "warning",
+      detail: s
+        ? `CRON hebdomadaire actif (dimanche 3h). ${s.retention.staleDrafts} brouillon(s) > 6 mois a purger. ${s.retention.oldAuthLogs} log(s) d'auth > 13 mois a purger.`
+        : "CRON hebdomadaire programme. Purge brouillons > 6 mois, AuthLogs > 13 mois, tokens expires, anonymisation audit > 3 ans.",
+      category: "Conservation",
+    },
+    // -- Transferts
+    {
+      id: "transferts",
+      article: "Art. 44-49",
+      label: "Transferts hors UE",
+      description: "Les transferts de donnees hors UE doivent reposer sur des garanties appropriees ou le consentement.",
+      status: "ok",
+      detail: "Mapbox et CartoDB (USA) : soumis a consentement cookies, bloques par defaut. API BAN et GeoDAE : France. Yousign : France.",
+      category: "Conservation",
+    },
+  ];
+}
+
+function CheckItemCard({ item }: { item: CheckItem }) {
+  const StatusIcon = item.status === "ok" ? CheckCircle : item.status === "warning" ? CircleAlert : XCircle;
+  const statusColor = item.status === "ok" ? "text-[#18753C]" : item.status === "warning" ? "text-[#B45309]" : "text-[#E1000F]";
+  const bgColor = item.status === "ok" ? "bg-[#F0FDF4]" : item.status === "warning" ? "bg-[#FFFBEB]" : "bg-[#FEF2F2]";
+  const borderColor = item.status === "ok" ? "border-[#BBF7D0]" : item.status === "warning" ? "border-[#FDE68A]" : "border-[#FECACA]";
+
+  return (
+    <div className={`rounded border ${borderColor} ${bgColor} p-3`}>
+      <div className="flex items-start gap-2.5">
+        <StatusIcon className={`w-4 h-4 ${statusColor} mt-0.5 shrink-0`} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-semibold text-[#161616]">{item.label}</span>
+            <span className="text-[10px] font-mono bg-white/70 border border-black/10 rounded px-1.5 py-0.5 text-[#666] shrink-0">
+              {item.article}
+            </span>
+          </div>
+          <p className="text-xs text-[#666] mt-0.5">{item.description}</p>
+          <p className={`text-xs mt-1.5 font-medium ${statusColor}`}>{item.detail}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
 import { toast } from "sonner";
 
 export default function AdminSettingsPage() {
@@ -18,8 +230,10 @@ export default function AdminSettingsPage() {
   const [testingSmtp, setTestingSmtp] = useState(false);
   const [testingGeodae, setTestingGeodae] = useState(false);
   const [geodaeTestResult, setGeodaeTestResult] = useState<{ success: boolean; error?: string } | null>(null);
-  const [tab, setTab] = useState<"general" | "company" | "email" | "maintenance" | "geodae">("general");
+  const [tab, setTab] = useState<"general" | "company" | "email" | "maintenance" | "geodae" | "rgpd">("general");
   const [form, setForm] = useState<Record<string, any>>({});
+  const [complianceStats, setComplianceStats] = useState<ComplianceStats | null>(null);
+  const [runningRetention, setRunningRetention] = useState(false);
 
   useEffect(() => {
     apiFetch("/api/admin/shop-settings").then(async (res) => {
@@ -30,6 +244,14 @@ export default function AdminSettingsPage() {
       setLoading(false);
     });
   }, []);
+
+  useEffect(() => {
+    if (tab === "rgpd") {
+      apiFetch("/api/gdpr/compliance-stats").then(async (res) => {
+        if (res.ok) setComplianceStats(await res.json());
+      });
+    }
+  }, [tab]);
 
   const handleSave = async () => {
     setSubmitting(true);
@@ -122,6 +344,7 @@ export default function AdminSettingsPage() {
     { id: "email" as const, label: "Email", icon: Mail },
     { id: "maintenance" as const, label: "Maintenance", icon: AlertTriangle },
     { id: "geodae" as const, label: "GéoDAE", icon: Globe },
+    { id: "rgpd" as const, label: "RGPD / DPO", icon: Shield },
   ];
 
   return (
@@ -379,6 +602,140 @@ export default function AdminSettingsPage() {
                     )}
                   </span>
                 )}
+              </div>
+            </>
+          )}
+
+          {tab === "rgpd" && (
+            <>
+              {/* Score global */}
+              {(() => {
+                const checks = buildChecklist(complianceStats, form);
+                const ok = checks.filter((c) => c.status === "ok").length;
+                const total = checks.length;
+                const allOk = ok === total;
+                return (
+                  <div className={`rounded-lg border-2 p-4 flex items-center justify-between ${allOk ? "border-[#18753C] bg-[#F0FDF4]" : "border-[#B45309] bg-[#FFFBEB]"}`}>
+                    <div className="flex items-center gap-3">
+                      {allOk
+                        ? <CheckCircle className="w-6 h-6 text-[#18753C]" />
+                        : <CircleAlert className="w-6 h-6 text-[#B45309]" />}
+                      <div>
+                        <p className="text-sm font-bold text-[#161616]">
+                          {allOk ? "Conformite RGPD complete" : "Points a verifier"}
+                        </p>
+                        <p className="text-xs text-[#666]">
+                          {ok}/{total} regles conformes
+                        </p>
+                      </div>
+                    </div>
+                    <div className={`text-2xl font-bold ${allOk ? "text-[#18753C]" : "text-[#B45309]"}`}>
+                      {Math.round((ok / total) * 100)}%
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Checklist par categorie */}
+              {(() => {
+                const checks = buildChecklist(complianceStats, form);
+                const categories = [...new Set(checks.map((c) => c.category))];
+                return categories.map((cat) => (
+                  <div key={cat} className="space-y-2 pt-2">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-[#929292]">{cat}</h3>
+                    {checks
+                      .filter((c) => c.category === cat)
+                      .map((item) => (
+                        <CheckItemCard key={item.id} item={item} />
+                      ))}
+                  </div>
+                ));
+              })()}
+
+              {/* Actions rapides */}
+              <div className="pt-4 border-t border-[#E5E5E5] space-y-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-[#929292]">Actions</h3>
+                <div className="flex flex-wrap gap-2">
+                  <Link
+                    href="/admin/reglages/registre-traitements"
+                    className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-[#000091] border border-[#000091]/30 rounded hover:bg-[#F5F5FE] transition-colors"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Registre des traitements
+                  </Link>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      setRunningRetention(true);
+                      try {
+                        const res = await apiFetch("/api/gdpr/run-retention", { method: "POST" });
+                        if (res.ok) {
+                          const data = await res.json();
+                          toast.success(`Retention executee : ${data.draftsDeleted} brouillons, ${data.authLogsDeleted} logs, ${data.tokensDeleted} tokens purges.`);
+                          // Refresh stats
+                          const statsRes = await apiFetch("/api/gdpr/compliance-stats");
+                          if (statsRes.ok) setComplianceStats(await statsRes.json());
+                        } else {
+                          toast.error("Erreur lors de la retention.");
+                        }
+                      } finally {
+                        setRunningRetention(false);
+                      }
+                    }}
+                    disabled={runningRetention}
+                    className="gap-2"
+                  >
+                    {runningRetention ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                    Executer la retention maintenant
+                  </Button>
+                </div>
+              </div>
+
+              {/* DPO form */}
+              <div className="pt-4 border-t border-[#E5E5E5] space-y-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-[#929292]">Coordonnees du DPO</h3>
+                <p className="text-xs text-[#929292]">
+                  Affichees dans la politique de confidentialite ({" "}
+                  <code className="bg-[#F6F6F6] px-1 py-0.5 rounded text-[10px]">/politique-de-confidentialite</code>
+                  {" "}).
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Nom du DPO</Label>
+                    <Input
+                      value={form.dpoName || ""}
+                      onChange={(e) => set("dpoName", e.target.value)}
+                      placeholder="Jean Dupont"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Email du DPO</Label>
+                    <Input
+                      type="email"
+                      value={form.dpoEmail || ""}
+                      onChange={(e) => set("dpoEmail", e.target.value)}
+                      placeholder="dpo@declarerdefibrillateur.fr"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Adresse postale du DPO</Label>
+                  <Input
+                    value={form.dpoAddress || ""}
+                    onChange={(e) => set("dpoAddress", e.target.value)}
+                    placeholder="10 rue de la Paix, 75002 Paris"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Telephone du DPO</Label>
+                  <Input
+                    type="tel"
+                    value={form.dpoPhone || ""}
+                    onChange={(e) => set("dpoPhone", e.target.value)}
+                    placeholder="01 23 45 67 89"
+                  />
+                </div>
               </div>
             </>
           )}

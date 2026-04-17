@@ -3,6 +3,7 @@
 import { useMemo, useCallback } from "react";
 import { MapPin } from "lucide-react";
 import dynamic from "next/dynamic";
+import MapConsentGate from "@/components/declarerdae/MapConsentGate";
 
 const LeafletMap = dynamic(() => import("./LeafletMap"), {
   ssr: false,
@@ -70,16 +71,18 @@ export default function DaeMarkerMap({
       </div>
 
       {/* Map */}
-      <div className="relative rounded-sm overflow-hidden border border-[#CECECE] shadow-sm">
-        <LeafletMap
-          lat={displayLat}
-          lng={displayLng}
-          onPositionChange={handlePositionChange}
-        />
-        <div className="absolute bottom-2 right-2 z-[1000] bg-white/90 backdrop-blur-sm rounded px-2.5 py-1 shadow text-xs font-medium text-[#000091] pointer-events-none">
-          Glissez le marqueur pour ajuster
+      <MapConsentGate height={300}>
+        <div className="relative rounded-sm overflow-hidden border border-[#CECECE] shadow-sm">
+          <LeafletMap
+            lat={displayLat}
+            lng={displayLng}
+            onPositionChange={handlePositionChange}
+          />
+          <div className="absolute bottom-2 right-2 z-[1000] bg-white/90 backdrop-blur-sm rounded px-2.5 py-1 shadow text-xs font-medium text-[#000091] pointer-events-none">
+            Glissez le marqueur pour ajuster
+          </div>
         </div>
-      </div>
+      </MapConsentGate>
 
       {/* Coordinates */}
       <div className="flex items-center gap-4 text-xs text-[#929292]">

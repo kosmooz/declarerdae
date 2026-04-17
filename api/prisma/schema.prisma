@@ -48,6 +48,7 @@ model User {
   blogArticles   BlogArticle[]
   declarations   Declaration[]
   auditActions   DeclarationAuditLog[] @relation("AuditAdmin")
+  consents       Consent[]
 }
 
 // ─── Auth ──────────────────────────────────────────────────────────────
@@ -132,6 +133,13 @@ model ShopSettings {
   geodaeTestMode          Boolean  @default(true)
   geodaeMntSiren          String?  // SIREN du compte mainteneur GéoDAE
   geodaeMntRais           String?  // Raison sociale mainteneur GéoDAE
+
+  // RGPD / DPO
+  dpoName                String?   // Nom du DPO
+  dpoEmail               String?   // Email du DPO
+  dpoAddress             String?   // Adresse postale du DPO
+  dpoPhone               String?   // Telephone du DPO
+
   deleted                Boolean  @default(false)
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
@@ -398,4 +406,22 @@ model BlogArticleCategory {
   category   BlogCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
   @@id([articleId, categoryId])
+}
+
+// ─── RGPD Consent ────────────────────────────────────────────────────
+
+model Consent {
+  id        String   @id @default(cuid())
+  email     String
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  scope     String   // "declaration" | "contact" | "subscription" | "cookies"
+  version   String   // Version of the consent text accepted
+  ip        String?
+  userAgent String?
+  granted   Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([scope])
 }

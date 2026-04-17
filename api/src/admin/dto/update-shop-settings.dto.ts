@@ -142,4 +142,21 @@ export class UpdateShopSettingsDto {
   @IsString()
   @IsOptional()
   geodaeMntRais?: string;
+
+  // RGPD / DPO
+  @IsString()
+  @IsOptional()
+  dpoName?: string;
+
+  @IsEmail()
+  @IsOptional()
+  dpoEmail?: string;
+
+  @IsString()
+  @IsOptional()
+  dpoAddress?: string;
+
+  @IsString()
+  @IsOptional()
+  dpoPhone?: string;
 }

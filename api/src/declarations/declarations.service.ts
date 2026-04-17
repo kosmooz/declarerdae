@@ -184,7 +184,12 @@ export class DeclarationsService {
     return { id };
   }
 
-  async completeDraft(id: string, userId?: string | null) {
+  async completeDraft(
+    id: string,
+    userId?: string | null,
+    ip?: string | null,
+    userAgent?: string | null,
+  ) {
     const declaration = await this.prisma.declaration.findUnique({
       where: { id },
       include: { daeDevices: true },
@@ -220,6 +225,20 @@ export class DeclarationsService {
       where: { id },
       data: updateData,
     });
+
+    // Record RGPD consent
+    if (declaration.exptEmail) {
+      await this.prisma.consent.create({
+        data: {
+          email: declaration.exptEmail,
+          userId: userId || undefined,
+          scope: "declaration",
+          version: "1.0",
+          ip: ip || undefined,
+          userAgent: userAgent || undefined,
+        },
+      });
+    }
 
     return { id };
   }

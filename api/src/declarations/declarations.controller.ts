@@ -63,7 +63,12 @@ export class DeclarationsController {
   @UseGuards(OptionalJwtAuthGuard)
   @Post("draft/:id/complete")
   async completeDraft(@Param("id") id: string, @Req() req: any) {
-    return this.declarationsService.completeDraft(id, req.user?.sub || null);
+    return this.declarationsService.completeDraft(
+      id,
+      req.user?.sub || null,
+      this.extractIp(req),
+      req.headers["user-agent"] || null,
+    );
   }
 
   /* ─── User declarations ─────────────────────────────────── */

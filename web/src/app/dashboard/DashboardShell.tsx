@@ -3,13 +3,14 @@
 import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth";
-import { User, KeyRound, Pencil, ClipboardList } from "lucide-react";
+import { User, KeyRound, Pencil, ClipboardList, Shield } from "lucide-react";
 
 const tabs = [
   { href: "/dashboard/mes-declarations", label: "Mes déclarations", icon: ClipboardList },
   { href: "/dashboard/profile", label: "Profil", icon: User },
   { href: "/dashboard/edit-profile", label: "Modifier", icon: Pencil },
   { href: "/dashboard/change-password", label: "Mot de passe", icon: KeyRound },
+  { href: "/dashboard/mes-donnees", label: "Mes données", icon: Shield },
 ];
 
 export default function DashboardShell({ children }: { children: React.ReactNode }) {

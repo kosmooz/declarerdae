@@ -45,6 +45,7 @@ export default function DeclarationForm() {
   const [password, setPassword] = useState("");
   const [accountEmail, setAccountEmail] = useState("");
   const [authOpen, setAuthOpen] = useState(false);
+  const [consentRgpd, setConsentRgpd] = useState(false);
 
   // Refs to avoid stale closures in callbacks
   const draftIdRef = useRef<string | null>(null);
@@ -102,6 +103,8 @@ export default function DeclarationForm() {
             exptCp: data.exptCp || "",
             exptCom: data.exptCom || "",
             exptComplement: extra.exptComplement || "",
+            exptType: data.exptType || "",
+            exptInsee: data.exptInsee || "",
             nomEtablissement: data.nomEtablissement || "",
             typeERP: data.typeERP || "non-erp",
             categorieERP: data.categorieERP || "cat-1",
@@ -419,6 +422,12 @@ export default function DeclarationForm() {
       }
     }
 
+    // Validate RGPD consent
+    if (!consentRgpd) {
+      setStepErrors(["Vous devez accepter la politique de confidentialite pour soumettre votre declaration."]);
+      return;
+    }
+
     // Validate account if not logged in
     if (!user) {
       const accountErrors: string[] = [];
@@ -578,6 +587,8 @@ export default function DeclarationForm() {
                 onEmailChange={setAccountEmail}
                 onPasswordChange={setPassword}
                 onOpenAuth={() => setAuthOpen(true)}
+                consentRgpd={consentRgpd}
+                onConsentRgpdChange={setConsentRgpd}
               />
             )}
           </div>

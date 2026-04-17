@@ -3,7 +3,8 @@
 import { useState } from "react";
 import type { DeclarationFormState, DaeDeviceFormState } from "@/lib/declaration-types";
 import { useAuth } from "@/lib/auth";
-import { CheckCircle2, AlertCircle, Cpu, User, Building2, Lock, LogOut, Eye, EyeOff } from "lucide-react";
+import { CheckCircle2, AlertCircle, Cpu, User, Building2, Lock, LogOut, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,8 @@ interface Step4Props {
   onEmailChange: (value: string) => void;
   onPasswordChange: (value: string) => void;
   onOpenAuth: () => void;
+  consentRgpd: boolean;
+  onConsentRgpdChange: (value: boolean) => void;
 }
 
 function SectionCard({
@@ -209,6 +212,8 @@ export default function Step4Recapitulatif({
   onEmailChange,
   onPasswordChange,
   onOpenAuth,
+  consentRgpd,
+  onConsentRgpdChange,
 }: Step4Props) {
   // Check completeness
   const missingFields: string[] = [];
@@ -359,6 +364,40 @@ export default function Step4Recapitulatif({
         onPasswordChange={onPasswordChange}
         onOpenAuth={onOpenAuth}
       />
+
+      {/* RGPD consent */}
+      <div className="border border-[#18753C]/30 rounded-sm bg-[#F0FDF4] p-4">
+        <label className="flex items-start gap-3 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={consentRgpd}
+            onChange={(e) => onConsentRgpdChange(e.target.checked)}
+            className="mt-1 h-4 w-4 rounded border-[#CECECE] accent-[#18753C] cursor-pointer shrink-0"
+          />
+          <div className="flex-1">
+            <div className="flex items-center gap-1.5 mb-1">
+              <ShieldCheck className="w-4 h-4 text-[#18753C]" />
+              <span className="text-sm font-semibold text-[#166534]">
+                Protection de vos donnees
+              </span>
+            </div>
+            <p className="text-xs text-[#3A3A3A] leading-relaxed">
+              J&apos;ai lu et j&apos;accepte la{" "}
+              <Link
+                href="/politique-de-confidentialite"
+                target="_blank"
+                className="text-[#000091] underline font-medium"
+              >
+                politique de confidentialite
+              </Link>{" "}
+              et le traitement de mes donnees personnelles dans le cadre de cette
+              declaration de DAE conformement au RGPD. Mes donnees seront
+              transmises a Geo&apos;DAE (Ministere de la Sante) conformement au
+              decret n&deg;2018-1259.
+            </p>
+          </div>
+        </label>
+      </div>
     </div>
   );
 }

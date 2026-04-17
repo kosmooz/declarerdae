@@ -1,5 +1,6 @@
 import Header from "@/components/declarerdae/Header";
 import Footer from "@/components/declarerdae/Footer";
+import CookieConsent from "@/components/declarerdae/CookieConsent";
 
 export default function LandingLayout({
   children,
@@ -11,6 +12,7 @@ export default function LandingLayout({
       <Header />
       <main className="flex-1">{children}</main>
       <Footer />
+      <CookieConsent />
     </div>
   );
 }
