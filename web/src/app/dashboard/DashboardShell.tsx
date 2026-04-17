@@ -61,7 +61,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
       {/* Page content */}
       <div className="bg-slate-50 min-h-[60vh]">
-        <div className="max-w-4xl mx-auto px-4 py-6">
+        <div className="max-w-5xl mx-auto px-4 py-6">
           {children}
         </div>
       </div>

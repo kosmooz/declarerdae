@@ -47,6 +47,59 @@ function pick<T extends Record<string, any>>(
 export class DeclarationsService {
   constructor(private prisma: PrismaService) {}
 
+  /* ─── Public map data (cached) ──────────────────────────── */
+
+  private mapCache: { data: any; expiresAt: number } | null = null;
+  private static MAP_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+  async getPublicMapData() {
+    if (this.mapCache && Date.now() < this.mapCache.expiresAt) {
+      return this.mapCache.data;
+    }
+
+    const declarations = await this.prisma.declaration.findMany({
+      where: {
+        status: "VALIDATED",
+        latCoor1: { not: null },
+        longCoor1: { not: null },
+      },
+      select: {
+        latCoor1: true,
+        longCoor1: true,
+        ville: true,
+        codePostal: true,
+        _count: { select: { daeDevices: true } },
+      },
+    });
+
+    const points = declarations.map((d) => ({
+      lat: d.latCoor1,
+      lng: d.longCoor1,
+      ville: d.ville || "",
+      cp: d.codePostal || "",
+      n: d._count.daeDevices,
+    }));
+
+    const totalDevices = points.reduce((sum, p) => sum + p.n, 0);
+    const uniqueVilles = new Set(points.map((p) => p.ville).filter(Boolean));
+
+    const result = {
+      points,
+      stats: {
+        declarations: points.length,
+        devices: totalDevices,
+        villes: uniqueVilles.size,
+      },
+    };
+
+    this.mapCache = {
+      data: result,
+      expiresAt: Date.now() + DeclarationsService.MAP_CACHE_TTL,
+    };
+
+    return result;
+  }
+
   /* ─── Draft CRUD ─────────────────────────────────────────── */
 
   async createDraft(dto: CreateDeclarationDraftDto, ip?: string | null) {

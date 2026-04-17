@@ -24,14 +24,20 @@ export interface SiretSearchResponse {
   total_results: number;
 }
 
-export async function searchSiret(query: string): Promise<SiretResult[]> {
-  if (!query || query.length < 3) return [];
+export async function searchSiret(
+  query: string,
+): Promise<{ results: SiretResult[]; error?: boolean }> {
+  if (!query || query.length < 3) return { results: [] };
 
   const endpoint = `https://recherche-entreprises.api.gouv.fr/search?q=${encodeURIComponent(query)}&page=1&per_page=10`;
 
-  const res = await fetch(endpoint);
-  if (!res.ok) return [];
+  try {
+    const res = await fetch(endpoint);
+    if (!res.ok) return { results: [], error: true };
 
-  const data: SiretSearchResponse = await res.json();
-  return data.results || [];
+    const data: SiretSearchResponse = await res.json();
+    return { results: data.results || [] };
+  } catch {
+    return { results: [], error: true };
+  }
 }

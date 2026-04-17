@@ -25,6 +25,7 @@ const navLinks: NavItem[] = [
       { label: "FAQ", href: "/#faq", desc: "Questions fréquentes" },
     ],
   },
+  { label: "Trouver un DAE", href: "/trouver-un-dae", isPage: true },
   { label: "Notre service", href: "/#service" },
   { label: "Tarifs", href: "/tarifs", isPage: true, badge: "Gratuit" },
   { label: "À propos", href: "/a-propos", isPage: true },
@@ -67,7 +68,7 @@ export default function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-white shadow-sm">
+    <header className="sticky top-0 z-[1000] bg-white shadow-sm">
       <div className="tricolor-band" aria-hidden="true" />
       <div className="container flex items-center justify-between py-3">
         <Link href="/" className="flex items-center gap-3 no-underline">

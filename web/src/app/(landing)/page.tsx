@@ -12,6 +12,7 @@ import CTABanner from "@/components/declarerdae/CTABanner";
 import StickyFooterCTA from "@/components/declarerdae/StickyFooterCTA";
 import Testimonials from "@/components/declarerdae/Testimonials";
 import TrustBadges from "@/components/declarerdae/TrustBadges";
+import DaeMapFrance from "@/components/declarerdae/DaeMapFrance";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
@@ -895,6 +896,9 @@ export default function Home() {
             </ScrollReveal>
           </div>
         </section>
+
+        {/* ===== CARTE DES DAE ===== */}
+        <DaeMapFrance />
 
         {/* ===== TÉMOIGNAGES ===== */}
         <section className="bg-[#F6F6F6] py-10 sm:py-16">

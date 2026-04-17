@@ -32,6 +32,13 @@ export class DeclarationsController {
     );
   }
 
+  /* ─── Public map ─────────────────────────────────────────── */
+
+  @Get("public-map")
+  async getPublicMapData() {
+    return this.declarationsService.getPublicMapData();
+  }
+
   /* ─── Draft ──────────────────────────────────────────────── */
 
   @Post("draft")

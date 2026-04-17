@@ -8,10 +8,62 @@ import { toast } from "sonner";
 
 const PARENT_FIELDS_EXCLUDE = new Set(["daeDevices", "exptComplement"]);
 
+/* ─── Validation per step ──────────────────────────────────── */
+
+export interface StepErrors {
+  [field: string]: string;
+}
+
+export function validateStep(step: number, data: DeclarationFormState): StepErrors {
+  const errors: StepErrors = {};
+
+  if (step === 1) {
+    if (!data.exptRais?.trim()) errors.exptRais = "Raison sociale obligatoire";
+    if (!data.exptSiren?.trim()) errors.exptSiren = "SIREN obligatoire";
+    if (!data.exptEmail?.trim()) errors.exptEmail = "Email exploitant obligatoire";
+    if (!data.exptTel1?.trim()) errors.exptTel1 = "Téléphone exploitant obligatoire";
+  }
+
+  if (step === 2) {
+    if (!data.adrVoie?.trim()) errors.adrVoie = "Adresse du site obligatoire";
+    if (!data.codePostal?.trim()) errors.codePostal = "Code postal obligatoire";
+    if (!data.ville?.trim()) errors.ville = "Ville obligatoire";
+    if (!data.tel1?.trim()) errors.tel1 = "Téléphone sur site obligatoire";
+  }
+
+  if (step === 3) {
+    if (data.daeDevices.length === 0) {
+      errors._devices = "Au moins un défibrillateur est requis";
+    } else {
+      const hasComplete = data.daeDevices.some(
+        (d) =>
+          d.nom?.trim() &&
+          d.fabRais?.trim() &&
+          d.modele?.trim() &&
+          d.numSerie?.trim() &&
+          d.etatFonct?.trim() &&
+          d.acc?.trim() &&
+          d.accLib?.trim() &&
+          d.daeMobile?.trim() &&
+          d.dispJ?.length > 0 &&
+          d.dispH?.length > 0,
+      );
+      if (!hasComplete) {
+        errors._devices =
+          "Au moins 1 DAE doit avoir tous les champs obligatoires remplis (nom, fabricant, modèle, N° série, état, accès, disponibilité)";
+      }
+    }
+  }
+
+  return errors;
+}
+
+/* ─── Hook ─────────────────────────────────────────────────── */
+
 export function useDeclarationEdit(declarationId: string, initialData: DeclarationFormState) {
   const [formData, setFormData] = useState<DeclarationFormState>(initialData);
+  const [isDirty, setIsDirty] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
   // Device ID map: localId -> serverId
   const [deviceIds, setDeviceIds] = useState<Record<string, string>>(() => {
@@ -24,128 +76,28 @@ export function useDeclarationEdit(declarationId: string, initialData: Declarati
   const deviceIdsRef = useRef(deviceIds);
   deviceIdsRef.current = deviceIds;
 
-  // Debounce timers
-  const saveTimerParent = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const saveTimerDevices = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-  const pendingSaves = useRef(0);
+  // ─── Local-only field change handlers ──────────────────────
+  const handleFieldChange = useCallback((field: string, value: any) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    setIsDirty(true);
+  }, []);
 
-  const updateSavingState = (delta: number) => {
-    pendingSaves.current += delta;
-    if (delta > 0) setSaving(true);
-    if (pendingSaves.current <= 0) {
-      pendingSaves.current = 0;
-      setSaving(false);
-      setLastSaved(new Date());
-    }
-  };
+  const handleBatchChange = useCallback((fields: Record<string, any>) => {
+    setFormData((prev) => ({ ...prev, ...fields }));
+    setIsDirty(true);
+  }, []);
 
-  // ─── Auto-save parent fields ────────────────────────────
-  const saveParent = useCallback(
-    (data: DeclarationFormState) => {
-      if (saveTimerParent.current) clearTimeout(saveTimerParent.current);
+  const handleDeviceChange = useCallback((localId: string, field: string, value: any) => {
+    setFormData((prev) => {
+      const devices = prev.daeDevices.map((d) =>
+        d.localId === localId ? { ...d, [field]: value } : d,
+      );
+      return { ...prev, daeDevices: devices };
+    });
+    setIsDirty(true);
+  }, []);
 
-      saveTimerParent.current = setTimeout(async () => {
-        const payload: Record<string, any> = {};
-        for (const [k, v] of Object.entries(data)) {
-          if (PARENT_FIELDS_EXCLUDE.has(k)) continue;
-          if (v !== "" && v !== null) payload[k] = v;
-        }
-
-        updateSavingState(1);
-        try {
-          const res = await apiFetch(`/api/declarations/my/${declarationId}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          });
-          if (!res.ok) {
-            const err = await res.json().catch(() => ({}));
-            toast.error(err.message || "Erreur lors de l'enregistrement");
-          }
-        } catch {
-          // silent network error
-        }
-        updateSavingState(-1);
-      }, 1000);
-    },
-    [declarationId],
-  );
-
-  // ─── Auto-save device fields ────────────────────────────
-  const saveDevice = useCallback(
-    (device: DaeDeviceFormState, serverId: string | undefined) => {
-      const key = device.localId;
-      if (saveTimerDevices.current[key]) {
-        clearTimeout(saveTimerDevices.current[key]);
-      }
-
-      if (!serverId) return;
-
-      saveTimerDevices.current[key] = setTimeout(async () => {
-        const payload = serializeDevice(device);
-
-        updateSavingState(1);
-        try {
-          const res = await apiFetch(
-            `/api/declarations/my/${declarationId}/devices/${serverId}`,
-            {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(payload),
-            },
-          );
-          if (!res.ok) {
-            const err = await res.json().catch(() => ({}));
-            toast.error(err.message || "Erreur lors de l'enregistrement du DAE");
-          }
-        } catch {
-          // silent
-        }
-        updateSavingState(-1);
-      }, 1000);
-    },
-    [declarationId],
-  );
-
-  // ─── Field change handlers ──────────────────────────────
-  const handleFieldChange = useCallback(
-    (field: string, value: any) => {
-      setFormData((prev) => {
-        const next = { ...prev, [field]: value };
-        saveParent(next);
-        return next;
-      });
-    },
-    [saveParent],
-  );
-
-  const handleBatchChange = useCallback(
-    (fields: Record<string, any>) => {
-      setFormData((prev) => {
-        const next = { ...prev, ...fields };
-        saveParent(next);
-        return next;
-      });
-    },
-    [saveParent],
-  );
-
-  const handleDeviceChange = useCallback(
-    (localId: string, field: string, value: any) => {
-      setFormData((prev) => {
-        const devices = prev.daeDevices.map((d) =>
-          d.localId === localId ? { ...d, [field]: value } : d,
-        );
-        const updated = devices.find((d) => d.localId === localId);
-        if (updated) {
-          saveDevice(updated, deviceIdsRef.current[localId]);
-        }
-        return { ...prev, daeDevices: devices };
-      });
-    },
-    [saveDevice],
-  );
-
+  // ─── Device add/remove (immediate server calls) ────────────
   const handleAddDevice = useCallback(async (): Promise<string> => {
     const newDevice = createEmptyDevice(formData.daeDevices.length);
     setFormData((prev) => ({
@@ -205,27 +157,72 @@ export function useDeclarationEdit(declarationId: string, initialData: Declarati
     [declarationId],
   );
 
-  // ─���─ Flush pending saves ────────────────────────────────
-  const flushPendingSaves = useCallback(() => {
-    if (saveTimerParent.current) {
-      clearTimeout(saveTimerParent.current);
-      saveTimerParent.current = null;
+  // ─── Save all changes to server ────────────────────────────
+  const saveAll = useCallback(async (): Promise<boolean> => {
+    setSaving(true);
+
+    try {
+      // 1) Save parent fields
+      const payload: Record<string, any> = {};
+      for (const [k, v] of Object.entries(formData)) {
+        if (PARENT_FIELDS_EXCLUDE.has(k)) continue;
+        if (v !== "" && v !== null) payload[k] = v;
+      }
+
+      const parentRes = await apiFetch(`/api/declarations/my/${declarationId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!parentRes.ok) {
+        const err = await parentRes.json().catch(() => ({}));
+        toast.error(err.message || "Erreur lors de l'enregistrement");
+        setSaving(false);
+        return false;
+      }
+
+      // 2) Save each device
+      for (const device of formData.daeDevices) {
+        const serverId = deviceIdsRef.current[device.localId];
+        if (!serverId) continue;
+
+        const devRes = await apiFetch(
+          `/api/declarations/my/${declarationId}/devices/${serverId}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(serializeDevice(device)),
+          },
+        );
+
+        if (!devRes.ok) {
+          const err = await devRes.json().catch(() => ({}));
+          toast.error(err.message || "Erreur lors de l'enregistrement du DAE");
+          setSaving(false);
+          return false;
+        }
+      }
+
+      setIsDirty(false);
+      setSaving(false);
+      return true;
+    } catch {
+      toast.error("Erreur réseau");
+      setSaving(false);
+      return false;
     }
-    for (const key of Object.keys(saveTimerDevices.current)) {
-      clearTimeout(saveTimerDevices.current[key]);
-      delete saveTimerDevices.current[key];
-    }
-  }, []);
+  }, [declarationId, formData]);
 
   return {
     formData,
+    isDirty,
     saving,
-    lastSaved,
     handleFieldChange,
     handleBatchChange,
     handleDeviceChange,
     handleAddDevice,
     handleRemoveDevice,
-    flushPendingSaves,
+    saveAll,
   };
 }

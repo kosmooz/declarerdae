@@ -18,6 +18,7 @@ export default function EntrepriseSearch({
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [noResults, setNoResults] = useState(false);
+  const [apiError, setApiError] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const justSelectedRef = useRef(false);
@@ -34,6 +35,7 @@ export default function EntrepriseSearch({
       setResults([]);
       setOpen(false);
       setNoResults(false);
+      setApiError(false);
       setLoading(false);
       return;
     }
@@ -41,9 +43,27 @@ export default function EntrepriseSearch({
     let stale = false;
     setLoading(true);
     setNoResults(false);
+    setApiError(false);
     debounceRef.current = setTimeout(async () => {
-      const data = await searchSiret(query);
+      const { results: data, error } = await searchSiret(query);
       if (stale) return;
+      if (error && data.length === 0) {
+        // API error — retry once after 1s
+        await new Promise((r) => setTimeout(r, 1000));
+        if (stale) return;
+        const retry = await searchSiret(query);
+        if (stale) return;
+        if (retry.error) {
+          setLoading(false);
+          setApiError(true);
+          return;
+        }
+        setResults(retry.results);
+        setLoading(false);
+        setOpen(retry.results.length > 0);
+        setNoResults(retry.results.length === 0);
+        return;
+      }
       setResults(data);
       setLoading(false);
       setOpen(data.length > 0);
@@ -144,8 +164,16 @@ export default function EntrepriseSearch({
           </div>
         )}
 
+        {/* API error */}
+        {apiError && !loading && (
+          <p className="mt-2 text-xs text-[#E1000F]">
+            Le service de recherche est temporairement indisponible. Réessayez
+            dans quelques secondes ou saisissez les informations manuellement.
+          </p>
+        )}
+
         {/* No results */}
-        {noResults && !loading && (
+        {noResults && !apiError && !loading && (
           <p className="mt-2 text-xs text-[#92400E]">
             Aucun résultat trouvé. Saisissez le nom complet de l'entité (pas
             partiel) ou essayez avec le numéro SIREN.

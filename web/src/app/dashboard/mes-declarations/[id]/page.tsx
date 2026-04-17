@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { serverToFormState } from "@/lib/declaration-convert";
-import { useDeclarationEdit } from "@/hooks/useDeclarationEdit";
+import { useDeclarationEdit, validateStep, type StepErrors } from "@/hooks/useDeclarationEdit";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -19,9 +19,11 @@ import {
   CheckCircle2,
   ShieldCheck,
   XCircle,
+  AlertTriangle,
   Pencil,
   Loader2,
   Send,
+  Save,
 } from "lucide-react";
 
 // Lazy-load Step components (they pull in Leaflet, etc.)
@@ -38,6 +40,8 @@ const Step3Defibrillateurs = dynamic(
   () => import("@/components/declarerdae/declaration/steps/Step3Defibrillateurs"),
   { ssr: false },
 );
+import DeclarationLayout from "@/components/declarerdae/declaration/DeclarationLayout";
+import DeclarationPreview from "@/components/declarerdae/declaration/DeclarationPreview";
 
 /* ─── Types ──────────────────────────────────────────────────── */
 
@@ -181,59 +185,6 @@ function InfoRow({ label, value }: { label: string; value: string | null | undef
   );
 }
 
-/* ─── Status timeline ───────────────────────────────────────── */
-
-const TIMELINE_STEPS = [
-  { status: "COMPLETE", label: "Soumise", icon: CheckCircle },
-  { status: "VALIDATED", label: "Validée", icon: ShieldCheck },
-];
-
-function StatusTimeline({ currentStatus }: { currentStatus: string }) {
-  const statusOrder = ["COMPLETE", "VALIDATED"];
-  const currentIdx = statusOrder.indexOf(currentStatus);
-  const isCancelled = currentStatus === "CANCELLED";
-
-  return (
-    <div className="flex items-center gap-0 w-full max-w-md mx-auto">
-      {TIMELINE_STEPS.map((step, i) => {
-        const isCompleted = !isCancelled && currentIdx >= i;
-        const Icon = step.icon;
-        return (
-          <div key={step.status} className="flex items-center flex-1">
-            <div className="flex flex-col items-center">
-              <div
-                className={`w-9 h-9 rounded-full flex items-center justify-center ${
-                  isCompleted
-                    ? "bg-[#18753C] text-white"
-                    : "bg-[#F6F6F6] text-[#929292]"
-                }`}
-              >
-                <Icon className="w-4.5 h-4.5" />
-              </div>
-              <span
-                className={`text-[10px] mt-1.5 font-medium ${
-                  isCompleted ? "text-[#18753C]" : "text-[#929292]"
-                }`}
-              >
-                {step.label}
-              </span>
-            </div>
-            {i < TIMELINE_STEPS.length - 1 && (
-              <div
-                className={`flex-1 h-0.5 mx-2 rounded ${
-                  !isCancelled && currentIdx > i
-                    ? "bg-[#18753C]"
-                    : "bg-[#E5E5E5]"
-                }`}
-              />
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 /* ─── Recap helpers ─────────────────────────────────────────── */
 
 function RecapSection({
@@ -338,25 +289,87 @@ function EditView({
   const initialFormData = serverToFormState(decl);
   const {
     formData,
+    isDirty,
     saving,
-    lastSaved,
     handleFieldChange,
     handleBatchChange,
     handleDeviceChange,
     handleAddDevice,
     handleRemoveDevice,
-    flushPendingSaves,
+    saveAll,
   } = useDeclarationEdit(decl.id, initialFormData);
 
   const [currentStep, setCurrentStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
+  const [stepErrors, setStepErrors] = useState<StepErrors>({});
 
+  // ─── beforeunload: warn if unsaved changes ─────────────────
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty]);
+
+  // ─── Save & continue: validate step, save, advance ─────────
+  const handleSaveAndContinue = useCallback(async () => {
+    const errors = validateStep(currentStep, formData);
+    if (Object.keys(errors).length > 0) {
+      setStepErrors(errors);
+      return;
+    }
+    setStepErrors({});
+
+    const ok = await saveAll();
+    if (ok) {
+      toast.success("Modifications enregistrées");
+      setCurrentStep((s) => s + 1);
+    }
+  }, [currentStep, formData, saveAll]);
+
+  const handleStepClick = useCallback(
+    (target: number) => {
+      if (target < currentStep) {
+        setStepErrors({});
+        setCurrentStep(target);
+        return;
+      }
+      // Going forward: validate current step only (no save, just block if errors)
+      const errors = validateStep(currentStep, formData);
+      if (Object.keys(errors).length > 0) {
+        setStepErrors(errors);
+        return;
+      }
+      setStepErrors({});
+      setCurrentStep(target);
+    },
+    [currentStep, formData],
+  );
+
+  // ─── Submit (DRAFT -> COMPLETE) ────────────────────────────
   const handleSubmit = useCallback(async () => {
-    flushPendingSaves();
+    // Validate all steps
+    for (let s = 1; s <= 3; s++) {
+      const errors = validateStep(s, formData);
+      if (Object.keys(errors).length > 0) {
+        setStepErrors(errors);
+        setCurrentStep(s);
+        toast.error("Veuillez corriger les erreurs avant de soumettre");
+        return;
+      }
+    }
+
     setSubmitting(true);
 
-    // Small delay to let flushed saves complete
-    await new Promise((r) => setTimeout(r, 500));
+    // Save all changes first
+    const saved = await saveAll();
+    if (!saved) {
+      setSubmitting(false);
+      return;
+    }
 
     try {
       const res = await apiFetch(`/api/declarations/draft/${decl.id}/complete`, {
@@ -375,9 +388,9 @@ function EditView({
       toast.error("Erreur réseau");
     }
     setSubmitting(false);
-  }, [decl.id, flushPendingSaves, onSubmitted]);
+  }, [decl.id, formData, saveAll, onSubmitted]);
 
-  // Recap: check completeness
+  // Recap: check completeness (for display only on step 4)
   const missingFields: string[] = [];
   if (!formData.exptRais?.trim()) missingFields.push("Raison sociale");
   if (!formData.exptSiren?.trim()) missingFields.push("SIREN");
@@ -404,30 +417,47 @@ function EditView({
     missingFields.push("Au moins 1 DAE avec les champs obligatoires");
   }
 
-  return (
-    <>
-      {/* Stepper */}
-      <EditStepper currentStep={currentStep} onStepClick={setCurrentStep} />
+  const errorList = Object.values(stepErrors);
 
-      {/* Save indicator */}
-      <div className="flex items-center justify-end gap-2 text-xs text-[#929292] mb-3">
-        {saving ? (
-          <>
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            Enregistrement...
-          </>
-        ) : lastSaved ? (
-          <>
-            <CheckCircle className="h-3.5 w-3.5 text-[#18753C]" />
-            <span className="text-[#18753C]">Enregistré</span>
-          </>
-        ) : (
-          <>
-            <Pencil className="h-3.5 w-3.5" />
-            Modifications auto-enregistrées
-          </>
-        )}
-      </div>
+  return (
+    <DeclarationLayout
+      sidebar={
+        <DeclarationPreview
+          data={formData}
+          currentStep={currentStep}
+          onGoToStep={(step) => handleStepClick(step)}
+        />
+      }
+    >
+      {/* Stepper */}
+      <EditStepper currentStep={currentStep} onStepClick={handleStepClick} />
+
+      {/* Dirty indicator */}
+      {isDirty && (
+        <div className="flex items-center justify-end gap-2 text-xs text-[#92400E] mb-3">
+          <AlertTriangle className="h-3.5 w-3.5" />
+          Modifications non enregistrées
+        </div>
+      )}
+
+      {/* Validation errors for current step */}
+      {errorList.length > 0 && (
+        <div className="alert-danger rounded text-sm mb-4">
+          <div className="flex items-start gap-2">
+            <XCircle className="w-4 h-4 text-[#E1000F] mt-0.5 shrink-0" />
+            <div>
+              <p className="font-semibold text-[#E1000F]">
+                Veuillez corriger les erreurs suivantes
+              </p>
+              <ul className="list-disc list-inside text-[#E1000F]/80 text-xs mt-1">
+                {errorList.map((err) => (
+                  <li key={err}>{err}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Step content */}
       <div className="bg-white border border-[#E5E5E5] rounded-lg p-5 mb-4">
@@ -462,7 +492,7 @@ function EditView({
                 Récapitulatif de votre déclaration
               </h3>
               <p className="text-sm text-[#666]">
-                Vérifiez les informations avant de soumettre votre déclaration.
+                Vérifiez les informations avant d'enregistrer ou de soumettre votre déclaration.
               </p>
             </div>
 
@@ -487,7 +517,9 @@ function EditView({
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-[#18753C]" />
                   <span className="text-[#166534] font-medium">
-                    Votre déclaration est complète et prête à être soumise.
+                    {decl.status === "DRAFT"
+                      ? "Votre déclaration est complète. Vous pouvez la soumettre."
+                      : "Votre déclaration a bien été mise à jour et est en cours de traitement."}
                   </span>
                 </div>
               </div>
@@ -589,7 +621,10 @@ function EditView({
           {currentStep > 1 && (
             <Button
               variant="outline"
-              onClick={() => setCurrentStep((s) => s - 1)}
+              onClick={() => {
+                setStepErrors({});
+                setCurrentStep((s) => s - 1);
+              }}
               className="text-[#3A3A3A] border-[#E5E5E5]"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -601,10 +636,16 @@ function EditView({
         <div className="flex items-center gap-3">
           {currentStep < 4 && (
             <Button
-              onClick={() => setCurrentStep((s) => s + 1)}
+              onClick={handleSaveAndContinue}
+              disabled={saving}
               className="bg-[#000091] hover:bg-[#000091]/90 text-white"
             >
-              Suivant
+              {saving ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              {saving ? "Enregistrement..." : "Enregistrer et continuer"}
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           )}
@@ -624,7 +665,7 @@ function EditView({
           )}
         </div>
       </div>
-    </>
+    </DeclarationLayout>
   );
 }
 
@@ -849,12 +890,26 @@ export default function DeclarationDetailPage() {
         </Button>
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-        <div>
-          <h1 className="text-lg font-bold text-[#161616] font-heading">
-            {decl.exptRais || "Déclaration"}
-          </h1>
-          <p className="text-xs text-[#929292] mt-0.5">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-6">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-lg font-bold text-[#161616] font-heading">
+              {decl.exptRais || "Déclaration"}
+            </h1>
+            <span
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${statusCfg.bg} ${statusCfg.text}`}
+            >
+              <StatusIcon className="w-3 h-3" />
+              {STATUS_LABELS[decl.status] || decl.status}
+            </span>
+            {isEditable && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[#F5F5FE] text-[#000091]">
+                <Pencil className="w-2.5 h-2.5" />
+                Modifiable
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-[#929292] mt-1">
             {decl.status === "DRAFT" ? "Créée" : "Soumise"} le{" "}
             {new Date(decl.createdAt).toLocaleDateString("fr-FR", {
               day: "numeric",
@@ -864,37 +919,13 @@ export default function DeclarationDetailPage() {
             {" \u00b7 "}
             {decl.daeDevices.length} DAE
           </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {isEditable && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-[#F5F5FE] text-[#000091]">
-              <Pencil className="w-3 h-3" />
-              Modifiable
-            </span>
-          )}
-          <span
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${statusCfg.bg} ${statusCfg.text}`}
-          >
-            <StatusIcon className="w-3.5 h-3.5" />
-            {STATUS_LABELS[decl.status] || decl.status}
-          </span>
-        </div>
-      </div>
-
-      {/* Timeline (non-DRAFT only) */}
-      {decl.status !== "DRAFT" && (
-        <div className="bg-white border border-[#E5E5E5] rounded-sm p-5 mb-5">
-          <p className="text-xs font-semibold text-[#161616] mb-4 text-center">
-            Avancement de votre déclaration
-          </p>
-          <StatusTimeline currentStatus={decl.status} />
           {decl.status === "CANCELLED" && (
-            <p className="text-xs text-[#E1000F] text-center mt-3">
+            <p className="text-xs text-[#E1000F] mt-1.5">
               Cette déclaration a été annulée.
             </p>
           )}
         </div>
-      )}
+      </div>
 
       {/* Edit or Readonly */}
       {isEditable ? (

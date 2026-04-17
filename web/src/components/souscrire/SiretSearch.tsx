@@ -39,7 +39,7 @@ export default function SiretSearch({ onSelect }: SiretSearchProps) {
     setLoading(true);
     setNoResults(false);
     debounceRef.current = setTimeout(async () => {
-      const data = await searchSiret(query);
+      const { results: data } = await searchSiret(query);
       setResults(data);
       setLoading(false);
       setOpen(data.length > 0);
