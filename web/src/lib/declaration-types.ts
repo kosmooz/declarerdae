@@ -187,17 +187,22 @@ export function serializeDevice(d: DaeDeviceFormState): Record<string, any> {
   return result;
 }
 
-/** Deserialize device from API (JSON strings → arrays) */
+/** Deserialize device from API (JSON strings → arrays, nulls → defaults) */
 export function deserializeDevice(
   d: any,
   fallbackLocalId?: string,
 ): DaeDeviceFormState {
-  return {
-    ...d,
-    localId: fallbackLocalId || d.id || crypto.randomUUID(),
-    dispJ: safeParseArray(d.dispJ, ["7j/7"]),
-    dispH: safeParseArray(d.dispH, ["24h/24"]),
-  };
+  const defaults = createEmptyDevice(d.position ?? 0);
+  // Overlay server values, converting null → default for each field
+  const result: Record<string, any> = { ...defaults };
+  for (const key of Object.keys(defaults)) {
+    if (d[key] != null) result[key] = d[key];
+  }
+  result.id = d.id;
+  result.localId = fallbackLocalId || d.id || crypto.randomUUID();
+  result.dispJ = safeParseArray(d.dispJ, defaults.dispJ);
+  result.dispH = safeParseArray(d.dispH, defaults.dispH);
+  return result as DaeDeviceFormState;
 }
 
 function safeParseArray(val: any, fallback: string[]): string[] {
