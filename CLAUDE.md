@@ -193,7 +193,7 @@ docker-compose -f docker-compose.prod.yml up -d  # Production
 - Admin seed: `admin@star-aid.fr` / `changeme12345`
 - **Modèles principaux** : User, Declaration, DaeDevice, DeclarationAuditLog, Subscription, ShopSettings, BlogArticle, BlogCategory
 - **Declaration** : champs exploitant (`expt*`), site (`adr*`, `tel*`), coordonnées GPS (`latCoor1`, `longCoor1`, `xyPrecis`), préfixes téléphone (`exptTel1Prefix`, `tel1Prefix`, `tel2Prefix`)
-- **DaeDevice** : coordonnées optionnelles par DAE (`daeLat`, `daeLng`), suivi GéoDAE (`geodaeGid`, `geodaeStatus`, `geodaeLastSync`, `geodaeLastError`)
+- **DaeDevice** : coordonnées optionnelles par DAE (`daeLat`, `daeLng`), suivi GéoDAE (`geodaeGid`, `geodaeStatus`, `geodaeLastSync`, `geodaeLastError`). **Champs supprimés du code** (colonnes DB conservées mais non exposées) : `dtprBat`, `fabSiren`, `mntRais`, `mntSiren`, `freqMnt`, `idEuro`, `accPcsec`, `accAcc`
 - **DeclarationAuditLog** : trail d'audit complet — action (CREATED/FIELD_UPDATE/STATUS_CHANGE/DEVICE_UPDATE/USER_ATTACHED/GEODAE_SYNC), fieldName, oldValue, newValue, adminId, deviceId, deviceName, metadata
 
 ## Environment Variables
@@ -300,12 +300,14 @@ export default function MyPage() {
 - **Upload photos** : endpoint public `POST /api/upload` (fichier unique, 5MB max), URLs relatives via proxy Next.js
 - **Validation frontend alignée backend** : 10 champs obligatoires par DAE (nom, fabRais, modele, numSerie, etatFonct, acc, accLib, daeMobile, dispJ, dispH)
 - **Sérialisation device** : `serializeDevice()` utilise un whitelist de champs (pas de spread) pour éviter d'envoyer `id`, `declarationId` etc. au backend (forbidNonWhitelisted)
+- **Champs supprimés** : dtprBat, fabSiren, mntRais, mntSiren, freqMnt, idEuro, accPcsec, accAcc — retirés des types, DTOs, formulaires, vues admin/dashboard et mapper GéoDAE (colonnes DB conservées)
+- **Labels péremption électrodes** : "Date de péremption des électrodes adultes" (`dtprLcad`) et "Date de péremption des électrodes pédiatriques" (`dtprLcped`)
 - **Prefixes téléphone** : stockés en base (exptTel1Prefix, tel1Prefix, tel2Prefix) — codes ISO pays via `@/data/phone-prefixes.ts`. Composant `PhonePrefixSelect` utilisé à la fois dans le formulaire public et dans les formulaires d'édition admin (ExploitantEditForm, SiteEditForm)
 
 ### GéoDAE Integration (`api/src/geodae/`)
 - **API cible** : `catalogue.atlasante.fr` (ressource `8777a504-6c3e-4abe-8100-60bb58767faa`)
 - **Auth** : Basic auth → PHPSESSID cookie, avec retry automatique sur 401/403
-- **Mapper** (`geodae-mapper.ts`) : transforme Declaration + DaeDevice en GeoJSON FeatureCollection pour l'API GéoDAE
+- **Mapper** (`geodae-mapper.ts`) : transforme Declaration + DaeDevice en GeoJSON FeatureCollection pour l'API GéoDAE. `mnt_siren`/`mnt_rais` proviennent uniquement de ShopSettings (options), plus des champs device
 - **Téléphones** : convertis en E.164 via `geodae-phone.ts` (utilise les préfixes ISO stockés en base)
 - **Photos** : converties en base64 data URI depuis le dossier `uploads/`
 - **Coordonnées** : `device.daeLat/daeLng` prioritaire, sinon `decl.latCoor1/longCoor1` ; précision BAN dans `xy_precis`
