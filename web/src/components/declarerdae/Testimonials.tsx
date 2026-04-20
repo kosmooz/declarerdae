@@ -1,6 +1,7 @@
 import { Star, Quote } from "lucide-react";
 import ScrollReveal from "@/components/declarerdae/ScrollReveal";
 
+// TODO: Remplacer par les noms de clients reels avec consentement RGPD ecrit avant mise en ligne
 const testimonials = [
   {
     name: "Marie-Claire Dubois",
@@ -17,7 +18,7 @@ const testimonials = [
   {
     name: "Dr. Sophie Lefèvre",
     role: "Pharmacienne, Paris 11e",
-    text: "Le formulaire est vraiment intuitif. J'ai déclaré mon DAE en 4 minutes chrono. Le fait de recevoir une attestation officielle est très rassurant pour mes obligations professionnelles.",
+    text: "Le formulaire est vraiment intuitif. J'ai déclaré mon DAE en 4 minutes chrono. Le fait de recevoir une attestation d'enregistrement est très rassurant pour mes obligations professionnelles.",
     stars: 5,
   },
   {

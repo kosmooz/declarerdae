@@ -20,12 +20,12 @@ export const DECLARATION_FIELDS = [
 
 export const DEVICE_FIELDS = [
   "position", "nom",
-  "acc", "accLib", "accEtg", "accComplt", "accPcsec", "accAcc", "daeMobile",
+  "acc", "accLib", "accEtg", "accComplt", "daeMobile",
   "dispJ", "dispH", "dispComplt",
   "etatFonct",
-  "fabRais", "fabSiren", "modele", "numSerie", "typeDAE", "idEuro",
-  "dateInstal", "dermnt", "mntRais", "mntSiren", "freqMnt", "dispSurv",
-  "lcPed", "dtprLcped", "dtprLcad", "dtprBat",
+  "fabRais", "modele", "numSerie", "typeDAE",
+  "dateInstal", "dermnt", "dispSurv",
+  "lcPed", "dtprLcped", "dtprLcad",
   "daeLat", "daeLng",
   "photo1", "photo2",
 ] as const;

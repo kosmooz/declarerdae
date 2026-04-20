@@ -32,7 +32,7 @@ const erpCategories = [
   },
   {
     cat: "Catégorie 4",
-    capacity: "Jusqu'à 300 personnes",
+    capacity: "Jusqu'à 300 personnes (hors catégorie 5)",
     examples: "Petits commerces, bars, boutiques, salons de coiffure",
     deadline: "1er janvier 2021",
     color: "border-[#000091]",
@@ -40,11 +40,19 @@ const erpCategories = [
   },
   {
     cat: "Catégorie 5",
-    capacity: "Selon seuils réglementaires",
-    examples: "Structures d'accueil pour personnes âgées, refuges de montagne, établissements sportifs clos et couverts, gares, hôtels-restaurants d'altitude",
+    capacity: "Selon types définis par arrêté",
+    examples: "Refuges de montagne, établissements de soins, structures d'accueil pour personnes âgées ou handicapées, gares, établissements sportifs",
     deadline: "1er janvier 2022",
     color: "border-[#18753C]",
     bg: "bg-[#F0FDF4]",
+  },
+  {
+    cat: "Catégorie 5 (extension)",
+    capacity: "Sous conditions de fréquentation",
+    examples: "Salles de danse (type P), salles de jeux, aéroports — décret n°2025-1167",
+    deadline: "7 décembre 2025",
+    color: "border-[#92400E]",
+    bg: "bg-[#FEF9C3]",
   },
 ];
 

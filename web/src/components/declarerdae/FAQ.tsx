@@ -12,7 +12,7 @@ const faqItems = [
   },
   {
     question: "Quelles sont les sanctions en cas de non-déclaration de mon DAE ?",
-    answer: "Le non-respect de l'obligation de déclaration expose l'exploitant à des sanctions significatives. En cas d'arrêt cardiaque mortel dans un établissement, l'absence de DAE déclaré et maintenu peut engager la responsabilité pénale du chef d'établissement. Les sanctions peuvent inclure des amendes pouvant atteindre 45 000 €, la fermeture temporaire ou définitive de l'établissement, et des poursuites pour mise en danger de la vie d'autrui.",
+    answer: "Le non-respect des obligations relatives aux DAE expose l'exploitant a trois niveaux de sanctions. Sanctions administratives : mise en demeure, fermeture administrative temporaire ou definitive de l'etablissement. Defaut de maintenance : jusqu'a 2 ans d'emprisonnement et 150 000 EUR d'amende (article L.5461-5 du Code de la sante publique). Sanctions penales en cas d'arret cardiaque mortel : la responsabilite penale du chef d'etablissement peut etre engagee pour homicide involontaire (jusqu'a 3 ans et 45 000 EUR, ou 5 ans et 75 000 EUR en cas de violation deliberee d'une obligation de securite). Deux propositions de loi en cours d'examen visent a durcir ces sanctions.",
   },
   {
     question: "Combien de temps prend la déclaration en ligne sur votre plateforme ?",
@@ -24,7 +24,7 @@ const faqItems = [
   },
   {
     question: "Mon établissement est-il obligé de s'équiper d'un DAE ?",
-    answer: "Depuis le 1er janvier 2022, tous les ERP de catégories 1 à 5 (selon les seuils définis) sont tenus de s'équiper d'un DAE. L'obligation s'est déployée progressivement : catégories 1, 2 et 3 depuis le 1er janvier 2020, catégorie 4 depuis le 1er janvier 2021, et certains ERP de catégorie 5 depuis le 1er janvier 2022. En dehors de cette obligation, toute personne est libre d'installer un DAE pour contribuer à sauver des vies.",
+    answer: "L'obligation d'equipement s'est deployee progressivement : categories 1, 2 et 3 depuis le 1er janvier 2020, categorie 4 depuis le 1er janvier 2021, et certains ERP de categorie 5 depuis le 1er janvier 2022. Depuis le decret n 2025-1167 du 5 decembre 2025, de nouveaux ERP de categorie 5 sont concernes : salles de danse, salles de jeux et aeroports sous certaines conditions. En dehors de cette obligation d'equipement, tout exploitant de DAE doit le declarer dans Geo'DAE, meme s'il n'est pas soumis a l'obligation de s'equiper.",
   },
   {
     question: "Quelles sont les obligations de maintenance d'un DAE ?",

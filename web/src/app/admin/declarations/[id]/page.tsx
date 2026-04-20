@@ -64,29 +64,21 @@ interface DaeDevice {
   accLib: string | null;
   accEtg: string | null;
   accComplt: string | null;
-  accPcsec: string | null;
-  accAcc: string | null;
   daeMobile: string | null;
   dispJ: string | null;
   dispH: string | null;
   dispComplt: string | null;
   etatFonct: string | null;
   fabRais: string | null;
-  fabSiren: string | null;
   modele: string | null;
   numSerie: string | null;
   typeDAE: string | null;
-  idEuro: string | null;
   dateInstal: string | null;
   dermnt: string | null;
-  mntRais: string | null;
-  mntSiren: string | null;
-  freqMnt: string | null;
   dispSurv: string | null;
   lcPed: string | null;
   dtprLcped: string | null;
   dtprLcad: string | null;
-  dtprBat: string | null;
   photo1: string | null;
   photo2: string | null;
   geodaeGid: number | null;
@@ -226,12 +218,11 @@ const FIELD_LABELS: Record<string, string> = {
   tel1: "Tel. site", tel1Prefix: "Indicatif site", tel2: "Tel. 2 site", tel2Prefix: "Indicatif tel. 2",
   siteEmail: "Email site", notes: "Notes", status: "Statut",
   nom: "Nom DAE", acc: "Environnement", accLib: "Acces libre",
-  accEtg: "Etage", accComplt: "Complement acces", accPcsec: "Poste securite", accAcc: "Accueil public",
+  accEtg: "Etage", accComplt: "Complement acces",
   daeMobile: "DAE itinerant", dispJ: "Jours dispo.", dispH: "Heures dispo.",
   etatFonct: "Etat fonctionnement", fabRais: "Fabricant", modele: "Modele",
-  numSerie: "N. serie", typeDAE: "Type DAE", fabSiren: "SIREN fabricant",
+  numSerie: "N. serie", typeDAE: "Type DAE",
   dateInstal: "Date installation", dermnt: "Dern. maintenance",
-  mntRais: "Mainteneur", freqMnt: "Freq. maintenance",
   photo1: "Photo 1", photo2: "Photo 2",
 };
 
@@ -1448,12 +1439,6 @@ export default function AdminDeclarationDetailPage() {
                             : device.typeDAE
                       }
                     />
-                    {device.idEuro && (
-                      <InfoRow label="IUD europeen" value={device.idEuro} />
-                    )}
-                    {device.fabSiren && (
-                      <InfoRow label="SIREN fabricant" value={device.fabSiren} />
-                    )}
                     <InfoRow
                       label="Environnement"
                       value={
@@ -1472,12 +1457,6 @@ export default function AdminDeclarationDetailPage() {
                     {device.accComplt && (
                       <InfoRow label="Compl. acces" value={device.accComplt} />
                     )}
-                    {device.accPcsec && (
-                      <InfoRow label="Poste securite" value={device.accPcsec} />
-                    )}
-                    {device.accAcc && (
-                      <InfoRow label="Accueil public" value={device.accAcc} />
-                    )}
                     <InfoRow
                       label="Jours"
                       value={parseJsonArray(device.dispJ).join(", ")}
@@ -1493,12 +1472,6 @@ export default function AdminDeclarationDetailPage() {
                     {device.dateInstal && (
                       <InfoRow label="Installation" value={device.dateInstal} />
                     )}
-                    {device.mntRais && (
-                      <InfoRow label="Mainteneur" value={device.mntRais} />
-                    )}
-                    {device.freqMnt && (
-                      <InfoRow label="Freq. maintenance" value={device.freqMnt} />
-                    )}
                     {device.dispSurv && (
                       <InfoRow label="Surveillance" value={device.dispSurv} />
                     )}
@@ -1506,13 +1479,10 @@ export default function AdminDeclarationDetailPage() {
                       <InfoRow label="Electr. pediatriques" value={device.lcPed} />
                     )}
                     {device.dtprLcad && (
-                      <InfoRow label="Per. electr. adultes" value={device.dtprLcad} />
+                      <InfoRow label="Date de péremption des électrodes adultes" value={device.dtprLcad} />
                     )}
                     {device.dtprLcped && (
-                      <InfoRow label="Per. electr. pedia." value={device.dtprLcped} />
-                    )}
-                    {device.dtprBat && (
-                      <InfoRow label="Per. batterie" value={device.dtprBat} />
+                      <InfoRow label="Date de péremption des électrodes pédiatriques" value={device.dtprLcped} />
                     )}
                     {(device.photo1 || device.photo2) && (
                       <div className="py-2 flex gap-3">

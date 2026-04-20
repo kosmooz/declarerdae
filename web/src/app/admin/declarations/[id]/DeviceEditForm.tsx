@@ -253,32 +253,6 @@ export default function DeviceEditForm({
             </div>
           </div>
 
-          {/* Mainteneur + Frequence maintenance */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs text-[#666] mb-1 block">
-                Mainteneur
-              </Label>
-              <Input
-                value={data.mntRais || ""}
-                onChange={(e) => onChange("mntRais", e.target.value)}
-                placeholder="Raison sociale du mainteneur"
-                className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]"
-              />
-            </div>
-            <div>
-              <Label className="text-xs text-[#666] mb-1 block">
-                Frequence maintenance
-              </Label>
-              <Input
-                value={data.freqMnt || ""}
-                onChange={(e) => onChange("freqMnt", e.target.value)}
-                placeholder="2 fois par an"
-                className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]"
-              />
-            </div>
-          </div>
-
           {/* Electrodes pediatriques + Surveillance a distance */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <OuiNonSwitch
@@ -293,11 +267,11 @@ export default function DeviceEditForm({
             />
           </div>
 
-          {/* Per. electrodes adultes + Per. electrodes pedia. + Per. batterie */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {/* Date peremption electrodes */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label className="text-xs text-[#666] mb-1 block">
-                Per. electrodes adultes
+                Date de péremption des électrodes adultes
               </Label>
               <Input
                 type="date"
@@ -308,7 +282,7 @@ export default function DeviceEditForm({
             </div>
             <div>
               <Label className="text-xs text-[#666] mb-1 block">
-                Per. electrodes pedia.
+                Date de péremption des électrodes pédiatriques
               </Label>
               <Input
                 type="date"
@@ -317,68 +291,8 @@ export default function DeviceEditForm({
                 className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]"
               />
             </div>
-            <div>
-              <Label className="text-xs text-[#666] mb-1 block">
-                Per. batterie
-              </Label>
-              <Input
-                type="date"
-                value={data.dtprBat || ""}
-                onChange={(e) => onChange("dtprBat", e.target.value)}
-                className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]"
-              />
-            </div>
           </div>
 
-          {/* SIREN fabricant + SIREN mainteneur + IUD europeen */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <Label className="text-xs text-[#666] mb-1 block">
-                SIREN fabricant
-              </Label>
-              <Input
-                value={data.fabSiren || ""}
-                onChange={(e) => onChange("fabSiren", e.target.value)}
-                maxLength={9}
-                className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]"
-              />
-            </div>
-            <div>
-              <Label className="text-xs text-[#666] mb-1 block">
-                SIREN mainteneur
-              </Label>
-              <Input
-                value={data.mntSiren || ""}
-                onChange={(e) => onChange("mntSiren", e.target.value)}
-                maxLength={9}
-                className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]"
-              />
-            </div>
-            <div>
-              <Label className="text-xs text-[#666] mb-1 block">
-                IUD europeen
-              </Label>
-              <Input
-                value={data.idEuro || ""}
-                onChange={(e) => onChange("idEuro", e.target.value)}
-                className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]"
-              />
-            </div>
-          </div>
-
-          {/* Poste de securite + Accueil public */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <OuiNonSwitch
-              label="Poste de securite"
-              value={data.accPcsec || ""}
-              onChange={(v) => onChange("accPcsec", v)}
-            />
-            <OuiNonSwitch
-              label="Accueil public"
-              value={data.accAcc || ""}
-              onChange={(v) => onChange("accAcc", v)}
-            />
-          </div>
         </div>
       </div>
     </div>

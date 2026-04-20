@@ -30,13 +30,13 @@ import {
   HeartPulse,
   Landmark,
   LifeBuoy,
-  Lock,
   MapPin,
-  Phone,
   Scale,
   Shield,
   ShieldCheck,
+  Store,
   Timer,
+  UserPlus,
   Users,
   Zap,
   ArrowDown,
@@ -86,7 +86,7 @@ export default function Home() {
                 </h1>
 
                 <p className="text-base sm:text-lg lg:text-xl text-white/85 leading-relaxed mb-6 sm:mb-8 max-w-xl">
-                  Chaque année, <strong className="text-white">46 000 personnes</strong> sont victimes d'un arrêt cardiaque en France. Votre DAE peut sauver des vies — encore faut-il qu'il soit déclaré et localisable. Notre service automatisé vous met en conformité en moins de 5 minutes.
+                  Chaque année, <strong className="text-white">40 000 à 50 000 personnes</strong> sont victimes d'un arrêt cardiaque en France. Votre DAE peut sauver des vies — encore faut-il qu'il soit déclaré et localisable. Notre service automatisé vous met en conformité en moins de 5 minutes.
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-3">
@@ -268,7 +268,7 @@ export default function Home() {
               <div className="flex items-start gap-3 flex-1">
                 <AlertTriangle className="w-5 h-5 text-[#E1000F] mt-0.5 shrink-0" />
                 <p className="text-sm text-[#7F1D1D] leading-relaxed">
-                  <strong>Attention :</strong> Fin 2024, seulement 28 % des DAE installés en France étaient déclarés dans la base nationale Géo'DAE. Le non-respect de cette obligation légale expose à des amendes pouvant atteindre <strong>45 000 €</strong> et à la responsabilité pénale du chef d'établissement.
+                  <strong>Attention :</strong> Au 13 janvier 2026, seulement 165 500 DAE sur les 500 000 installés en France étaient recensés dans la base nationale Géo’DAE — près de 7 DAE sur 10 restent invisibles pour les services de secours. Le non-respect des obligations de déclaration, de maintenance et de signalétique engage la responsabilité de l’exploitant, qui peut être poursuivi pénalement en cas d’arrêt cardiaque mortel dans son établissement.
                 </p>
               </div>
               <Link href="/declaration" className="shrink-0">
@@ -293,10 +293,16 @@ export default function Home() {
           <div className="container">
             <ScrollReveal>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8">
-                <StatCounter end={46000} label="Arrêts cardiaques par an" sublabel="en France" />
-                <StatCounter end={92} suffix="%" label="Taux de mortalité" sublabel="sans intervention rapide" />
+                <div className="text-center">
+                  <div className="font-heading font-black text-3xl sm:text-4xl lg:text-5xl text-[#000091] leading-none">
+                    40 000 à 50 000
+                  </div>
+                  <div className="font-heading font-semibold text-sm sm:text-base text-[#3A3A3A] mt-2">Décès par arrêt cardiaque</div>
+                  <div className="text-xs text-[#929292] mt-1">chaque année en France</div>
+                </div>
+                <StatCounter end={10} prefix="< " suffix=" %" label="Taux de survie" sublabel="sans intervention rapide" />
                 <StatCounter end={5} suffix=" min" label="Temps moyen de déclaration" sublabel="sur notre plateforme" />
-                <StatCounter end={45000} prefix="" suffix=" €" label="Amende maximale" sublabel="en cas de non-conformité" />
+                <StatCounter end={50} suffix=" %" label="Taux de survie avec DAE" sublabel="dans les premières minutes" />
               </div>
             </ScrollReveal>
           </div>
@@ -326,10 +332,10 @@ export default function Home() {
                     <HeartPulse className="w-5 h-5 text-[#E1000F]" />
                   </div>
                   <h3 className="font-heading font-bold text-base text-[#161616] mb-2">
-                    46 000 vies en jeu chaque année
+                    40 000 à 50 000 vies en jeu chaque année
                   </h3>
                   <p className="text-sm text-[#666] leading-relaxed">
-                    En France, entre 40 000 et 50 000 personnes sont victimes d'une mort subite par arrêt cardiaque chaque année. Le taux de survie n'est que de 5 à 8 %, l'un des plus bas d'Europe. Chaque minute sans défibrillation réduit les chances de survie de 7 à 10 %. Un DAE accessible et localisable peut multiplier les chances de survie par 4.
+                    En France, entre 40 000 et 50 000 personnes décèdent d'un arrêt cardiaque chaque année. Le taux de survie est aujourd'hui inférieur à 10 %, l'un des plus bas d'Europe occidentale. Chaque minute sans défibrillation réduit les chances de survie de 7 à 10 %. Lorsqu'un DAE est utilisé dans les premières minutes suivant l'arrêt, le taux de survie est majoré à 50 % (source : PPL n° 274 du Sénat, 13 janvier 2026).
                   </p>
                 </div>
               </ScrollReveal>
@@ -340,10 +346,10 @@ export default function Home() {
                     <MapPin className="w-5 h-5 text-[#000091]" />
                   </div>
                   <h3 className="font-heading font-bold text-base text-[#161616] mb-2">
-                    72 % des DAE restent invisibles
+                    67 % des DAE restent invisibles
                   </h3>
                   <p className="text-sm text-[#666] leading-relaxed">
-                    Fin 2024, seulement 28 % des défibrillateurs installés en France étaient déclarés dans la base nationale Géo'DAE. Cela signifie que plus de 7 DAE sur 10 sont introuvables par les services de secours et les citoyens en situation d'urgence. Un DAE non déclaré est un DAE qui ne sauvera personne.
+                    Au 13 janvier 2026, seuls 165 500 DAE sur les 500 000 installés en France étaient recensés dans la base nationale Géo'DAE (source : exposé des motifs de la proposition de loi n° 274 du Sénat). Près de 2 DAE sur 3 sont aujourd'hui introuvables par les services de secours et les citoyens en situation d'urgence. Un DAE non déclaré est un DAE qui ne sauvera personne.
                   </p>
                 </div>
               </ScrollReveal>
@@ -416,7 +422,7 @@ export default function Home() {
         {/* ===== CTA INTERMÉDIAIRE ROUGE ===== */}
         <CTABanner
           title="Ne laissez pas votre DAE dans l'ombre. Déclarez-le maintenant."
-          subtitle="72% des défibrillateurs en France ne sont pas déclarés. Et le vôtre ?"
+          subtitle="67% des défibrillateurs en France ne sont pas déclarés. Et le vôtre ?"
           buttonText="Déclarer en 5 minutes"
           href="/declaration"
           variant="danger"
@@ -431,15 +437,15 @@ export default function Home() {
                   Cadre réglementaire
                 </span>
                 <h2 className="font-heading font-bold text-2xl sm:text-3xl text-[#161616] mb-4">
-                  Vos 4 obligations en tant qu'exploitant de DAE
+                  Vos 3 obligations en tant qu'exploitant de DAE
                 </h2>
                 <p className="text-[#666] text-base leading-relaxed">
-                  En tant que propriétaire ou exploitant d'un défibrillateur automatisé externe, la réglementation française vous impose quatre obligations distinctes. Le non-respect de ces obligations engage votre responsabilité civile et pénale.
+                  En tant que propriétaire ou exploitant d'un défibrillateur automatisé externe, la réglementation française vous impose trois obligations distinctes. Le non-respect de ces obligations engage votre responsabilité civile et pénale.
                 </p>
               </div>
             </ScrollReveal>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-5 max-w-4xl mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-5 max-w-4xl mx-auto">
               <ScrollReveal delay={100}>
                 <div className="border-l-4 border-[#E1000F] bg-[#FEF3F2] p-3 sm:p-5 rounded-r">
                   <div className="flex items-center gap-2 mb-2">
@@ -468,26 +474,14 @@ export default function Home() {
                 </div>
               </ScrollReveal>
 
-              <ScrollReveal delay={300}>
-                <div className="border-l-4 border-[#18753C] bg-[#F0FDF4] p-3 sm:p-5 rounded-r">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Lock className="w-5 h-5 text-[#18753C]" />
-                    <h3 className="font-heading font-bold text-base text-[#161616]">
-                      3. Obligation d'assurance
-                    </h3>
-                  </div>
-                  <p className="text-sm text-[#666] leading-relaxed">
-                    Les exploitants, producteurs et fournisseurs de DAE doivent souscrire une assurance destinée à garantir leur responsabilité civile ou administrative, conformément au code de la santé publique.
-                  </p>
-                </div>
-              </ScrollReveal>
 
-              <ScrollReveal delay={400}>
+
+              <ScrollReveal delay={300}>
                 <div className="border-l-4 border-[#92400E] bg-[#FEF9C3] p-3 sm:p-5 rounded-r">
                   <div className="flex items-center gap-2 mb-2">
                     <BookOpen className="w-5 h-5 text-[#92400E]" />
                     <h3 className="font-heading font-bold text-base text-[#161616]">
-                      4. Obligation de signalétique
+                      3. Obligation de signalétique
                     </h3>
                   </div>
                   <p className="text-sm text-[#666] leading-relaxed">
@@ -518,17 +512,22 @@ export default function Home() {
                         <tr className="border-b border-[#000091]/10">
                           <td className="py-2 pr-2 sm:pr-4 font-medium text-xs sm:text-sm">1er janvier 2020</td>
                           <td className="py-2 pr-2 sm:pr-4 text-xs sm:text-sm">Catégories 1, 2 et 3</td>
-                          <td className="py-2">Plus de 300 personnes</td>
+                          <td className="py-2 text-xs sm:text-sm">Plus de 300 personnes (1 500+ ; 701-1 500 ; 301-700)</td>
                         </tr>
                         <tr className="border-b border-[#000091]/10">
                           <td className="py-2 pr-2 sm:pr-4 font-medium text-xs sm:text-sm">1er janvier 2021</td>
                           <td className="py-2 pr-2 sm:pr-4 text-xs sm:text-sm">Catégorie 4</td>
-                          <td className="py-2">300 personnes et moins</td>
+                          <td className="py-2 text-xs sm:text-sm">Jusqu’à 300 personnes (hors catégorie 5)</td>
                         </tr>
-                        <tr>
+                        <tr className="border-b border-[#000091]/10">
                           <td className="py-2 pr-2 sm:pr-4 font-medium text-xs sm:text-sm">1er janvier 2022</td>
                           <td className="py-2 pr-2 sm:pr-4 text-xs sm:text-sm">Certains ERP de catégorie 5</td>
-                          <td className="py-2 text-xs sm:text-sm">Selon seuils réglementaires</td>
+                          <td className="py-2 text-xs sm:text-sm">Selon types définis par arrêté (refuges de montagne, établissements de soins, structures d’accueil pour personnes âgées ou handicapées, gares, établissements sportifs...)</td>
+                        </tr>
+                        <tr>
+                          <td className="py-2 pr-2 sm:pr-4 font-medium text-xs sm:text-sm">7 décembre 2025</td>
+                          <td className="py-2 pr-2 sm:pr-4 text-xs sm:text-sm">Nouvelle extension catégorie 5</td>
+                          <td className="py-2 text-xs sm:text-sm">Salles de danse (type P), salles de jeux, aéroports — sous conditions (décret n°2025-1167)</td>
                         </tr>
                       </tbody>
                     </table>
@@ -545,9 +544,15 @@ export default function Home() {
                     <Scale className="w-5 h-5" />
                     Sanctions en cas de non-conformité
                   </h3>
-                  <p className="text-sm text-[#7F1D1D] leading-relaxed">
-                    Le non-respect des obligations relatives aux DAE peut entraîner des <strong>amendes pouvant atteindre 45 000 €</strong>, la <strong>fermeture temporaire ou définitive</strong> de l'établissement, et l'engagement de la <strong>responsabilité pénale</strong> du chef d'établissement en cas d'arrêt cardiaque mortel. Ne prenez pas ce risque : déclarez votre DAE dès maintenant.
-                  </p>
+                  <div className="text-sm text-[#7F1D1D] leading-relaxed space-y-2">
+                    <p>Le non-respect des obligations relatives aux DAE expose l'exploitant à trois niveaux de sanctions selon la nature du manquement :</p>
+                    <ul className="list-disc pl-5 space-y-1.5">
+                      <li><strong>Sanctions administratives :</strong> mise en demeure, fermeture administrative temporaire ou définitive de l'établissement prononcée par le maire ou le préfet.</li>
+                      <li><strong>Défaut de maintenance :</strong> jusqu'à <strong>2 ans d'emprisonnement et 150 000 € d'amende</strong> (article L.5461-5 du Code de la santé publique, rappelé par la note d'information DGS/PP3/2025/121 du 3 octobre 2025).</li>
+                      <li><strong>Sanctions pénales en cas d'arrêt cardiaque mortel :</strong> responsabilité pénale du chef d'établissement pour homicide involontaire — jusqu'à <strong>3 ans et 45 000 €</strong> en cas de simple imprudence, portée à <strong>5 ans et 75 000 €</strong> en cas de violation manifestement délibérée d'une obligation de sécurité.</li>
+                    </ul>
+                    <p className="mt-2 text-xs italic">Deux propositions de loi actuellement en cours d'examen au Parlement (PPL n°1090 à l'Assemblée nationale, PPL n°274 au Sénat) visent à durcir et clarifier ces sanctions.</p>
+                  </div>
                 </div>
               </div>
             </ScrollReveal>
@@ -572,7 +577,71 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ===== QUI EST CONCERNÉ ===== */}
+        {/* ===== CADRE RÉGLEMENTAIRE EN ÉVOLUTION ===== */}
+        <section className="bg-[#F6F6F6] py-10 sm:py-16">
+          <div className="container">
+            <ScrollReveal>
+              <div className="max-w-3xl mx-auto text-center mb-8 sm:mb-12">
+                <span className="inline-block text-xs font-semibold uppercase tracking-widest text-[#92400E] mb-3">
+                  Actualité réglementaire
+                </span>
+                <h2 className="font-heading font-bold text-2xl sm:text-3xl text-[#161616] mb-4">
+                  Un cadre réglementaire en cours de durcissement
+                </h2>
+                <p className="text-[#666] text-base leading-relaxed">
+                  Deux propositions de loi sont actuellement en discussion au Parlement français. Elles visent à renforcer les obligations pesant sur les exploitants de DAE, à simplifier la déclaration dans Géo'DAE et à introduire des sanctions en cas de manquement.
+                </p>
+              </div>
+            </ScrollReveal>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 max-w-4xl mx-auto">
+              <ScrollReveal delay={100}>
+                <div className="border-l-4 border-[#000091] bg-white p-4 sm:p-6 rounded-r h-full">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-[#FEF9C3] text-[#92400E]">En discussion</span>
+                  </div>
+                  <h3 className="font-heading font-bold text-base text-[#000091] mb-2">
+                    Proposition de loi n°1090 — Assemblée nationale
+                  </h3>
+                  <p className="text-xs text-[#929292] mb-2">Déposée le 11 mars 2025 par M. Laurent MAZAURY</p>
+                  <p className="text-sm text-[#666] leading-relaxed">
+                    Vise à garantir la maintenance des DAE. Prévoit l'obligation de recensement dans un délai d'un an après installation, le renforcement des obligations de maintenance et des sanctions à définir par arrêté.
+                  </p>
+                </div>
+              </ScrollReveal>
+
+              <ScrollReveal delay={200}>
+                <div className="border-l-4 border-[#E1000F] bg-white p-4 sm:p-6 rounded-r h-full">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-[#FEF9C3] text-[#92400E]">En discussion</span>
+                  </div>
+                  <h3 className="font-heading font-bold text-base text-[#E1000F] mb-2">
+                    Proposition de loi n°274 — Sénat
+                  </h3>
+                  <p className="text-xs text-[#929292] mb-2">Déposée le 13 janvier 2026 par M. Ludovic HAYE</p>
+                  <p className="text-sm text-[#666] leading-relaxed">
+                    Vise à renforcer l'accessibilité, l'efficacité et la gouvernance locale des DAE. Instaure un recensement simplifié, une meilleure coordination territoriale et des sanctions en cas de non-respect de la maintenance. Le texte constate explicitement que, au 13 janvier 2026, seuls 165 500 DAE sur les 500 000 installés en France étaient recensés.
+                  </p>
+                </div>
+              </ScrollReveal>
+            </div>
+
+            <ScrollReveal>
+              <div className="max-w-3xl mx-auto mt-8 text-center">
+                <div className="bg-white border border-[#E5E5E5] rounded p-4 sm:p-6">
+                  <p className="font-heading font-bold text-base text-[#18753C] mb-2">
+                    Notre engagement
+                  </p>
+                  <p className="text-sm text-[#666] leading-relaxed">
+                    Vous accompagner dès maintenant pour être en totale conformité, que ces textes soient adoptés ou non.
+                  </p>
+                </div>
+              </div>
+            </ScrollReveal>
+          </div>
+        </section>
+
+                {/* ===== QUI EST CONCERNÉ ===== */}
         <section className="bg-[#F6F6F6] py-10 sm:py-16">
           <div className="container">
             <ScrollReveal>
@@ -591,12 +660,13 @@ export default function Home() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto">
               {[
-                { icon: Building2, label: "ERP catégories 1 à 5", desc: "Commerces, restaurants, hôtels, salles de sport, cinémas..." },
-                { icon: Landmark, label: "Collectivités territoriales", desc: "Mairies, communautés de communes, départements, régions..." },
-                { icon: Users, label: "Entreprises", desc: "Bureaux, usines, entrepôts, sièges sociaux..." },
-                { icon: Heart, label: "Associations", desc: "Clubs sportifs, associations culturelles, MJC..." },
-                { icon: LifeBuoy, label: "Établissements de santé", desc: "Cabinets médicaux, pharmacies, cliniques..." },
-                { icon: Phone, label: "Particuliers", desc: "Copropriétés, résidences, lieux privés accessibles..." },
+                { icon: Building2, label: "ERP catégories 1 à 4", desc: "Commerces, restaurants, hôtels, salles de sport, cinémas accueillant plus de 300 personnes" },
+                { icon: Store, label: "Certains ERP de catégorie 5", desc: "Refuges de montagne, structures d'accueil personnes âgées/handicapées, gares, établissements sportifs ; depuis le décret 2025-1167 : salles de danse, salles de jeux, aéroports" },
+                { icon: Landmark, label: "Collectivités territoriales", desc: "Mairies, communautés de communes, départements, régions disposant d'ERP soumis à l'obligation" },
+                { icon: Users, label: "Entreprises exploitant un ERP", desc: "Sièges sociaux, bureaux accueillant du public" },
+                { icon: Heart, label: "Associations", desc: "Clubs sportifs, associations culturelles, MJC exploitant un ERP" },
+                { icon: LifeBuoy, label: "Établissements de santé", desc: "Centres de santé, cliniques (les cabinets médicaux ne sont pas des ERP)" },
+                { icon: UserPlus, label: "Exploitants volontaires", desc: "Copropriétés, résidences, entreprises équipant un DAE au-delà de l'obligation légale" },
               ].map((item, i) => (
                 <ScrollReveal key={i} delay={i * 80}>
                   <div className="bg-white border border-[#E5E5E5] rounded p-4 flex items-start gap-3 h-full">
@@ -643,8 +713,8 @@ export default function Home() {
 
         {/* ===== CTA INTERMÉDIAIRE VERT ===== */}
         <CTABanner
-          title="Attestation de conformité délivrée sous 24 heures"
-          subtitle="Conforme au décret n°2018-1259 et à l'arrêté du 29 octobre 2019"
+          title="Attestation d'enregistrement Géo'DAE délivrée sous 24 heures"
+          subtitle="via declarerdefibrillateur.fr"
           buttonText="Obtenir mon attestation"
           href="/declaration"
           variant="success"
@@ -662,7 +732,7 @@ export default function Home() {
                   Un service automatisé pour une déclaration sans effort
                 </h2>
                 <p className="text-[#666] text-base leading-relaxed">
-                  La procédure officielle de déclaration peut s'avérer complexe et chronophage. Notre plateforme simplifie chaque étape pour vous permettre de vous mettre en conformité rapidement, sans erreur, et avec une attestation officielle.
+                  La procédure officielle de déclaration peut s'avérer complexe et chronophage. Notre plateforme simplifie chaque étape pour vous permettre de vous mettre en conformité rapidement, sans erreur, et avec une attestation d'enregistrement.
                 </p>
               </div>
             </ScrollReveal>
@@ -691,8 +761,8 @@ export default function Home() {
                     },
                     {
                       icon: FileCheck,
-                      title: "Attestation de déclaration",
-                      desc: "Vous recevez par email une attestation officielle de déclaration sous 24 heures, prouvant votre mise en conformité auprès des autorités compétentes.",
+                      title: "Attestation d'enregistrement",
+                      desc: "Vous recevez par email une attestation d'enregistrement dans la base nationale Géo'DAE via declarerdefibrillateur.fr, confirmant la prise en charge et la transmission effective de votre déclaration.",
                     },
                     {
                       icon: ShieldCheck,
@@ -811,10 +881,10 @@ export default function Home() {
             <div className="container-narrow text-right">
               <div className="max-w-lg ml-auto">
                 <p className="text-white font-heading font-bold text-lg sm:text-xl lg:text-2xl leading-snug mb-2">
-                  Votre attestation de conformité en 24h
+                  Votre attestation d'enregistrement Géo'DAE en 24h
                 </p>
                 <p className="text-white/70 text-sm mb-4">
-                  Conforme au décret n°2018-1259 et à l'arrêté du 29 octobre 2019
+                  via declarerdefibrillateur.fr
                 </p>
                 <Link href="/declaration">
                   <Button size="sm" className="bg-[#E1000F] hover:bg-[#C00000] text-white font-semibold text-sm px-5">
@@ -855,11 +925,11 @@ export default function Home() {
                     {[
                       { critere: "Temps de déclaration", classique: "30 min à 1h", notre: "5 minutes" },
                       { critere: "Vérification de conformité", classique: "À votre charge", notre: "Incluse" },
-                      { critere: "Attestation officielle", classique: "Non fournie", notre: "Sous 24h" },
+                      { critere: "Attestation d'enregistrement", classique: "Non fournie", notre: "Sous 24h" },
                       { critere: "Accompagnement", classique: "Aucun", notre: "Personnalisé" },
                       { critere: "Rappels de maintenance", classique: "Non", notre: "Automatiques" },
                       { critere: "Support en cas de difficulté", classique: "Email générique", notre: "Dédié" },
-                      { critere: "Déclaration multiple", classique: "Un par un", notre: "En lot" },
+                      { critere: "Déclaration multiple", classique: "Une saisie par DAE", notre: "Parc illimité en un seul flux" },
                       { critere: "Suivi de dossier", classique: "Aucun", notre: "Temps réel" },
                     ].map((row, i) => (
                       <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-[#F6F6F6]"}>
@@ -912,7 +982,7 @@ export default function Home() {
                   Ce que disent les exploitants qui ont déclaré leur DAE
                 </h2>
                 <p className="text-[#666] text-base leading-relaxed">
-                  Plus de 2 500 défibrillateurs ont été déclarés grâce à notre plateforme. Voici les retours de nos utilisateurs.
+                  Plus de 1 000 défibrillateurs ont été déclarés grâce à notre plateforme. Voici les retours de nos utilisateurs.
                 </p>
               </div>
             </ScrollReveal>
@@ -953,17 +1023,28 @@ export default function Home() {
 
             <div className="max-w-3xl mx-auto space-y-3">
               {[
-                { ref: "Loi n°2018-527 du 28 juin 2018", desc: "Relative au défibrillateur cardiaque — Instaure l'obligation d'équipement des ERP et la création de la base de données nationale." },
-                { ref: "Décret n°2018-1186 du 19 décembre 2018", desc: "Relatif aux défibrillateurs automatisés externes — Précise les catégories d'ERP soumis à l'obligation et le calendrier de mise en œuvre." },
-                { ref: "Décret n°2018-1259 du 27 décembre 2018", desc: "Relatif à la base de données nationale des DAE — Définit l'obligation de déclaration et les modalités de fonctionnement de Géo'DAE." },
-                { ref: "Arrêté du 29 octobre 2019", desc: "Relatif au fonctionnement de la base de données des DAE — Définit le standard de données, les informations obligatoires et les modalités de déclaration." },
-                { ref: "Décret n°2007-705 du 4 mai 2007", desc: "Relatif à l'utilisation des DAE par des personnes non-médecins — Autorise toute personne à utiliser un DAE, quel que soit son âge." },
+                { ref: "Proposition de loi n°274 (Sénat, 13 janvier 2026)", desc: "M. Ludovic HAYE — Vise à renforcer l'accessibilité, l'efficacité et la gouvernance locale des DAE ; instaure un recensement simplifié et des sanctions en cas de non-respect de la maintenance.", status: "En discussion" },
+                { ref: "Proposition de loi n°1090 (Assemblée nationale, 11 mars 2025)", desc: "M. Laurent MAZAURY — Vise à garantir la maintenance des DAE ; impose un recensement dans un délai d'un an après installation et renforce les obligations de maintenance.", status: "En discussion" },
+                { ref: "Décret n°2025-1167 du 5 décembre 2025", desc: "Relatif à l'obligation d'équipement des ERP d'un DAE — Élargit le périmètre des ERP de catégorie 5 concernés : salles de danse, salles de jeux, aéroports.", status: "En vigueur" },
+                { ref: "Note d'information DGS/PP3/2025/121 du 3 octobre 2025", desc: "Relative aux bonnes pratiques en matière de gestion des DAE et à leur maintenance — Rappelle les responsabilités de l'exploitant et les sanctions applicables (article L.5461-5 CSP).", status: "Bulletin officiel" },
+                { ref: "Arrêté du 29 octobre 2019", desc: "Relatif au fonctionnement de la base de données des DAE — Définit le standard de données, les informations obligatoires et les modalités de déclaration.", status: "En vigueur" },
+                { ref: "Décret n°2018-1259 du 27 décembre 2018", desc: "Relatif à la base de données nationale des DAE — Définit l'obligation de déclaration et les modalités de fonctionnement de Géo'DAE.", status: "En vigueur" },
+                { ref: "Décret n°2018-1186 du 19 décembre 2018", desc: "Relatif aux défibrillateurs automatisés externes — Précise les catégories d'ERP soumis à l'obligation et le calendrier de mise en œuvre.", status: "En vigueur" },
+                { ref: "Loi n°2018-527 du 28 juin 2018", desc: "Relative au défibrillateur cardiaque — Instaure l'obligation d'équipement des ERP et la création de la base de données nationale.", status: "En vigueur" },
+                { ref: "Décret n°2007-705 du 4 mai 2007", desc: "Relatif à l'utilisation des DAE par des personnes non-médecins — Autorise toute personne à utiliser un DAE, quel que soit son âge.", status: "En vigueur" },
               ].map((item, i) => (
                 <ScrollReveal key={i} delay={i * 80}>
                   <div className="bg-[#F6F6F6] border border-[#E5E5E5] rounded p-4 flex items-start gap-3">
                     <Gavel className="w-5 h-5 text-[#000091] shrink-0 mt-0.5" />
-                    <div>
-                      <h3 className="font-heading font-semibold text-sm text-[#000091] mb-0.5">{item.ref}</h3>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                        <h3 className="font-heading font-semibold text-sm text-[#000091]">{item.ref}</h3>
+                        <span className={`text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded ${
+                          item.status === "En discussion" ? "bg-[#FEF9C3] text-[#92400E]" :
+                          item.status === "Bulletin officiel" ? "bg-[#EFF6FF] text-[#000091]" :
+                          "bg-[#F0FDF4] text-[#18753C]"
+                        }`}>{item.status}</span>
+                      </div>
                       <p className="text-sm text-[#666] leading-relaxed">{item.desc}</p>
                     </div>
                   </div>

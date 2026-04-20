@@ -11,8 +11,6 @@ export interface DaeDeviceFormState {
   accLib: string;
   accEtg: string;
   accComplt: string;
-  accPcsec: string;
-  accAcc: string;
   daeMobile: string;
   // Disponibilité
   dispJ: string[];
@@ -22,23 +20,17 @@ export interface DaeDeviceFormState {
   etatFonct: string;
   // Fabricant
   fabRais: string;
-  fabSiren: string;
   modele: string;
   numSerie: string;
   typeDAE: string;
-  idEuro: string;
   // Maintenance
   dateInstal: string;
   dermnt: string;
-  mntRais: string;
-  mntSiren: string;
-  freqMnt: string;
   dispSurv: string;
   // Électrodes & batterie
   lcPed: string;
   dtprLcped: string;
   dtprLcad: string;
-  dtprBat: string;
   // Photos
   photo1: string;
   photo2: string;
@@ -97,29 +89,21 @@ export function createEmptyDevice(position: number): DaeDeviceFormState {
     accLib: "OUI",
     accEtg: "",
     accComplt: "",
-    accPcsec: "",
-    accAcc: "",
     daeMobile: "NON",
     dispJ: ["7j/7"],
     dispH: ["24h/24"],
     dispComplt: "",
     etatFonct: "En fonctionnement",
     fabRais: "",
-    fabSiren: "",
     modele: "",
     numSerie: "",
     typeDAE: "automatique",
-    idEuro: "",
     dateInstal: "",
     dermnt: "",
-    mntRais: "",
-    mntSiren: "",
-    freqMnt: "",
     dispSurv: "NON",
     lcPed: "",
     dtprLcped: "",
     dtprLcad: "",
-    dtprBat: "",
     photo1: "",
     photo2: "",
     daeLat: null,
@@ -166,11 +150,11 @@ export const INITIAL_FORM_DATA: DeclarationFormState = {
 /** Fields accepted by the backend PATCH DTO (whitelist) */
 const DEVICE_API_FIELDS = [
   "position", "nom",
-  "acc", "accLib", "accEtg", "accComplt", "accPcsec", "accAcc", "daeMobile",
+  "acc", "accLib", "accEtg", "accComplt", "daeMobile",
   "dispJ", "dispH", "dispComplt", "etatFonct",
-  "fabRais", "fabSiren", "modele", "numSerie", "typeDAE", "idEuro",
-  "dateInstal", "dermnt", "mntRais", "mntSiren", "freqMnt", "dispSurv",
-  "lcPed", "dtprLcped", "dtprLcad", "dtprBat",
+  "fabRais", "modele", "numSerie", "typeDAE",
+  "dateInstal", "dermnt", "dispSurv",
+  "lcPed", "dtprLcped", "dtprLcad",
   "daeLat", "daeLng", "photo1", "photo2",
 ] as const;
 
@@ -231,8 +215,8 @@ export const CATEGORIE_ERP_OPTIONS = [
   { value: "cat-1", label: "Catégorie 1 (+ de 1 500 personnes)" },
   { value: "cat-2", label: "Catégorie 2 (701 à 1 500)" },
   { value: "cat-3", label: "Catégorie 3 (301 à 700)" },
-  { value: "cat-4", label: "Catégorie 4 (300 et moins)" },
-  { value: "cat-5", label: "Catégorie 5 (selon seuils réglementaires)" },
+  { value: "cat-4", label: "Catégorie 4 (jusqu'à 300 personnes)" },
+  { value: "cat-5", label: "Catégorie 5 (selon types définis par arrêté)" },
   { value: "non-applicable", label: "Non applicable" },
 ];
 

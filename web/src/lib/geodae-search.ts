@@ -26,8 +26,6 @@ export interface DaeResult {
   accLib: boolean;
   accComplt: string;
   accEtg: string;
-  accPcsec: boolean;
-  accAcc: boolean;
   dispJ: string;
   dispH: string;
   dispComplt: string;
@@ -37,7 +35,6 @@ export interface DaeResult {
   dateInstal: string;
   dermnt: string;
   lcPed: boolean;
-  dtprBat: string;
   photo1: string;
   distance: number; // km, calculated client-side
 }
@@ -141,8 +138,6 @@ function mapRow(row: any): Omit<DaeResult, "distance"> {
     accLib: row.c_acc_lib === "t" || row.c_acc_lib === true,
     accComplt: row.c_acc_complt || "",
     accEtg: row.c_acc_etg || "",
-    accPcsec: row.c_acc_pcsec === "t" || row.c_acc_pcsec === true,
-    accAcc: row.c_acc_acc === "t" || row.c_acc_acc === true,
     dispJ: parsePgArray(row.c_disp_j),
     dispH: parsePgArray(row.c_disp_h),
     dispComplt: row.c_disp_complt || "",
@@ -152,7 +147,6 @@ function mapRow(row: any): Omit<DaeResult, "distance"> {
     dateInstal: row.c_date_instal || "",
     dermnt: row.c_dermnt || "",
     lcPed: row.c_lc_ped === "t" || row.c_lc_ped === true,
-    dtprBat: row.c_dtpr_bat || "",
     photo1: row.c_photo1 || "",
   };
 }

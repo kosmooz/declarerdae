@@ -263,31 +263,6 @@ export default function DaeDeviceForm({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs text-[#666] mb-1 block">
-                Mainteneur
-              </Label>
-              <Input
-                value={device.mntRais}
-                onChange={(e) => set("mntRais", e.target.value)}
-                placeholder="Raison sociale du mainteneur"
-                className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]"
-              />
-            </div>
-            <div>
-              <Label className="text-xs text-[#666] mb-1 block">
-                Fréquence maintenance
-              </Label>
-              <Input
-                value={device.freqMnt}
-                onChange={(e) => set("freqMnt", e.target.value)}
-                placeholder="2 fois par an"
-                className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]"
-              />
-            </div>
-          </div>
-
           {/* Électrodes & batterie */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <OuiNonSwitch
@@ -302,10 +277,10 @@ export default function DaeDeviceForm({
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label className="text-xs text-[#666] mb-1 block">
-                Pér. électrodes adultes
+                Date de péremption des électrodes adultes
               </Label>
               <Input
                 type="date"
@@ -316,59 +291,12 @@ export default function DaeDeviceForm({
             </div>
             <div>
               <Label className="text-xs text-[#666] mb-1 block">
-                Pér. électrodes pédia.
+                Date de péremption des électrodes pédiatriques
               </Label>
               <Input
                 type="date"
                 value={device.dtprLcped}
                 onChange={(e) => set("dtprLcped", e.target.value)}
-                className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]"
-              />
-            </div>
-            <div>
-              <Label className="text-xs text-[#666] mb-1 block">
-                Pér. batterie
-              </Label>
-              <Input
-                type="date"
-                value={device.dtprBat}
-                onChange={(e) => set("dtprBat", e.target.value)}
-                className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]"
-              />
-            </div>
-          </div>
-
-          {/* SIREN fabricant / mainteneur / IUD */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <Label className="text-xs text-[#666] mb-1 block">
-                SIREN fabricant
-              </Label>
-              <Input
-                value={device.fabSiren}
-                onChange={(e) => set("fabSiren", e.target.value)}
-                maxLength={9}
-                className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]"
-              />
-            </div>
-            <div>
-              <Label className="text-xs text-[#666] mb-1 block">
-                SIREN mainteneur
-              </Label>
-              <Input
-                value={device.mntSiren}
-                onChange={(e) => set("mntSiren", e.target.value)}
-                maxLength={9}
-                className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]"
-              />
-            </div>
-            <div>
-              <Label className="text-xs text-[#666] mb-1 block">
-                IUD européen
-              </Label>
-              <Input
-                value={device.idEuro}
-                onChange={(e) => set("idEuro", e.target.value)}
                 className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]"
               />
             </div>
@@ -388,18 +316,6 @@ export default function DaeDeviceForm({
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <OuiNonSwitch
-              label="Poste de sécurité"
-              value={device.accPcsec}
-              onChange={(v) => set("accPcsec", v)}
-            />
-            <OuiNonSwitch
-              label="Accueil public"
-              value={device.accAcc}
-              onChange={(v) => set("accAcc", v)}
-            />
-          </div>
         </div>
       </details>
     </div>

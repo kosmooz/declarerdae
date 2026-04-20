@@ -27,16 +27,16 @@ export default function AProposPage() {
                 </h2>
                 <div className="space-y-4 text-sm text-[#3A3A3A] leading-relaxed">
                   <p>
-                    En France, chaque année, entre 40 000 et 50 000 personnes sont victimes d'un arrêt cardiaque soudain. Le taux de survie n'est que de 5 à 8 %, l'un des plus bas d'Europe. Pourtant, l'utilisation rapide d'un défibrillateur automatisé externe (DAE) peut multiplier les chances de survie par 4.
+                    En France, chaque année, entre 40 000 et 50 000 personnes sont victimes d'un arrêt cardiaque soudain. Le taux de survie est aujourd'hui inférieur à 10 %, l'un des plus bas d'Europe occidentale. Pourtant, lorsqu'un DAE est utilisé dans les premières minutes, le taux de survie est majoré à 50 %.
                   </p>
                   <p>
                     Depuis 2018, la loi impose à tous les exploitants de DAE de déclarer leurs appareils dans la base nationale Géo'DAE. L'objectif est simple : permettre aux services de secours et aux citoyens de localiser instantanément le défibrillateur le plus proche en cas d'urgence.
                   </p>
                   <p>
-                    Malheureusement, fin 2024, seulement 28 % des DAE installés en France étaient effectivement déclarés. La procédure officielle, jugée complexe et chronophage par de nombreux exploitants, constitue un frein majeur à la conformité.
+                    Malheureusement, au 13 janvier 2026, seuls 165 500 DAE sur les 500 000 installés en France étaient recensés dans Géo'DAE (source : PPL n° 274 du Sénat). La procédure officielle, jugée complexe et chronophage par de nombreux exploitants, constitue un frein majeur à la conformité.
                   </p>
                   <p>
-                    <strong>C'est pour combler ce fossé que declarerdefibrillateur.fr a été créé.</strong> Notre plateforme automatise et simplifie l'intégralité du processus de déclaration, de la collecte des informations à l'enregistrement dans Géo'DAE, en passant par la vérification de conformité et la délivrance d'une attestation officielle.
+                    <strong>C'est pour combler ce fossé que declarerdefibrillateur.fr a été créé.</strong> Notre plateforme automatise et simplifie l'intégralité du processus de déclaration, de la collecte des informations à l'enregistrement dans Géo'DAE, en passant par la vérification de conformité et la délivrance d'une attestation d'enregistrement.
                   </p>
                 </div>
               </ScrollReveal>
@@ -110,7 +110,7 @@ export default function AProposPage() {
                 </h2>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 text-center">
                   {[
-                    { value: "2 500+", label: "DAE déclarés" },
+                    { value: "1 000+", label: "DAE déclarés" },
                     { value: "98%", label: "Taux de satisfaction" },
                     { value: "< 5 min", label: "Temps moyen" },
                     { value: "24h", label: "Délai attestation" },
@@ -141,7 +141,7 @@ export default function AProposPage() {
                     </h2>
                     <div className="space-y-3 text-sm text-[#3A3A3A] leading-relaxed">
                       <p>
-                        Aujourd'hui, plus de 7 défibrillateurs sur 10 en France ne sont pas déclarés. Cela signifie que des milliers d'appareils, pourtant installés et fonctionnels, restent invisibles pour les services de secours et les citoyens en situation d'urgence.
+                        Aujourd'hui, près de 2 défibrillateurs sur 3 en France ne sont pas déclarés. Cela signifie que des milliers d'appareils, pourtant installés et fonctionnels, restent invisibles pour les services de secours et les citoyens en situation d'urgence.
                       </p>
                       <p>
                         Notre ambition est de contribuer à ce que chaque DAE installé en France soit déclaré, localisable et fonctionnel. C'est un objectif ambitieux, mais chaque déclaration nous en rapproche.

@@ -335,8 +335,8 @@ export default function DeclarationForm() {
                   <SelectItem value="cat-1">Catégorie 1 (+ de 1 500 personnes)</SelectItem>
                   <SelectItem value="cat-2">Catégorie 2 (701 à 1 500 personnes)</SelectItem>
                   <SelectItem value="cat-3">Catégorie 3 (301 à 700 personnes)</SelectItem>
-                  <SelectItem value="cat-4">Catégorie 4 (300 personnes et moins)</SelectItem>
-                  <SelectItem value="cat-5">Catégorie 5 (selon seuils réglementaires)</SelectItem>
+                  <SelectItem value="cat-4">Catégorie 4 (jusqu'à 300 personnes)</SelectItem>
+                  <SelectItem value="cat-5">Catégorie 5 (selon types définis par arrêté)</SelectItem>
                   <SelectItem value="non-applicable">Non applicable</SelectItem>
                 </SelectContent>
               </Select>

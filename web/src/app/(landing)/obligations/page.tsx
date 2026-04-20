@@ -2,7 +2,7 @@ import Breadcrumb from "@/components/declarerdae/Breadcrumb";
 import PageHero from "@/components/declarerdae/PageHero";
 import CTABanner from "@/components/declarerdae/CTABanner";
 import ScrollReveal from "@/components/declarerdae/ScrollReveal";
-import { AlertTriangle, ArrowRight, BookOpen, CheckCircle2, FileCheck, Gavel, Landmark, Lock, Scale, Shield } from "lucide-react";
+import { AlertTriangle, ArrowRight, BookOpen, CheckCircle2, FileCheck, Gavel, Landmark, Scale, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function ObligationsPage() {
@@ -12,7 +12,7 @@ export default function ObligationsPage() {
       <PageHero
         tag="Cadre réglementaire"
         title="Obligations légales relatives aux défibrillateurs automatisés externes"
-        description="Tout ce que vous devez savoir sur vos obligations en tant qu'exploitant de DAE : déclaration, maintenance, assurance et signalétique."
+        description="Tout ce que vous devez savoir sur vos obligations en tant qu'exploitant de DAE : déclaration, maintenance et signalétique."
       />
 
       <main>
@@ -26,7 +26,7 @@ export default function ObligationsPage() {
                     La législation française a considérablement évolué ces dernières années pour encadrer l'installation, la maintenance et la déclaration des défibrillateurs automatisés externes (DAE). L'objectif est clair : améliorer la prise en charge des arrêts cardiaques soudains en rendant les DAE accessibles, localisables et fonctionnels sur l'ensemble du territoire.
                   </p>
                   <p className="text-base text-[#3A3A3A] leading-relaxed mb-4">
-                    Depuis la loi n°2018-527 du 28 juin 2018, complétée par les décrets d'application de décembre 2018 et l'arrêté du 29 octobre 2019, les exploitants de DAE sont soumis à quatre obligations principales. Le non-respect de ces obligations engage la responsabilité civile et pénale de l'exploitant.
+                    Depuis la loi n°2018-527 du 28 juin 2018, complétée par les décrets d'application de décembre 2018 et l'arrêté du 29 octobre 2019, les exploitants de DAE sont soumis à trois obligations principales. Le non-respect de ces obligations engage la responsabilité civile et pénale de l'exploitant.
                   </p>
                 </div>
               </ScrollReveal>
@@ -139,45 +139,9 @@ export default function ObligationsPage() {
           </div>
         </section>
 
-        {/* Obligation 3 : Assurance */}
+
+        {/* Obligation 3 : Signalétique */}
         <section className="bg-[#F6F6F6] py-12">
-          <div className="container">
-            <div className="max-w-3xl mx-auto">
-              <ScrollReveal>
-                <div className="flex items-start gap-4 mb-6">
-                  <div className="flex items-center justify-center w-12 h-12 rounded bg-[#F0FDF4] shrink-0">
-                    <Lock className="w-6 h-6 text-[#18753C]" />
-                  </div>
-                  <div>
-                    <h2 className="font-heading font-bold text-xl text-[#161616] mb-1">
-                      3. Obligation d'assurance
-                    </h2>
-                    <p className="text-sm text-[#929292]">Article L.5233-1 du Code de la santé publique</p>
-                  </div>
-                </div>
-              </ScrollReveal>
-
-              <ScrollReveal>
-                <div className="space-y-4 text-sm text-[#3A3A3A] leading-relaxed">
-                  <p>
-                    Les exploitants, producteurs et fournisseurs de défibrillateurs automatisés externes doivent souscrire une <strong>assurance destinée à garantir leur responsabilité civile</strong> ou administrative, conformément aux dispositions du code de la santé publique.
-                  </p>
-                  <p>
-                    Cette assurance couvre les dommages éventuels liés à l'utilisation du DAE, qu'ils résultent d'un dysfonctionnement de l'appareil, d'un défaut de maintenance, ou d'une mauvaise utilisation par un tiers. Elle est distincte de l'assurance responsabilité civile professionnelle classique.
-                  </p>
-                  <div className="alert-info rounded">
-                    <p className="text-sm text-[#1E40AF]">
-                      <strong>Conseil :</strong> Vérifiez auprès de votre assureur que votre contrat de responsabilité civile couvre explicitement la mise à disposition d'un DAE. En cas de doute, demandez un avenant spécifique.
-                    </p>
-                  </div>
-                </div>
-              </ScrollReveal>
-            </div>
-          </div>
-        </section>
-
-        {/* Obligation 4 : Signalétique */}
-        <section className="bg-white py-12">
           <div className="container">
             <div className="max-w-3xl mx-auto">
               <ScrollReveal>
@@ -187,7 +151,7 @@ export default function ObligationsPage() {
                   </div>
                   <div>
                     <h2 className="font-heading font-bold text-xl text-[#161616] mb-1">
-                      4. Obligation de signalétique
+                      3. Obligation de signalétique
                     </h2>
                     <p className="text-sm text-[#929292]">Arrêté du 16 août 2010 — Norme NF EN ISO 7010</p>
                   </div>
@@ -246,16 +210,16 @@ export default function ObligationsPage() {
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="bg-white border border-[#FECACA] rounded p-4 text-center">
-                      <p className="font-heading font-bold text-2xl text-[#E1000F] mb-1">45 000 €</p>
-                      <p className="text-xs text-[#666]">Amende maximale pour non-déclaration</p>
+                      <p className="font-heading font-bold text-lg text-[#E1000F] mb-1">Administratif</p>
+                      <p className="text-xs text-[#666]">Mise en demeure, fermeture administrative temporaire ou définitive</p>
                     </div>
                     <div className="bg-white border border-[#FECACA] rounded p-4 text-center">
-                      <p className="font-heading font-bold text-lg text-[#E1000F] mb-1">Fermeture</p>
-                      <p className="text-xs text-[#666]">Temporaire ou définitive de l'établissement</p>
+                      <p className="font-heading font-bold text-lg text-[#E1000F] mb-1">150 000 €</p>
+                      <p className="text-xs text-[#666]">Défaut de maintenance (2 ans + 150 000 €, art. L.5461-5 CSP)</p>
                     </div>
                     <div className="bg-white border border-[#FECACA] rounded p-4 text-center">
                       <p className="font-heading font-bold text-lg text-[#E1000F] mb-1">Pénal</p>
-                      <p className="text-xs text-[#666]">Responsabilité pénale du chef d'établissement</p>
+                      <p className="text-xs text-[#666]">Homicide involontaire : 3 ans + 45 000 € (5 ans + 75 000 € si violation délibérée)</p>
                     </div>
                   </div>
                   <div className="alert-danger rounded mt-4">

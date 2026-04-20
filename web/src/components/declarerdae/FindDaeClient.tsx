@@ -19,7 +19,6 @@ import {
   Baby,
   Wrench,
   Smartphone,
-  Accessibility,
   Calendar,
 } from "lucide-react";
 import {
@@ -482,13 +481,6 @@ export default function FindDaeClient() {
                       <span className="inline-flex items-center gap-1 bg-[#F6F6F6] text-[#666] text-[11px] font-semibold px-2 py-0.5 rounded-full">
                         <Smartphone className="w-3 h-3" />
                         Mobile
-                      </span>
-                    )}
-
-                    {dae.accAcc && (
-                      <span className="inline-flex items-center gap-1 bg-[#F6F6F6] text-[#666] text-[11px] font-semibold px-2 py-0.5 rounded-full">
-                        <Accessibility className="w-3 h-3" />
-                        PMR
                       </span>
                     )}
 

@@ -53,29 +53,21 @@ interface DaeDevice {
   accLib: string | null;
   accEtg: string | null;
   accComplt: string | null;
-  accPcsec: string | null;
-  accAcc: string | null;
   daeMobile: string | null;
   dispJ: string | null;
   dispH: string | null;
   dispComplt: string | null;
   etatFonct: string | null;
   fabRais: string | null;
-  fabSiren: string | null;
   modele: string | null;
   numSerie: string | null;
   typeDAE: string | null;
-  idEuro: string | null;
   dateInstal: string | null;
   dermnt: string | null;
-  mntRais: string | null;
-  mntSiren: string | null;
-  freqMnt: string | null;
   dispSurv: string | null;
   lcPed: string | null;
   dtprLcped: string | null;
   dtprLcad: string | null;
-  dtprBat: string | null;
   photo1: string | null;
   photo2: string | null;
 }
@@ -606,7 +598,6 @@ function EditView({
                     <RecapField label="Heures" value={device.dispH.join(", ")} />
                     <RecapField label="Dernière maintenance" value={device.dermnt} />
                     {device.dateInstal && <RecapField label="Installation" value={device.dateInstal} />}
-                    {device.mntRais && <RecapField label="Mainteneur" value={device.mntRais} />}
                   </div>
                 ))}
               </div>
@@ -778,7 +769,6 @@ function ReadonlyView({ decl }: { decl: Declaration }) {
                     : device.typeDAE
               }
             />
-            <InfoRow label="IUD europeen" value={device.idEuro} />
             <InfoRow
               label="Environnement"
               value={
@@ -804,13 +794,10 @@ function ReadonlyView({ decl }: { decl: Declaration }) {
             <InfoRow label="Compl. dispo." value={device.dispComplt} />
             <InfoRow label="Installation" value={device.dateInstal} />
             <InfoRow label="Dern. maint." value={device.dermnt} />
-            <InfoRow label="Mainteneur" value={device.mntRais} />
-            <InfoRow label="Fréq. maintenance" value={device.freqMnt} />
             <InfoRow label="Surveillance" value={device.dispSurv} />
             <InfoRow label="Électr. pédiatriques" value={device.lcPed} />
-            <InfoRow label="Pér. électr. adultes" value={device.dtprLcad} />
-            <InfoRow label="Pér. électr. pédia." value={device.dtprLcped} />
-            <InfoRow label="Pér. batterie" value={device.dtprBat} />
+            <InfoRow label="Date de péremption des électrodes adultes" value={device.dtprLcad} />
+            <InfoRow label="Date de péremption des électrodes pédiatriques" value={device.dtprLcped} />
             {(device.photo1 || device.photo2) && (
               <div className="py-3 flex gap-3">
                 {device.photo1 && (

@@ -82,9 +82,6 @@ function DeviceRecap({
       {device.dateInstal && (
         <Field label="Installation" value={device.dateInstal} />
       )}
-      {device.mntRais && (
-        <Field label="Mainteneur" value={device.mntRais} />
-      )}
     </div>
   );
 }

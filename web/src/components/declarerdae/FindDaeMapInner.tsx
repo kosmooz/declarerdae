@@ -148,7 +148,6 @@ export default function FindDaeMapInner({
       const extras: string[] = [];
       if (dae.daeMobile) extras.push("DAE mobile");
       if (dae.lcPed) extras.push("Electrodes pédiatriques");
-      if (dae.accAcc) extras.push("Accessible PMR");
 
       marker.bindPopup(
         `<div style="font-family:'Source Sans 3',sans-serif;min-width:200px;">

@@ -36,8 +36,6 @@ interface DeviceData {
   nom: string | null;
   acc: string | null;
   accLib: string | null;
-  accPcsec: string | null;
-  accAcc: string | null;
   accEtg: string | null;
   accComplt: string | null;
   daeMobile: string | null;
@@ -45,20 +43,14 @@ interface DeviceData {
   dispH: string | null;
   dispComplt: string | null;
   etatFonct: string | null;
-  fabSiren: string | null;
   fabRais: string | null;
   modele: string | null;
   numSerie: string | null;
-  idEuro: string | null;
   lcPed: string | null;
   dtprLcped: string | null;
   dtprLcad: string | null;
-  dtprBat: string | null;
   dateInstal: string | null;
   dermnt: string | null;
-  mntRais: string | null;
-  mntSiren: string | null;
-  freqMnt: string | null;
   dispSurv: string | null;
   photo1: string | null;
   photo2: string | null;
@@ -155,8 +147,6 @@ export function mapDeviceToGeoJson(
     // Access
     acc: mapAcc(device.acc),
     acc_lib: ouiNonToBool(device.accLib),
-    acc_pcsec: ouiNonToBool(device.accPcsec),
-    acc_acc: ouiNonToBool(device.accAcc),
     acc_etg: device.accEtg || null,
     acc_complt: device.accComplt || null,
 
@@ -179,16 +169,13 @@ export function mapDeviceToGeoJson(
     etat_fonct: device.etatFonct || "En fonctionnement",
 
     // Manufacturer
-    fab_siren: device.fabSiren || "",
     fab_rais: device.fabRais || "",
     modele: device.modele || "",
     num_serie: device.numSerie || "",
-    id_euro: device.idEuro || "",
 
     // Maintenance — SIREN/Rais du compte mainteneur GéoDAE (obligatoire, imposé par l'API)
-    mnt_siren: options.mntSiren || device.mntSiren || "",
-    mnt_rais: options.mntRais || device.mntRais || "",
-    freq_mnt: device.freqMnt || "",
+    mnt_siren: options.mntSiren || "",
+    mnt_rais: options.mntRais || "",
     dispsurv: ouiNonToBool(device.dispSurv),
     dermnt: device.dermnt || null,
 
@@ -196,7 +183,6 @@ export function mapDeviceToGeoJson(
     lc_ped: ouiNonToBool(device.lcPed),
     dtpr_lcped: device.dtprLcped || null,
     dtpr_lcad: device.dtprLcad || null,
-    dtpr_bat: device.dtprBat || null,
 
     // Exploitant
     expt_siren: decl.exptSiren || "",
