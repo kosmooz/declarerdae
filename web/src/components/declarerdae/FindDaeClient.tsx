@@ -94,7 +94,7 @@ export default function FindDaeClient() {
   const [geoLoading, setGeoLoading] = useState(false);
 
   // Ref for address debounce
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   /* ---- Geolocation ---- */
 
