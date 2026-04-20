@@ -13,15 +13,15 @@ async function main() {
   });
 
   const admin = await prisma.user.upsert({
-    where: { email: "admin@star-aid.fr" },
+    where: { email: "monemaildecontact@gmail.com" },
     update: {},
     create: {
-      email: "admin@star-aid.fr",
+      email: "monemaildecontact@gmail.com",
       passwordHash,
       emailVerified: true,
       role: Role.ADMIN,
       firstName: "Admin",
-      lastName: "STAR aid",
+      lastName: "DéclarerDéfibrillateur",
     },
   });
   console.log("Seeded admin user:", admin.email);

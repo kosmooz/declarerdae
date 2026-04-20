@@ -19,6 +19,8 @@ services:
     build:
       context: ./api
       dockerfile: Dockerfile
+    image: declarerdae-api:latest
+    container_name: declarerdae-api-new
     restart: unless-stopped
     env_file: ./api/.env
     volumes:
@@ -28,44 +30,25 @@ services:
         condition: service_healthy
     networks:
       - backend
+      - shared-proxy
 
   web:
     build:
       context: ./web
       dockerfile: Dockerfile
+    image: declarerdae-web:latest
+    container_name: declarerdae-web-new
     restart: unless-stopped
     environment:
       NODE_ENV: production
-      SITE_URL: https://star-aid.fr
-      INTERNAL_API_URL: http://api:3001
+      HOSTNAME: 0.0.0.0
+      SITE_URL: https://declarerdefibrillateur.vitevu.com
+      INTERNAL_API_URL: http://declarerdae-api-new:3001
     depends_on:
       - api
     networks:
       - backend
-
-  nginx:
-    image: nginx:alpine
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.active.conf:/etc/nginx/nginx.conf:ro
-      - ./certbot/conf:/etc/letsencrypt:ro
-      - ./certbot/www:/var/www/certbot:ro
-      - ./nginx/logs:/var/log/nginx
-    depends_on:
-      - api
-      - web
-    networks:
-      - backend
-
-  certbot:
-    image: certbot/certbot
-    volumes:
-      - ./certbot/conf:/etc/letsencrypt
-      - ./certbot/www:/var/www/certbot
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+      - shared-proxy
 
 volumes:
   declarerdae-pgdata:
@@ -74,3 +57,5 @@ volumes:
 networks:
   backend:
     driver: bridge
+  shared-proxy:
+    external: true
