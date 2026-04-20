@@ -60,6 +60,12 @@ export class DeclarationsController {
     return this.declarationsService.updateDraft(id, dto, this.extractIp(req));
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Post("draft/:id/link")
+  async linkDraft(@Param("id") id: string, @Req() req: any) {
+    return this.declarationsService.linkDraftToUser(id, req.user.sub);
+  }
+
   @UseGuards(OptionalJwtAuthGuard)
   @Post("draft/:id/complete")
   async completeDraft(@Param("id") id: string, @Req() req: any) {

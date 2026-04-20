@@ -184,6 +184,35 @@ export class DeclarationsService {
     return { id };
   }
 
+  async linkDraftToUser(id: string, userId: string) {
+    const declaration = await this.prisma.declaration.findUnique({
+      where: { id },
+    });
+
+    if (!declaration) {
+      throw new NotFoundException("Brouillon introuvable");
+    }
+
+    // Already linked to this user — nothing to do
+    if (declaration.userId === userId) {
+      return { id };
+    }
+
+    // Only link unowned drafts
+    if (declaration.userId) {
+      throw new BadRequestException(
+        "Ce brouillon est déjà associé à un autre compte",
+      );
+    }
+
+    await this.prisma.declaration.update({
+      where: { id },
+      data: { userId },
+    });
+
+    return { id };
+  }
+
   async completeDraft(
     id: string,
     userId?: string | null,

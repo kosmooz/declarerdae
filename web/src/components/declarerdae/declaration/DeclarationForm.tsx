@@ -23,9 +23,6 @@ import Step4Recapitulatif from "./steps/Step4Recapitulatif";
 import { useAuth } from "@/lib/auth";
 import AuthDialog from "@/components/AuthDialog";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3021/api";
-
 const LS_KEY_ID = "declaration_draft_id";
 const LS_KEY_DATA = "declaration_draft_data";
 const LS_KEY_VERSION = "declaration_draft_version";
@@ -77,8 +74,20 @@ export default function DeclarationForm() {
     if (id && version === "2") {
       setDraftId(id);
       // Restore data from server
-      fetch(`${API_URL}/declarations/draft/${id}`)
-        .then((r) => (r.ok ? r.json() : null))
+      fetch(`/api/declarations/draft/${id}`)
+        .then((r) => {
+          if (!r.ok) {
+            // Draft no longer exists on server — clear stale localStorage
+            setDraftId(null);
+            setStep(1);
+            localStorage.removeItem(LS_KEY_ID);
+            localStorage.removeItem(LS_KEY_VERSION);
+            localStorage.removeItem(LS_KEY_STEP);
+            localStorage.removeItem(LS_KEY_EXTRA);
+            return null;
+          }
+          return r.json();
+        })
         .then((data) => {
           if (!data) return;
           const devices = (data.daeDevices || []).map((d: any) =>
@@ -96,7 +105,7 @@ export default function DeclarationForm() {
             exptSiren: data.exptSiren || "",
             exptSiret: data.exptSiret || "",
             exptTel1: data.exptTel1 || "",
-            exptTel1Prefix: extra.exptTel1Prefix || "fr",
+            exptTel1Prefix: data.exptTel1Prefix || extra.exptTel1Prefix || "fr",
             exptEmail: data.exptEmail || "",
             exptNum: data.exptNum || "",
             exptVoie: data.exptVoie || "",
@@ -116,22 +125,40 @@ export default function DeclarationForm() {
             longCoor1: data.longCoor1 ?? null,
             xyPrecis: data.xyPrecis ?? null,
             tel1: data.tel1 || "",
-            tel1Prefix: extra.tel1Prefix || "fr",
+            tel1Prefix: data.tel1Prefix || extra.tel1Prefix || "fr",
             tel2: data.tel2 || "",
-            tel2Prefix: extra.tel2Prefix || "fr",
+            tel2Prefix: data.tel2Prefix || extra.tel2Prefix || "fr",
             siteEmail: data.siteEmail || "",
-            adrComplement: extra.adrComplement || "",
+            adrComplement: data.adrComplement || "",
             codeInsee: data.codeInsee || "",
             daeDevices: devices.length > 0 ? devices : [createEmptyDevice(0)],
           });
         })
-        .catch(() => {});
+        .catch(() => {
+          // Network error — clear stale state
+          setDraftId(null);
+          setStep(1);
+          localStorage.removeItem(LS_KEY_ID);
+          localStorage.removeItem(LS_KEY_VERSION);
+          localStorage.removeItem(LS_KEY_STEP);
+          localStorage.removeItem(LS_KEY_EXTRA);
+        });
     } else if (id && !version) {
       // v1 migration: old flat format → clear and restart
       localStorage.removeItem(LS_KEY_ID);
       localStorage.removeItem(LS_KEY_DATA);
     }
   }, []);
+
+  // ─── Link draft to user on login ─────────────────────────
+  useEffect(() => {
+    if (user && draftId) {
+      apiFetch(`/api/declarations/draft/${draftId}/link`, {
+        method: "POST",
+        silent: true,
+      }).catch(() => {});
+    }
+  }, [user, draftId]);
 
   // ─── Persist extra fields (not in backend) to localStorage ──
   const persistExtra = useCallback((data: DeclarationFormState) => {
@@ -164,7 +191,7 @@ export default function DeclarationForm() {
 
         try {
           if (!currentDraftId) {
-            const res = await fetch(`${API_URL}/declarations/draft`, {
+            const res = await fetch(`/api/declarations/draft`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(payload),
@@ -183,7 +210,7 @@ export default function DeclarationForm() {
               }
             }
           } else {
-            await fetch(`${API_URL}/declarations/draft/${currentDraftId}`, {
+            await fetch(`/api/declarations/draft/${currentDraftId}`, {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(payload),
@@ -217,7 +244,7 @@ export default function DeclarationForm() {
         try {
           if (serverId) {
             await fetch(
-              `${API_URL}/declarations/draft/${currentDraftId}/devices/${serverId}`,
+              `/api/declarations/draft/${currentDraftId}/devices/${serverId}`,
               {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
@@ -226,7 +253,7 @@ export default function DeclarationForm() {
             );
           } else {
             const res = await fetch(
-              `${API_URL}/declarations/draft/${currentDraftId}/devices`,
+              `/api/declarations/draft/${currentDraftId}/devices`,
               {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -287,7 +314,7 @@ export default function DeclarationForm() {
     if (draftId) {
       try {
         const res = await fetch(
-          `${API_URL}/declarations/draft/${draftId}/devices`,
+          `/api/declarations/draft/${draftId}/devices`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -326,7 +353,7 @@ export default function DeclarationForm() {
     if (draftId && serverId) {
       try {
         await fetch(
-          `${API_URL}/declarations/draft/${draftId}/devices/${serverId}`,
+          `/api/declarations/draft/${draftId}/devices/${serverId}`,
           { method: "DELETE" },
         );
       } catch {
@@ -462,7 +489,7 @@ export default function DeclarationForm() {
           if (!serverId) return;
           const payload = serializeDevice(device);
           await fetch(
-            `${API_URL}/declarations/draft/${draftId}/devices/${serverId}`,
+            `/api/declarations/draft/${draftId}/devices/${serverId}`,
             {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
