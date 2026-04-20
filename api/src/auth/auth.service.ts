@@ -110,18 +110,18 @@ export class AuthService {
 
     if (!user) {
       await this.logAuth(null, email, "LOGIN_FAILURE", ip, userAgent);
-      throw new UnauthorizedException("Invalid credentials");
+      throw new UnauthorizedException("Adresse email ou mot de passe incorrect");
     }
 
     if (user.deleted) {
       await this.logAuth(user.id, email, "LOGIN_FAILURE_DELETED", ip, userAgent);
-      throw new UnauthorizedException("This account has been deactivated");
+      throw new UnauthorizedException("Ce compte a été désactivé");
     }
 
     const valid = await argon2.verify(user.passwordHash, password);
     if (!valid) {
       await this.logAuth(user.id, email, "LOGIN_FAILURE", ip, userAgent);
-      throw new UnauthorizedException("Invalid credentials");
+      throw new UnauthorizedException("Adresse email ou mot de passe incorrect");
     }
 
     if (!user.emailVerified) {
