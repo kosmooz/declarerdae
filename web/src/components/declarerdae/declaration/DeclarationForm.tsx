@@ -183,10 +183,12 @@ export default function DeclarationForm() {
 
       saveTimerParent.current = setTimeout(async () => {
         const { daeDevices, ...parentFields } = data;
-        // Strip empty strings — keep all fields including prefixes
+        // Fields stored only in localStorage, not accepted by backend DTO
+        const LOCAL_ONLY = new Set(["exptComplement"]);
+        // Strip empty strings and local-only fields
         const payload: Record<string, any> = {};
         for (const [k, v] of Object.entries(parentFields)) {
-          if (v !== "" && v !== null) payload[k] = v;
+          if (v !== "" && v !== null && !LOCAL_ONLY.has(k)) payload[k] = v;
         }
 
         try {
