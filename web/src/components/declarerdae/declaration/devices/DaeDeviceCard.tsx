@@ -38,10 +38,12 @@ export default function DaeDeviceCard({
 
   return (
     <div className="border border-[#CECECE] rounded-sm overflow-hidden">
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         onClick={onToggle}
-        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#F6F6F6] transition-colors"
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggle(); } }}
+        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#F6F6F6] transition-colors cursor-pointer"
       >
         <div className="w-8 h-8 rounded-full bg-[#000091]/10 flex items-center justify-center shrink-0">
           <Cpu className="w-4 h-4 text-[#000091]" />
@@ -95,7 +97,7 @@ export default function DaeDeviceCard({
             <ChevronDown className="w-4 h-4 text-[#929292]" />
           )}
         </div>
-      </button>
+      </div>
     </div>
   );
 }

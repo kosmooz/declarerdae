@@ -367,18 +367,39 @@ export default function DeclarationForm() {
   // ─── Step validation ─────────────────────────────────────
   const validateStep = (s: number): string[] => {
     const errors: string[] = [];
+    const GEODAE_PREFIXES = new Set(["fr","re","gp","gf","mq","yt","nc","pf","pm","wf","bl","mf"]);
+    const checkPhone = (phone: string) => {
+      const cleaned = phone.replace(/[\s\-\.()]/g, "").replace(/^0/, "");
+      return /^\d{9}$/.test(cleaned);
+    };
+
     if (s === 1) {
       if (!formData.exptRais?.trim()) errors.push("Raison sociale requise");
       if (!formData.exptSiren?.trim()) errors.push("SIREN requis");
       if (!formData.exptNom?.trim()) errors.push("Nom du contact requis");
       if (!formData.exptPrenom?.trim()) errors.push("Prénom du contact requis");
       if (!formData.exptEmail?.trim()) errors.push("Email requis");
-      if (!formData.exptTel1?.trim()) errors.push("Téléphone requis");
+      if (!formData.exptTel1?.trim()) {
+        errors.push("Téléphone requis");
+      } else if (!checkPhone(formData.exptTel1)) {
+        errors.push("Téléphone exploitant : 9 chiffres requis (hors indicatif)");
+      } else if (!formData.exptTel1Prefix || !GEODAE_PREFIXES.has(formData.exptTel1Prefix)) {
+        errors.push("Indicatif téléphonique exploitant : France ou DOM-TOM requis");
+      }
     } else if (s === 2) {
       if (!formData.adrVoie?.trim()) errors.push("Adresse du site requise");
       if (!formData.codePostal?.trim()) errors.push("Code postal requis");
       if (!formData.ville?.trim()) errors.push("Ville requise");
-      if (!formData.tel1?.trim()) errors.push("Téléphone sur site requis");
+      if (!formData.tel1?.trim()) {
+        errors.push("Téléphone sur site requis");
+      } else if (!checkPhone(formData.tel1)) {
+        errors.push("Téléphone sur site : 9 chiffres requis (hors indicatif)");
+      } else if (!formData.tel1Prefix || !GEODAE_PREFIXES.has(formData.tel1Prefix)) {
+        errors.push("Indicatif téléphonique du site : France ou DOM-TOM requis");
+      }
+      if (!formData.latCoor1 || !formData.longCoor1) {
+        errors.push("Coordonnées GPS manquantes — sélectionnez une adresse sur la carte");
+      }
     } else if (s === 3) {
       formData.daeDevices.forEach((d, i) => {
         const missing: string[] = [];
@@ -390,6 +411,7 @@ export default function DeclarationForm() {
         if (!d.acc?.trim()) missing.push("environnement");
         if (!d.accLib?.trim()) missing.push("accès libre");
         if (!d.daeMobile?.trim()) missing.push("DAE itinérant");
+        if (!d.dermnt?.trim()) missing.push("date dernière maintenance");
         if (!d.dispJ || d.dispJ.length === 0) missing.push("jours de disponibilité");
         if (!d.dispH || d.dispH.length === 0) missing.push("heures de disponibilité");
         if (missing.length > 0) {

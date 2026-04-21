@@ -14,6 +14,24 @@ export interface StepErrors {
   [field: string]: string;
 }
 
+/** Indicatifs acceptés par GéoDAE */
+const GEODAE_PREFIXES = new Set([
+  "fr", "re", "gp", "gf", "mq", "yt", "nc", "pf", "pm", "wf", "bl", "mf",
+]);
+
+/** Check phone has 9 digits (excluding leading 0, spaces, dashes, dots) */
+function isPhoneValid(phone: string | undefined | null): boolean {
+  if (!phone?.trim()) return false;
+  const cleaned = phone.replace(/[\s\-\.()]/g, "").replace(/^0/, "");
+  return /^\d{9}$/.test(cleaned);
+}
+
+/** Check phone prefix is a GéoDAE-compatible French territory code */
+function isPrefixValid(prefix: string | undefined | null): boolean {
+  if (!prefix?.trim()) return false;
+  return GEODAE_PREFIXES.has(prefix.toLowerCase());
+}
+
 export function validateStep(step: number, data: DeclarationFormState): StepErrors {
   const errors: StepErrors = {};
 
@@ -21,14 +39,29 @@ export function validateStep(step: number, data: DeclarationFormState): StepErro
     if (!data.exptRais?.trim()) errors.exptRais = "Raison sociale obligatoire";
     if (!data.exptSiren?.trim()) errors.exptSiren = "SIREN obligatoire";
     if (!data.exptEmail?.trim()) errors.exptEmail = "Email exploitant obligatoire";
-    if (!data.exptTel1?.trim()) errors.exptTel1 = "Téléphone exploitant obligatoire";
+    if (!data.exptTel1?.trim()) {
+      errors.exptTel1 = "Téléphone exploitant obligatoire";
+    } else if (!isPhoneValid(data.exptTel1)) {
+      errors.exptTel1 = "Téléphone : 9 chiffres requis (hors indicatif)";
+    } else if (!isPrefixValid((data as any).exptTel1Prefix)) {
+      errors.exptTel1 = "Indicatif téléphonique obligatoire (France ou DOM-TOM)";
+    }
   }
 
   if (step === 2) {
     if (!data.adrVoie?.trim()) errors.adrVoie = "Adresse du site obligatoire";
     if (!data.codePostal?.trim()) errors.codePostal = "Code postal obligatoire";
     if (!data.ville?.trim()) errors.ville = "Ville obligatoire";
-    if (!data.tel1?.trim()) errors.tel1 = "Téléphone sur site obligatoire";
+    if (!data.tel1?.trim()) {
+      errors.tel1 = "Téléphone sur site obligatoire";
+    } else if (!isPhoneValid(data.tel1)) {
+      errors.tel1 = "Téléphone : 9 chiffres requis (hors indicatif)";
+    } else if (!isPrefixValid((data as any).tel1Prefix)) {
+      errors.tel1 = "Indicatif téléphonique obligatoire (France ou DOM-TOM)";
+    }
+    if (!data.latCoor1 || !data.longCoor1) {
+      errors.latCoor1 = "Coordonnées GPS manquantes — sélectionnez une adresse sur la carte";
+    }
   }
 
   if (step === 3) {
@@ -45,12 +78,13 @@ export function validateStep(step: number, data: DeclarationFormState): StepErro
           d.acc?.trim() &&
           d.accLib?.trim() &&
           d.daeMobile?.trim() &&
+          d.dermnt?.trim() &&
           d.dispJ?.length > 0 &&
           d.dispH?.length > 0,
       );
       if (!hasComplete) {
         errors._devices =
-          "Au moins 1 DAE doit avoir tous les champs obligatoires remplis (nom, fabricant, modèle, N° série, état, accès, disponibilité)";
+          "Au moins 1 DAE doit avoir tous les champs obligatoires remplis (nom, fabricant, modèle, N° série, état, accès, disponibilité, date maintenance)";
       }
     }
   }

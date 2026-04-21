@@ -5,6 +5,10 @@
  * /^(\+33|\+590|\+594|\+262|\+596|\+269|\+687|\+689|\+508|\+681)(\d){9}$/
  */
 
+/** Regex used by GéoDAE to validate phone numbers */
+export const GEODAE_PHONE_REGEX =
+  /^(\+33|\+590|\+594|\+262|\+596|\+269|\+687|\+689|\+508|\+681)\d{9}$/;
+
 /** ISO country code → international dial code (digits only) */
 const DIAL_CODES: Record<string, string> = {
   fr: "33",
@@ -26,7 +30,7 @@ const DIAL_CODES: Record<string, string> = {
  *
  * @param number  Local phone number (e.g. "0612345678")
  * @param prefixCode  ISO 3166-1 alpha-2 lowercase (e.g. "fr", "re")
- * @returns E.164 string (e.g. "+33612345678") or null
+ * @returns E.164 string (e.g. "+33612345678") or null if invalid
  */
 export function toE164(
   number: string | null | undefined,
@@ -40,12 +44,19 @@ export function toE164(
   // Remove spaces, dashes, dots, parentheses
   let cleaned = number.replace(/[\s\-\.\(\)]/g, "");
 
-  // If already in E.164, return as-is
-  if (cleaned.startsWith("+")) return cleaned;
+  // If already in E.164 format, validate and return
+  if (cleaned.startsWith("+")) {
+    return GEODAE_PHONE_REGEX.test(cleaned) ? cleaned : null;
+  }
 
   // Remove leading 0 (local format)
   if (cleaned.startsWith("0")) {
     cleaned = cleaned.slice(1);
+  }
+
+  // Must be exactly 9 digits after stripping
+  if (!/^\d{9}$/.test(cleaned)) {
+    return null;
   }
 
   return `+${dialCode}${cleaned}`;

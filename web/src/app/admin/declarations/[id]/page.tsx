@@ -51,7 +51,18 @@ const DIAL_BY_CODE = new Map(PHONE_PREFIXES.map((p) => [p.code, p.dial]));
 function formatPhone(number: string | null, prefixCode: string | null): string {
   if (!number) return "—";
   const dial = prefixCode ? DIAL_BY_CODE.get(prefixCode) : null;
-  return dial ? `+${dial} ${number}` : number;
+  if (!dial) return number;
+  const cleaned = number.replace(/^0/, "");
+  return `+${dial} ${cleaned}`;
+}
+
+/** Build a tel: URI in E.164 format (no spaces, no leading 0) */
+function phoneHref(number: string | null, prefixCode: string | null): string | undefined {
+  if (!number) return undefined;
+  const dial = prefixCode ? DIAL_BY_CODE.get(prefixCode) : null;
+  const cleaned = number.replace(/[\s\-\.()]/g, "").replace(/^0/, "");
+  if (!dial) return `tel:${cleaned}`;
+  return `tel:+${dial}${cleaned}`;
 }
 
 /* ─── Types ───────────────────────────────────────────────────────────── */
@@ -322,6 +333,7 @@ export default function AdminDeclarationDetailPage() {
   const [showGeodaeConfirm, setShowGeodaeConfirm] = useState(false);
   const [showGeodaeDeleteConfirm, setShowGeodaeDeleteConfirm] = useState(false);
   const [deletingGeodae, setDeletingGeodae] = useState(false);
+  const [retryingDeviceId, setRetryingDeviceId] = useState<string | null>(null);
 
   /* ─── Load ─────────────────────────────────────────────────────────── */
 
@@ -380,11 +392,57 @@ export default function AdminDeclarationDetailPage() {
   const SKIP_DEVICE_KEYS = new Set([
     "id", "position", "declarationId", "createdAt", "updatedAt", "localId",
     "geodaeGid", "geodaeStatus", "geodaeLastSync", "geodaeLastError",
+    // Champs supprimés du DTO (colonnes DB conservées mais non exposées)
+    "accPcsec", "accAcc", "fabSiren", "idEuro", "mntRais", "mntSiren", "freqMnt", "dtprBat",
   ]);
+
+  const GEODAE_PREFIXES = new Set(["fr","re","gp","gf","mq","yt","nc","pf","pm","wf","bl","mf"]);
+  const checkAdminPhone = (phone: string | null | undefined) => {
+    if (!phone?.trim()) return false;
+    const cleaned = phone.replace(/[\s\-\.()]/g, "").replace(/^0/, "");
+    return /^\d{9}$/.test(cleaned);
+  };
 
   const handleSectionSave = useCallback(
     async (section: string) => {
       if (!decl) return;
+
+      // Validate phone fields before saving
+      if (section === "exploitant") {
+        if (!editData.exptTel1?.trim()) {
+          toast.error("Téléphone exploitant obligatoire");
+          return;
+        }
+        if (!checkAdminPhone(editData.exptTel1)) {
+          toast.error("Téléphone exploitant : 9 chiffres requis (hors indicatif)");
+          return;
+        }
+        if (!editData.exptTel1Prefix || !GEODAE_PREFIXES.has(editData.exptTel1Prefix)) {
+          toast.error("Indicatif exploitant : France ou DOM-TOM requis");
+          return;
+        }
+      }
+      if (section === "site") {
+        if (!editData.tel1?.trim()) {
+          toast.error("Téléphone du site obligatoire");
+          return;
+        }
+        if (!checkAdminPhone(editData.tel1)) {
+          toast.error("Téléphone du site : 9 chiffres requis (hors indicatif)");
+          return;
+        }
+        if (!editData.tel1Prefix || !GEODAE_PREFIXES.has(editData.tel1Prefix)) {
+          toast.error("Indicatif du site : France ou DOM-TOM requis");
+          return;
+        }
+      }
+      if (section.startsWith("device-")) {
+        if (!editData.dermnt?.trim()) {
+          toast.error("Date dernière maintenance obligatoire");
+          return;
+        }
+      }
+
       setSaving(true);
 
       let body: Record<string, any>;
@@ -711,7 +769,7 @@ export default function AdminDeclarationDetailPage() {
                 {decl.exptTel1 && (
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <Phone className="w-3 h-3 text-[#929292]" />
-                    <a href={`tel:${formatPhone(decl.exptTel1, decl.exptTel1Prefix).replace(/\s/g, "")}`} className="text-xs text-[#000091] hover:underline">{formatPhone(decl.exptTel1, decl.exptTel1Prefix)}</a>
+                    <a href={phoneHref(decl.exptTel1, decl.exptTel1Prefix)} className="text-xs text-[#000091] hover:underline">{formatPhone(decl.exptTel1, decl.exptTel1Prefix)}</a>
                   </div>
                 )}
               </div>
@@ -775,13 +833,13 @@ export default function AdminDeclarationDetailPage() {
                 {decl.tel1 && (
                   <div className="flex items-center gap-1.5">
                     <Phone className="w-3 h-3 text-[#929292]" />
-                    <a href={`tel:${formatPhone(decl.tel1, decl.tel1Prefix).replace(/\s/g, "")}`} className="text-xs text-[#000091] hover:underline">{formatPhone(decl.tel1, decl.tel1Prefix)}</a>
+                    <a href={phoneHref(decl.tel1, decl.tel1Prefix)} className="text-xs text-[#000091] hover:underline">{formatPhone(decl.tel1, decl.tel1Prefix)}</a>
                   </div>
                 )}
                 {decl.tel2 && (
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <Phone className="w-3 h-3 text-[#929292]" />
-                    <a href={`tel:${formatPhone(decl.tel2, decl.tel2Prefix).replace(/\s/g, "")}`} className="text-xs text-[#000091] hover:underline">{formatPhone(decl.tel2, decl.tel2Prefix)}</a>
+                    <a href={phoneHref(decl.tel2, decl.tel2Prefix)} className="text-xs text-[#000091] hover:underline">{formatPhone(decl.tel2, decl.tel2Prefix)}</a>
                   </div>
                 )}
                 {decl.siteEmail && (
@@ -1058,7 +1116,7 @@ export default function AdminDeclarationDetailPage() {
                   )}
                 </p>
 
-                {/* Device badges */}
+                {/* Device badges with individual retry */}
                 <div className="flex flex-wrap gap-1.5">
                   {decl.daeDevices.map((device, i) => {
                     const status = device.geodaeStatus;
@@ -1066,47 +1124,62 @@ export default function AdminDeclarationDetailPage() {
                     const isFailed = status === "FAILED";
                     const isDeleted = status === "DELETED";
                     const hasGid = !!device.geodaeGid;
+                    const isRetrying = retryingDeviceId === device.id;
                     const geodaeUrl = hasGid
                       ? `https://geodae.atlasante.fr/form/8777a504-6c3e-4abe-8100-60bb58767faa/${device.geodaeGid}`
                       : null;
-                    const Tag = geodaeUrl && (isSent || isDeleted) ? "a" : "span";
-                    const linkProps = geodaeUrl && (isSent || isDeleted)
-                      ? { href: geodaeUrl, target: "_blank" as const, rel: "noopener noreferrer" }
-                      : {};
                     return (
-                      <Tag
-                        key={device.id}
-                        {...linkProps}
-                        className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border transition-colors ${
-                          isDeleted
-                            ? "bg-[#F6F6F6] border-[#E5E5E5] text-[#929292] line-through hover:bg-[#E5E5E5]"
-                            : isSent
-                              ? "bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
-                              : isFailed
+                      <div key={device.id} className="inline-flex items-center gap-0.5">
+                        {geodaeUrl && (isSent || isDeleted) ? (
+                          <a
+                            href={geodaeUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border transition-colors ${
+                              isDeleted
+                                ? "bg-[#F6F6F6] border-[#E5E5E5] text-[#929292] line-through hover:bg-[#E5E5E5]"
+                                : "bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+                            }`}
+                          >
+                            {isDeleted ? <Trash2 className="h-3 w-3" /> : <CheckCircle className="h-3 w-3" />}
+                            {device.nom || `DAE ${i + 1}`}
+                            <span className="text-[10px] opacity-75">#{device.geodaeGid}</span>
+                            {isDeleted && <span className="text-[10px] opacity-75">Supprimé</span>}
+                          </a>
+                        ) : (
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border ${
+                              isFailed
                                 ? "bg-red-50 border-red-200 text-red-700"
                                 : "bg-[#F6F6F6] border-[#E5E5E5] text-[#929292]"
-                        }`}
-                      >
-                        {isDeleted ? (
-                          <Trash2 className="h-3 w-3" />
-                        ) : isSent ? (
-                          <CheckCircle className="h-3 w-3" />
-                        ) : isFailed ? (
-                          <XCircle className="h-3 w-3" />
-                        ) : (
-                          <Globe className="h-3 w-3" />
+                            }`}
+                          >
+                            {isFailed ? <XCircle className="h-3 w-3" /> : <Globe className="h-3 w-3" />}
+                            {device.nom || `DAE ${i + 1}`}
+                            {isFailed && <span className="text-[10px] opacity-75">Échec</span>}
+                          </span>
                         )}
-                        {device.nom || `DAE ${i + 1}`}
-                        {isSent && hasGid && (
-                          <span className="text-[10px] opacity-75">#{device.geodaeGid}</span>
+                        {/* Individual retry/send button */}
+                        {!isDeleted && (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              setRetryingDeviceId(device.id);
+                              await handleRetryDevice(device.id);
+                              setRetryingDeviceId(null);
+                            }}
+                            disabled={sendingGeodae || isRetrying}
+                            title={isSent ? "Resynchroniser ce DAE" : isFailed ? "Réessayer l'envoi" : "Envoyer ce DAE"}
+                            className="p-1 rounded text-[#929292] hover:text-[#000091] hover:bg-[#F5F5FE] transition-colors disabled:opacity-40"
+                          >
+                            {isRetrying ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <RotateCw className="h-3.5 w-3.5" />
+                            )}
+                          </button>
                         )}
-                        {isDeleted && hasGid && (
-                          <span className="text-[10px] opacity-75">Supprimé</span>
-                        )}
-                        {isFailed && (
-                          <span className="text-[10px] opacity-75">Échec</span>
-                        )}
-                      </Tag>
+                      </div>
                     );
                   })}
                 </div>
@@ -1220,7 +1293,7 @@ export default function AdminDeclarationDetailPage() {
             <InfoRow label="Nom" value={decl.exptNom} />
             <InfoRow label="Prénom" value={decl.exptPrenom} />
             <InfoRow label="Email" value={decl.exptEmail} href={decl.exptEmail ? `mailto:${decl.exptEmail}` : undefined} />
-            <InfoRow label="Téléphone" value={formatPhone(decl.exptTel1, decl.exptTel1Prefix)} href={decl.exptTel1 ? `tel:${formatPhone(decl.exptTel1, decl.exptTel1Prefix).replace(/\s/g, "")}` : undefined} />
+            <InfoRow label="Téléphone" value={formatPhone(decl.exptTel1, decl.exptTel1Prefix)} href={phoneHref(decl.exptTel1, decl.exptTel1Prefix)} />
             {decl.exptVoie && (
               <InfoRow
                 label="Adresse"
@@ -1293,8 +1366,8 @@ export default function AdminDeclarationDetailPage() {
                 value={`${decl.latCoor1.toFixed(6)}, ${decl.longCoor1.toFixed(6)}`}
               />
             )}
-            <InfoRow label="Tél. site" value={formatPhone(decl.tel1, decl.tel1Prefix)} href={decl.tel1 ? `tel:${formatPhone(decl.tel1, decl.tel1Prefix).replace(/\s/g, "")}` : undefined} />
-            {decl.tel2 && <InfoRow label="Tél. 2" value={formatPhone(decl.tel2, decl.tel2Prefix)} href={`tel:${formatPhone(decl.tel2, decl.tel2Prefix).replace(/\s/g, "")}`} />}
+            <InfoRow label="Tél. site" value={formatPhone(decl.tel1, decl.tel1Prefix)} href={phoneHref(decl.tel1, decl.tel1Prefix)} />
+            {decl.tel2 && <InfoRow label="Tél. 2" value={formatPhone(decl.tel2, decl.tel2Prefix)} href={phoneHref(decl.tel2, decl.tel2Prefix)} />}
             {decl.siteEmail && (
               <InfoRow label="Email site" value={decl.siteEmail} href={`mailto:${decl.siteEmail}`} />
             )}

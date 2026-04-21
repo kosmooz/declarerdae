@@ -4,8 +4,6 @@
   Landing page de vente ultra complète pour declarerdefibrillateur.fr
   Style épuré .gouv, SEO optimisé, contenu persuasif, CTA stratégiques multiples
 */
-import { useState } from "react";
-import StatCounter from "@/components/declarerdae/StatCounter";
 import FAQ from "@/components/declarerdae/FAQ";
 import ScrollReveal from "@/components/declarerdae/ScrollReveal";
 import CTABanner from "@/components/declarerdae/CTABanner";
@@ -52,7 +50,6 @@ const CDN = {
 };
 
 export default function Home() {
-  const [heroVariant, setHeroVariant] = useState<0 | 1 | 2>(0);
 
   return (
     <>
@@ -68,11 +65,11 @@ export default function Home() {
               className="w-full h-full object-cover"
             />
           </div>
-          <div className={`absolute inset-0 ${heroVariant === 0 ? "bg-gradient-to-r from-[#000091]/90 via-[#000091]/75 to-[#000091]/40" : heroVariant === 2 ? "bg-[#000091]/80" : "bg-[#000091]/80"}`} />
+          <div className="absolute inset-0 bg-[#000091]/80" />
           <div className="relative container-narrow py-16 sm:py-20 lg:py-24">
-            <div className={`flex flex-col ${heroVariant >= 1 ? "lg:flex-row lg:items-center lg:gap-10" : ""}`}>
+            <div className="flex flex-col lg:flex-row lg:items-center lg:gap-10">
               {/* Left side — text content */}
-              <div className={heroVariant >= 1 ? "lg:flex-1" : "max-w-2xl"}>
+              <div className="lg:flex-1">
                 <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-sm px-3 py-1.5 mb-6">
                   <AlertTriangle className="w-4 h-4 text-[#E1000F]" />
                   <span className="text-white text-sm font-medium">
@@ -117,146 +114,61 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Right side — "Comment ça marche" card (variant 1 only) */}
-              {heroVariant === 1 && (
-                <div className="hidden lg:block lg:flex-shrink-0 lg:w-[460px]">
-                  <div className="bg-white rounded-lg px-7 py-6 shadow-xl">
-                    <h2 className="font-heading font-bold text-xl text-[#000091] mb-10 text-center">
-                      Comment ça marche ?
-                    </h2>
+              {/* Right side — "Comment ça marche" card */}
+              <div className="hidden lg:block lg:flex-shrink-0 lg:w-[460px]">
+                <div className="bg-white rounded-lg px-7 py-6 shadow-xl">
+                  <h2 className="font-heading font-bold text-xl text-[#000091] mb-10 text-center">
+                    Comment ça marche ?
+                  </h2>
 
-                    {/* Row 1 */}
-                    <div className="flex items-start gap-3">
-                      {/* Step 1 */}
-                      <div className="flex flex-col items-center text-center flex-1">
-                        <Image src="/images/hero/iconhero1.png" alt="Recherche d'Entité" width={120} height={90} className="object-contain" />
-                        <p className="text-xs font-bold text-[#000091] mt-2 leading-tight">Recherche d&apos;Entité&nbsp;:</p>
-                        <p className="text-[11px] text-[#3A3A3A] leading-tight mt-0.5">Trouvez votre structure avec son nom ou SIREN.</p>
-                      </div>
-
-                      {/* Arrow right */}
-                      <div className="flex items-center pt-6 shrink-0">
-                        <svg width="32" height="20" viewBox="0 0 32 20" fill="none"><path d="M0 10h26m0 0l-6-6m6 6l-6 6" stroke="#000091" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                      </div>
-
-                      {/* Step 2 */}
-                      <div className="flex flex-col items-center text-center flex-1">
-                        <Image src="/images/hero/iconhero2.png" alt="Détails de Contact" width={120} height={90} className="object-contain" />
-                        <p className="text-xs font-bold text-[#000091] mt-2 leading-tight">Détails de Contact&nbsp;:</p>
-                        <p className="text-[11px] text-[#3A3A3A] leading-tight mt-0.5">Renseignez les informations de la personne référente.</p>
-                      </div>
+                  {/* Row 1 */}
+                  <div className="flex items-start gap-3">
+                    <div className="flex flex-col items-center text-center flex-1">
+                      <Image src="/images/hero/iconhero1.png" alt="Recherche d'Entité" width={120} height={90} className="object-contain" />
+                      <p className="text-xs font-bold text-[#000091] mt-2 leading-tight">Recherche d&apos;Entité&nbsp;:</p>
+                      <p className="text-[11px] text-[#3A3A3A] leading-tight mt-0.5">Trouvez votre structure avec son nom ou SIREN.</p>
                     </div>
 
-                    {/* Row 2 */}
-                    <div className="flex items-start gap-3 mt-10">
-                      {/* Step 3 */}
-                      <div className="flex flex-col items-center text-center flex-1">
-                        <Image src="/images/hero/iconhero3.png" alt="Informations DAE" width={120} height={90} className="object-contain" />
-                        <p className="text-xs font-bold text-[#000091] mt-2 leading-tight">Informations DAE&nbsp;:</p>
-                        <p className="text-[11px] text-[#3A3A3A] leading-tight mt-0.5">Détails de localisation et d&apos;appareil.</p>
-                      </div>
-
-                      {/* Arrow right */}
-                      <div className="flex items-center pt-6 shrink-0">
-                        <svg width="32" height="20" viewBox="0 0 32 20" fill="none"><path d="M0 10h26m0 0l-6-6m6 6l-6 6" stroke="#000091" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                      </div>
-
-                      {/* Step 4 */}
-                      <div className="flex flex-col items-center text-center flex-1">
-                        <Image src="/images/hero/iconhero4.png" alt="Soumission" width={120} height={90} className="object-contain" />
-                        <p className="text-xs font-bold text-[#000091] mt-2 leading-tight">Soumission&nbsp;:</p>
-                        <p className="text-[11px] text-[#3A3A3A] leading-tight mt-0.5">Validation et réception de l&apos;attestation.</p>
-                      </div>
+                    <div className="flex items-center pt-6 shrink-0">
+                      <svg width="32" height="20" viewBox="0 0 32 20" fill="none"><path d="M0 10h26m0 0l-6-6m6 6l-6 6" stroke="#000091" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     </div>
 
-                    <div className="mt-8 text-center">
-                      <Link href="/declaration">
-                        <Button variant="outline" className="border-[#000091] text-[#000091] hover:bg-[#EFF6FF] bg-transparent font-medium text-sm px-6">
-                          Déclarer mon DAE
-                          <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
-                        </Button>
-                      </Link>
+                    <div className="flex flex-col items-center text-center flex-1">
+                      <Image src="/images/hero/iconhero2.png" alt="Détails de Contact" width={120} height={90} className="object-contain" />
+                      <p className="text-xs font-bold text-[#000091] mt-2 leading-tight">Détails de Contact&nbsp;:</p>
+                      <p className="text-[11px] text-[#3A3A3A] leading-tight mt-0.5">Renseignez les informations de la personne référente.</p>
                     </div>
                   </div>
-                </div>
-              )}
 
-              {/* Right side — glassmorphism "Comment ça marche" card (variant 2 only) */}
-              {heroVariant === 2 && (
-                <div className="hidden lg:block lg:flex-shrink-0 lg:w-[460px]">
-                  <div className="bg-white/10 backdrop-blur-xl rounded-2xl px-7 py-6 shadow-2xl border border-white/20">
-                    <h2 className="font-heading font-bold text-xl text-white mb-10 text-center">
-                      Comment ça marche ?
-                    </h2>
-
-                    {/* Row 1 */}
-                    <div className="flex items-start gap-3">
-                      <div className="flex flex-col items-center text-center flex-1">
-                        <Image src="/images/hero/iconhero1.png" alt="Recherche d'Entité" width={120} height={90} className="object-contain" />
-                        <p className="text-xs font-bold text-white mt-2 leading-tight">Recherche d&apos;Entité&nbsp;:</p>
-                        <p className="text-[11px] text-white/70 leading-tight mt-0.5">Trouvez votre structure avec son nom ou SIREN.</p>
-                      </div>
-
-                      <div className="flex items-center pt-6 shrink-0">
-                        <svg width="32" height="20" viewBox="0 0 32 20" fill="none"><path d="M0 10h26m0 0l-6-6m6 6l-6 6" stroke="white" strokeOpacity="0.7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                      </div>
-
-                      <div className="flex flex-col items-center text-center flex-1">
-                        <Image src="/images/hero/iconhero2.png" alt="Détails de Contact" width={120} height={90} className="object-contain" />
-                        <p className="text-xs font-bold text-white mt-2 leading-tight">Détails de Contact&nbsp;:</p>
-                        <p className="text-[11px] text-white/70 leading-tight mt-0.5">Renseignez les informations de la personne référente.</p>
-                      </div>
+                  {/* Row 2 */}
+                  <div className="flex items-start gap-3 mt-10">
+                    <div className="flex flex-col items-center text-center flex-1">
+                      <Image src="/images/hero/iconhero3.png" alt="Informations DAE" width={120} height={90} className="object-contain" />
+                      <p className="text-xs font-bold text-[#000091] mt-2 leading-tight">Informations DAE&nbsp;:</p>
+                      <p className="text-[11px] text-[#3A3A3A] leading-tight mt-0.5">Détails de localisation et d&apos;appareil.</p>
                     </div>
 
-                    {/* Row 2 */}
-                    <div className="flex items-start gap-3 mt-10">
-                      <div className="flex flex-col items-center text-center flex-1">
-                        <Image src="/images/hero/iconhero3.png" alt="Informations DAE" width={120} height={90} className="object-contain" />
-                        <p className="text-xs font-bold text-white mt-2 leading-tight">Informations DAE&nbsp;:</p>
-                        <p className="text-[11px] text-white/70 leading-tight mt-0.5">Détails de localisation et d&apos;appareil.</p>
-                      </div>
-
-                      <div className="flex items-center pt-6 shrink-0">
-                        <svg width="32" height="20" viewBox="0 0 32 20" fill="none"><path d="M0 10h26m0 0l-6-6m6 6l-6 6" stroke="white" strokeOpacity="0.7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                      </div>
-
-                      <div className="flex flex-col items-center text-center flex-1">
-                        <Image src="/images/hero/iconhero4.png" alt="Soumission" width={120} height={90} className="object-contain" />
-                        <p className="text-xs font-bold text-white mt-2 leading-tight">Soumission&nbsp;:</p>
-                        <p className="text-[11px] text-white/70 leading-tight mt-0.5">Validation et réception de l&apos;attestation.</p>
-                      </div>
+                    <div className="flex items-center pt-6 shrink-0">
+                      <svg width="32" height="20" viewBox="0 0 32 20" fill="none"><path d="M0 10h26m0 0l-6-6m6 6l-6 6" stroke="#000091" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     </div>
 
-                    <div className="mt-8 text-center">
-                      <Link href="/declaration">
-                        <Button variant="outline" className="border-white/30 text-white hover:bg-white/10 bg-transparent font-medium text-sm px-6">
-                          Déclarer mon DAE
-                          <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
-                        </Button>
-                      </Link>
+                    <div className="flex flex-col items-center text-center flex-1">
+                      <Image src="/images/hero/iconhero4.png" alt="Soumission" width={120} height={90} className="object-contain" />
+                      <p className="text-xs font-bold text-[#000091] mt-2 leading-tight">Soumission&nbsp;:</p>
+                      <p className="text-[11px] text-[#3A3A3A] leading-tight mt-0.5">Validation et réception de l&apos;attestation.</p>
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
 
-            {/* Hero switch dots */}
-            <div className="flex items-center justify-center gap-2 mt-8">
-              <button
-                onClick={() => setHeroVariant(0)}
-                className={`w-2.5 h-2.5 rounded-full transition-all ${heroVariant === 0 ? "bg-white scale-125" : "bg-white/40 hover:bg-white/60"}`}
-                aria-label="Hero classique"
-              />
-              <button
-                onClick={() => setHeroVariant(1)}
-                className={`w-2.5 h-2.5 rounded-full transition-all ${heroVariant === 1 ? "bg-white scale-125" : "bg-white/40 hover:bg-white/60"}`}
-                aria-label="Hero avec étapes"
-              />
-              <button
-                onClick={() => setHeroVariant(2)}
-                className={`w-2.5 h-2.5 rounded-full transition-all ${heroVariant === 2 ? "bg-white scale-125" : "bg-white/40 hover:bg-white/60"}`}
-                aria-label="Hero glassmorphism"
-              />
+                  <div className="mt-8 text-center">
+                    <Link href="/declaration">
+                      <Button variant="outline" className="border-[#000091] text-[#000091] hover:bg-[#EFF6FF] bg-transparent font-medium text-sm px-6">
+                        Déclarer mon DAE
+                        <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -289,20 +201,24 @@ export default function Home() {
         </section>
 
         {/* ===== STATISTIQUES ===== */}
-        <section className="bg-white py-10 sm:py-14 border-b border-[#E5E5E5]">
+        <section className="bg-white py-8 sm:py-12 border-b border-[#E5E5E5]">
           <div className="container">
             <ScrollReveal>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8">
-                <div className="text-center">
-                  <div className="font-heading font-black text-3xl sm:text-4xl lg:text-5xl text-[#000091] leading-none">
-                    40 000 à 50 000
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                {[
+                  { value: "40 000", label: "Arrêts cardiaques", sublabel: "chaque année en France", color: "text-[#E1000F]" },
+                  { value: "< 10 %", label: "Taux de survie", sublabel: "sans intervention rapide", color: "text-[#000091]" },
+                  { value: "5 min", label: "Durée de déclaration", sublabel: "sur notre plateforme", color: "text-[#18753C]" },
+                  { value: "50 %", label: "Survie avec DAE", sublabel: "dans les premières minutes", color: "text-[#000091]" },
+                ].map((stat) => (
+                  <div key={stat.label} className="bg-[#F6F6F6] rounded-lg p-4 sm:p-5 text-center">
+                    <div className={`font-heading font-black text-2xl sm:text-3xl leading-none ${stat.color}`}>
+                      {stat.value}
+                    </div>
+                    <div className="font-heading font-semibold text-xs sm:text-sm text-[#3A3A3A] mt-2">{stat.label}</div>
+                    <div className="text-[11px] text-[#929292] mt-0.5">{stat.sublabel}</div>
                   </div>
-                  <div className="font-heading font-semibold text-sm sm:text-base text-[#3A3A3A] mt-2">Décès par arrêt cardiaque</div>
-                  <div className="text-xs text-[#929292] mt-1">chaque année en France</div>
-                </div>
-                <StatCounter end={10} prefix="< " suffix=" %" label="Taux de survie" sublabel="sans intervention rapide" />
-                <StatCounter end={5} suffix=" min" label="Temps moyen de déclaration" sublabel="sur notre plateforme" />
-                <StatCounter end={50} suffix=" %" label="Taux de survie avec DAE" sublabel="dans les premières minutes" />
+                ))}
               </div>
             </ScrollReveal>
           </div>
@@ -401,7 +317,7 @@ export default function Home() {
         {/* ===== IMAGE URGENCE + CITATION ===== */}
         <section className="relative h-64 sm:h-80 overflow-hidden">
           <img
-            src={CDN.urgence}
+            src="/images/urgence-samu.jpg"
             alt="Intervention d'urgence avec un défibrillateur automatisé externe"
             className="w-full h-full object-cover"
           />
@@ -729,7 +645,7 @@ export default function Home() {
                   Notre solution
                 </span>
                 <h2 className="font-heading font-bold text-2xl sm:text-3xl text-[#161616] mb-4">
-                  Un service automatisé pour une déclaration sans effort
+                  Un service automatisé pour une déclaration simplifiée
                 </h2>
                 <p className="text-[#666] text-base leading-relaxed">
                   La procédure officielle de déclaration peut s'avérer complexe et chronophage. Notre plateforme simplifie chaque étape pour vous permettre de vous mettre en conformité rapidement, sans erreur, et avec une attestation d'enregistrement.
@@ -817,7 +733,7 @@ export default function Home() {
             <ScrollReveal>
               <div className="max-w-4xl mx-auto">
                 <img
-                  src={CDN.etapes}
+                  src="/images/etapes-declarer.jpg"
                   alt="Les 3 étapes simples pour déclarer votre défibrillateur en ligne"
                   className="w-full rounded shadow-md border border-[#E5E5E5]"
                 />

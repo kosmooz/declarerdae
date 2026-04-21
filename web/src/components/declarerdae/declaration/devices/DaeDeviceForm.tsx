@@ -221,6 +221,34 @@ export default function DaeDeviceForm({
             value={device.dispH}
             onChange={(v) => set("dispH", v)}
           />
+          {/* Maintenance (obligatoire GéoDAE) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs text-[#666] mb-1 block">
+                Date dernière maintenance{" "}
+                <span className="text-[#E1000F]">*</span>
+              </Label>
+              <Input
+                type="date"
+                value={device.dermnt}
+                onChange={(e) => set("dermnt", e.target.value)}
+                className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]"
+                required
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-[#666] mb-1 block">
+                Date d'installation{" "}
+                <span className="text-[#929292]">(facultatif)</span>
+              </Label>
+              <Input
+                type="date"
+                value={device.dateInstal}
+                onChange={(e) => set("dateInstal", e.target.value)}
+                className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]"
+              />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -237,31 +265,6 @@ export default function DaeDeviceForm({
         </summary>
 
         <div className="mt-3 space-y-3">
-          {/* Maintenance */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs text-[#666] mb-1 block">
-                Date dernière maintenance
-              </Label>
-              <Input
-                type="date"
-                value={device.dermnt}
-                onChange={(e) => set("dermnt", e.target.value)}
-                className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]"
-              />
-            </div>
-            <div>
-              <Label className="text-xs text-[#666] mb-1 block">
-                Date d'installation
-              </Label>
-              <Input
-                type="date"
-                value={device.dateInstal}
-                onChange={(e) => set("dateInstal", e.target.value)}
-                className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]"
-              />
-            </div>
-          </div>
 
           {/* Électrodes & batterie */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

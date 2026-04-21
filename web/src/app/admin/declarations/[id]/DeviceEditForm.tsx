@@ -231,7 +231,8 @@ export default function DeviceEditForm({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label className="text-xs text-[#666] mb-1 block">
-                Date derniere maintenance
+                Date dernière maintenance{" "}
+                <span className="text-[#E1000F]">*</span>
               </Label>
               <Input
                 type="date"

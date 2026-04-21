@@ -9,6 +9,7 @@ import axios from "axios";
 import { existsSync, readFileSync } from "fs";
 import { join, extname } from "path";
 import { mapDeviceToGeoJson } from "./geodae-mapper";
+import { validateForGeodae } from "./geodae-validator";
 
 const BASE_URL = "https://catalogue.atlasante.fr";
 const RESOURCE_UUID = "8777a504-6c3e-4abe-8100-60bb58767faa";
@@ -277,6 +278,18 @@ export class GeodaeService {
         // Convert photos to base64
         const photo1Base64 = this.photoToBase64(device.photo1);
         const photo2Base64 = this.photoToBase64(device.photo2);
+
+        // Pre-send validation
+        const validationErrors = validateForGeodae(declaration, device, {
+          mntSiren: settings.mntSiren,
+          mntRais: settings.mntRais,
+        });
+        if (validationErrors.length > 0) {
+          const msg = validationErrors
+            .map((e) => `${e.label} : ${e.message}`)
+            .join(" | ");
+          throw new Error(`Données incomplètes : ${msg}`);
+        }
 
         // Build GeoJSON payload
         const geoJson = mapDeviceToGeoJson(declaration, device, {

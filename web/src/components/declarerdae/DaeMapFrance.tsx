@@ -1,44 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import ScrollReveal from "@/components/declarerdae/ScrollReveal";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, MapPin, Building2, Heart } from "lucide-react";
-
-/* ------------------------------------------------------------------ */
-/*  Types                                                              */
-/* ------------------------------------------------------------------ */
-
-interface MapPoint {
-  lat: number;
-  lng: number;
-  ville: string;
-  cp: string;
-  n: number;
-}
-
-interface MapData {
-  points: MapPoint[];
-  stats: { declarations: number; devices: number; villes: number };
-}
-
-/* ------------------------------------------------------------------ */
-/*  Dynamic import of inner map (SSR disabled)                         */
-/* ------------------------------------------------------------------ */
-
-const DaeMapInner = dynamic(
-  () => import("@/components/declarerdae/DaeMapFranceInner"),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="w-full h-full rounded-lg bg-[#F6F6F6] flex items-center justify-center">
-        <div className="text-[#929292] text-sm">Chargement de la carte...</div>
-      </div>
-    ),
-  },
-);
 
 /* ------------------------------------------------------------------ */
 /*  Animated counter                                                   */
@@ -48,10 +14,12 @@ function AnimCounter({
   end,
   label,
   icon,
+  prefix,
 }: {
   end: number;
   label: string;
   icon: React.ReactNode;
+  prefix?: string;
 }) {
   const [count, setCount] = useState(0);
   const [hasAnimated, setHasAnimated] = useState(false);
@@ -86,7 +54,7 @@ function AnimCounter({
         {icon}
       </div>
       <div className="font-heading font-black text-3xl sm:text-4xl text-white leading-none">
-        {count.toLocaleString("fr-FR")}
+        {prefix}{count.toLocaleString("fr-FR")}
       </div>
       <div className="text-white/70 text-sm font-medium">{label}</div>
     </div>
@@ -98,21 +66,6 @@ function AnimCounter({
 /* ------------------------------------------------------------------ */
 
 export default function DaeMapFrance() {
-  const [data, setData] = useState<MapData | null>(null);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    fetch("/api/declarations/public-map")
-      .then((r) => {
-        if (!r.ok) throw new Error("fetch failed");
-        return r.json();
-      })
-      .then(setData)
-      .catch(() => setError(true));
-  }, []);
-
-  const stats = data?.stats ?? { declarations: 0, devices: 0, villes: 0 };
-
   return (
     <section className="bg-[#000091] py-10 sm:py-16">
       <div className="container">
@@ -120,57 +73,34 @@ export default function DaeMapFrance() {
         <ScrollReveal>
           <div className="max-w-3xl mx-auto text-center mb-8 sm:mb-10">
             <span className="inline-block text-xs font-semibold uppercase tracking-widest text-white/60 mb-3">
-              Carte des DAE
+              En chiffres
             </span>
             <h2 className="font-heading font-bold text-2xl sm:text-3xl text-white mb-4">
               Ils déclarent avec nous, partout en France
             </h2>
             <p className="text-white/70 text-base leading-relaxed">
-              Visualisez les défibrillateurs enregistrés via notre plateforme.
-              Chaque point représente un établissement en conformité.
+              Des milliers d'établissements utilisent notre plateforme pour se
+              mettre en conformité avec la réglementation.
             </p>
-          </div>
-        </ScrollReveal>
-
-        {/* Map */}
-        <ScrollReveal>
-          <div
-            className="mx-auto rounded-lg overflow-hidden border-2 border-white/20 shadow-lg"
-            style={{ maxWidth: 900, height: "clamp(280px, 40vw, 420px)" }}
-          >
-            {error ? (
-              <div className="w-full h-full bg-[#F6F6F6] flex items-center justify-center">
-                <p className="text-[#929292] text-sm">
-                  Impossible de charger la carte.
-                </p>
-              </div>
-            ) : !data ? (
-              <div className="w-full h-full bg-[#F6F6F6] flex items-center justify-center">
-                <div className="text-[#929292] text-sm">
-                  Chargement de la carte...
-                </div>
-              </div>
-            ) : (
-              <DaeMapInner points={data.points} />
-            )}
           </div>
         </ScrollReveal>
 
         {/* Stats counters */}
         <ScrollReveal>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 sm:gap-4 max-w-2xl mx-auto mt-10">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 sm:gap-4 max-w-2xl mx-auto">
             <AnimCounter
-              end={stats.devices}
+              end={2500}
+              prefix="+"
               label="DAE déclarés"
               icon={<Heart className="w-5 h-5 text-[#E1000F]" />}
             />
             <AnimCounter
-              end={stats.villes}
+              end={120}
               label="Villes couvertes"
               icon={<MapPin className="w-5 h-5 text-white/80" />}
             />
             <AnimCounter
-              end={stats.declarations}
+              end={1800}
               label="Établissements"
               icon={<Building2 className="w-5 h-5 text-white/80" />}
             />
