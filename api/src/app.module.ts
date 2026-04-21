@@ -39,7 +39,7 @@ import { GdprModule } from "./gdpr/gdpr.module";
     ThrottlerModule.forRoot([
       {
         ttl: 60000,
-        limit: 30,
+        limit: 120,
       },
     ]),
     PrismaModule,

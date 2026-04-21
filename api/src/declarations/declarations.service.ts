@@ -300,6 +300,7 @@ export class DeclarationsService {
           createdAt: true,
           updatedAt: true,
           _count: { select: { daeDevices: true } },
+          daeDevices: { select: { geodaeStatus: true } },
         },
         orderBy: { createdAt: "desc" },
         skip: (page - 1) * limit,
@@ -309,11 +310,20 @@ export class DeclarationsService {
     ]);
 
     return {
-      declarations: declarations.map((d) => ({
-        ...d,
-        deviceCount: d._count.daeDevices,
-        _count: undefined,
-      })),
+      declarations: declarations.map((d) => {
+        const synced = d.daeDevices.filter(
+          (dev) =>
+            dev.geodaeStatus === "SENT" || dev.geodaeStatus === "UPDATED",
+        ).length;
+        return {
+          ...d,
+          deviceCount: d._count.daeDevices,
+          geodaeSyncedCount: synced,
+          geodaeTotalCount: d.daeDevices.length,
+          _count: undefined,
+          daeDevices: undefined,
+        };
+      }),
       total,
     };
   }
@@ -465,11 +475,47 @@ export class DeclarationsService {
     if (declaration.userId !== userId) {
       throw new NotFoundException("Déclaration introuvable");
     }
-    if (declaration.status !== "DRAFT" && declaration.status !== "COMPLETE") {
+    if (declaration.status !== "DRAFT" && declaration.status !== "COMPLETE" && declaration.status !== "VALIDATED") {
       throw new BadRequestException(
-        "Seules les déclarations en brouillon ou soumises peuvent être modifiées",
+        "Cette déclaration ne peut pas être modifiée dans son état actuel.",
       );
     }
+  }
+
+  async cancelMyDeclaration(userId: string, id: string) {
+    const declaration = await this.prisma.declaration.findUnique({
+      where: { id },
+    });
+
+    if (!declaration || declaration.userId !== userId) {
+      throw new NotFoundException("Déclaration introuvable");
+    }
+
+    if (declaration.status === "CANCELLED") {
+      throw new BadRequestException("Cette déclaration est déjà annulée.");
+    }
+
+    await this.prisma.declaration.update({
+      where: { id },
+      data: { status: "CANCELLED" },
+    });
+
+    await this.prisma.declarationAuditLog.create({
+      data: {
+        declarationId: id,
+        adminId: userId,
+        action: "STATUS_CHANGE",
+        fieldName: "status",
+        oldValue: declaration.status,
+        newValue: "CANCELLED",
+        metadata: JSON.stringify({
+          reason: "All DAE deleted from GéoDAE by user",
+          timestamp: new Date().toISOString(),
+        }),
+      },
+    });
+
+    return { id };
   }
 
   async updateMyDeclaration(
@@ -587,6 +633,13 @@ export class DeclarationsService {
       throw new NotFoundException("Défibrillateur introuvable");
     }
     this.assertEditable(device.declaration, userId);
+
+    // Block deletion of devices synced to GéoDAE
+    if (device.geodaeGid && device.geodaeStatus !== "DELETED") {
+      throw new BadRequestException(
+        "Ce DAE est synchronisé avec GéoDAE. Supprimez-le d'abord depuis la gestion GéoDAE avant de le retirer.",
+      );
+    }
 
     if (device.declaration.daeDevices.length <= 1) {
       throw new BadRequestException(

@@ -1,12 +1,14 @@
 "use client";
 
 import type { DeclarationFormState } from "@/lib/declaration-types";
-import { User, Building2, Cpu, MapPin, Check } from "lucide-react";
+import { User, Building2, Cpu, MapPin, Check, AlertTriangle } from "lucide-react";
 
 interface DeclarationPreviewProps {
   data: DeclarationFormState;
   currentStep: number;
   onGoToStep?: (step: number) => void;
+  warningMessage?: string | null;
+  onWarningClick?: () => void;
 }
 
 function PreviewSection({
@@ -54,6 +56,8 @@ export default function DeclarationPreview({
   data,
   currentStep,
   onGoToStep,
+  warningMessage,
+  onWarningClick,
 }: DeclarationPreviewProps) {
   const hasExploitant = !!(data.exptRais?.trim() && data.exptEmail?.trim());
   const hasSite = !!(data.adrVoie?.trim() && data.ville?.trim());
@@ -175,6 +179,22 @@ export default function DeclarationPreview({
             </div>
           ))}
         </PreviewSection>
+
+        {/* Warning message */}
+        {warningMessage && (
+          <div className="pt-3 border-t border-[#E5E5E5]">
+            <div
+              className={`flex items-start gap-1.5 px-1 py-1.5 rounded bg-amber-50 border border-amber-200 ${onWarningClick ? "cursor-pointer hover:bg-amber-100 transition-colors" : ""}`}
+              onClick={onWarningClick}
+              role={onWarningClick ? "button" : undefined}
+            >
+              <AlertTriangle className="w-3 h-3 text-amber-600 shrink-0 mt-0.5" />
+              <p className="text-[10px] text-amber-700 leading-tight">
+                {warningMessage}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Step indicator */}
         <div className="pt-3">

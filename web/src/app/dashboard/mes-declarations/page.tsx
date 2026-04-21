@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +11,8 @@ import {
   Cpu,
   ChevronRight,
   Plus,
+  Globe,
+  CheckCircle,
 } from "lucide-react";
 
 interface DeclarationItem {
@@ -22,13 +24,15 @@ interface DeclarationItem {
   step: number;
   status: string;
   deviceCount: number;
+  geodaeSyncedCount: number;
+  geodaeTotalCount: number;
   createdAt: string;
   updatedAt: string;
 }
 
 const STATUS_LABELS: Record<string, string> = {
   DRAFT: "Brouillon",
-  COMPLETE: "Soumise",
+  COMPLETE: "Finaliser l'envoi",
   VALIDATED: "Validée",
   CANCELLED: "Annulée",
 };
@@ -42,18 +46,41 @@ const STATUS_CONFIG: Record<string, { bg: string; text: string; dot: string }> =
 
 const QUICK_FILTERS = [
   { key: "", label: "Toutes" },
-  { key: "COMPLETE", label: "Soumises" },
+  { key: "COMPLETE", label: "En attente d'envoi" },
   { key: "VALIDATED", label: "Validées" },
   { key: "CANCELLED", label: "Annulées" },
 ];
 
 export default function MesDeclarationsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const linkedId = searchParams.get("linked");
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const highlightRef = useRef<HTMLButtonElement>(null);
   const [declarations, setDeclarations] = useState<DeclarationItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("");
   const [loading, setLoading] = useState(true);
+
+  // Highlight linked draft after login redirect
+  useEffect(() => {
+    if (linkedId) {
+      setHighlightId(linkedId);
+      // Clean URL without triggering navigation
+      window.history.replaceState(null, "", "/dashboard/mes-declarations");
+      // Remove highlight after animation
+      const timer = setTimeout(() => setHighlightId(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [linkedId]);
+
+  // Scroll to highlighted card once loaded
+  useEffect(() => {
+    if (highlightId && !loading && highlightRef.current) {
+      highlightRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [highlightId, loading]);
 
   const fetchDeclarations = useCallback(async () => {
     setLoading(true);
@@ -149,10 +176,15 @@ export default function MesDeclarationsPage() {
               return (
                 <button
                   key={d.id}
+                  ref={d.id === highlightId ? highlightRef : undefined}
                   onClick={() =>
                     router.push(`/dashboard/mes-declarations/${d.id}`)
                   }
-                  className="w-full text-left bg-white border border-[#E5E5E5] rounded-sm p-4 hover:border-[#000091]/30 hover:shadow-sm transition-all group"
+                  className={`w-full text-left bg-white border rounded-sm p-4 hover:border-[#000091]/30 hover:shadow-sm transition-all group ${
+                    d.id === highlightId
+                      ? "border-[#000091] ring-2 ring-[#000091]/20 animate-pulse"
+                      : "border-[#E5E5E5]"
+                  }`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
@@ -191,6 +223,36 @@ export default function MesDeclarationsPage() {
                           {d.deviceCount} DAE
                         </span>
                       </div>
+
+                      {/* GéoDAE indicator */}
+                      {d.status === "COMPLETE" && d.geodaeSyncedCount === 0 && (
+                        <div className="flex items-center gap-1.5 mt-1.5">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700">
+                            <Globe className="w-3 h-3" />
+                            Envoi GéoDAE requis
+                          </span>
+                        </div>
+                      )}
+                      {d.status === "COMPLETE" &&
+                        d.geodaeSyncedCount > 0 &&
+                        d.geodaeSyncedCount < d.geodaeTotalCount && (
+                        <div className="flex items-center gap-1.5 mt-1.5">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#F5F5FE] text-[#000091]">
+                            <Globe className="w-3 h-3" />
+                            Partiellement synchronisé ({d.geodaeSyncedCount}/{d.geodaeTotalCount})
+                          </span>
+                        </div>
+                      )}
+                      {d.status === "VALIDATED" &&
+                        d.geodaeSyncedCount === d.geodaeTotalCount &&
+                        d.geodaeTotalCount > 0 && (
+                        <div className="flex items-center gap-1.5 mt-1.5">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-[#18753C]">
+                            <CheckCircle className="w-3 h-3" />
+                            GéoDAE synchronisé
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     <ChevronRight className="w-5 h-5 text-[#929292] group-hover:text-[#000091] transition-colors shrink-0 mt-1" />

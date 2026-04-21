@@ -43,6 +43,7 @@ import ExploitantEditForm from "./ExploitantEditForm";
 import SiteEditForm from "./SiteEditForm";
 import DeviceEditForm from "./DeviceEditForm";
 import UserAttachmentDialog from "./UserAttachmentDialog";
+import { GeodaeSyncManager, GeodaeDetailContent } from "@/components/declarerdae/geodae";
 
 import PHONE_PREFIXES from "@/data/phone-prefixes";
 
@@ -92,6 +93,8 @@ interface DaeDevice {
   dtprLcad: string | null;
   photo1: string | null;
   photo2: string | null;
+  daeLat: number | null;
+  daeLng: number | null;
   geodaeGid: number | null;
   geodaeStatus: string | null;
   geodaeLastSync: string | null;
@@ -113,15 +116,19 @@ interface Declaration {
   exptVoie: string | null;
   exptCp: string | null;
   exptCom: string | null;
+  exptType: string | null;
+  exptInsee: string | null;
   nomEtablissement: string | null;
   typeERP: string | null;
   categorieERP: string | null;
   adrNum: string | null;
   adrVoie: string | null;
   codePostal: string | null;
+  codeInsee: string | null;
   ville: string | null;
   latCoor1: number | null;
   longCoor1: number | null;
+  xyPrecis: number | null;
   tel1: string | null;
   tel1Prefix: string | null;
   tel2: string | null;
@@ -132,7 +139,7 @@ interface Declaration {
   step: number;
   notes: string | null;
   userId: string | null;
-  user: { id: string; email: string; firstName: string | null; lastName: string | null } | null;
+  user: { id: string; email: string; emailVerified: boolean; firstName: string | null; lastName: string | null } | null;
   createdAt: string;
   updatedAt: string;
   daeDevices: DaeDevice[];
@@ -162,14 +169,6 @@ const TYPE_ERP_LABELS: Record<string, string> = {
   collectivite: "Collectivité territoriale",
 };
 
-const CATEGORIE_ERP_LABELS: Record<string, string> = {
-  "cat-1": "Catégorie 1 (+ de 1 500 personnes)",
-  "cat-2": "Catégorie 2 (701 à 1 500)",
-  "cat-3": "Catégorie 3 (301 à 700)",
-  "cat-4": "Catégorie 4 (≤ 300)",
-  "cat-5": "Catégorie 5 (seuils réglementaires)",
-  "non-applicable": "Non applicable",
-};
 
 const CANCEL_REASONS = [
   {
@@ -222,7 +221,7 @@ const FIELD_LABELS: Record<string, string> = {
   exptNom: "Nom contact", exptPrenom: "Prenom contact",
   exptEmail: "Email exploitant", exptTel1: "Tel. exploitant", exptTel1Prefix: "Indicatif exploitant",
   exptNum: "N. voie exploitant", exptVoie: "Voie exploitant", exptCp: "CP exploitant", exptCom: "Commune exploitant",
-  nomEtablissement: "Etablissement", typeERP: "Type ERP", categorieERP: "Categorie ERP",
+  nomEtablissement: "Etablissement", typeERP: "Type ERP",
   adrNum: "N. voie site", adrVoie: "Adresse site", adrComplement: "Complement adresse",
   codePostal: "Code postal", codeInsee: "Code INSEE", ville: "Ville",
   latCoor1: "Latitude", longCoor1: "Longitude",
@@ -319,21 +318,14 @@ export default function AdminDeclarationDetailPage() {
   // Audit logs
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
 
-  // GéoDAE sync
-  const [showGeodaeDialog, setShowGeodaeDialog] = useState(false);
-  const [sendingGeodae, setSendingGeodae] = useState(false);
-  const [geodaeResults, setGeodaeResults] = useState<Array<{
-    deviceId: string;
-    deviceName: string;
-    success: boolean;
-    gid?: number;
-    updated?: boolean;
-    error?: string;
-  }> | null>(null);
-  const [showGeodaeConfirm, setShowGeodaeConfirm] = useState(false);
-  const [showGeodaeDeleteConfirm, setShowGeodaeDeleteConfirm] = useState(false);
-  const [deletingGeodae, setDeletingGeodae] = useState(false);
-  const [retryingDeviceId, setRetryingDeviceId] = useState<string | null>(null);
+  // GéoDAE sync (shared component)
+  const [showGeodaeSyncManager, setShowGeodaeSyncManager] = useState(false);
+  const [geodaeDetailDevice, setGeodaeDetailDevice] = useState<DaeDevice | null>(null);
+  const [geodaeDetailData, setGeodaeDetailData] = useState<Record<string, any> | null>(null);
+  const [geodaeDetailLoading, setGeodaeDetailLoading] = useState(false);
+  const [geodaeDetailError, setGeodaeDetailError] = useState<string | null>(null);
+  const [deletingDevice, setDeletingDevice] = useState(false);
+  const [needsResync, setNeedsResync] = useState(false);
 
   /* ─── Load ─────────────────────────────────────────────────────────── */
 
@@ -549,42 +541,9 @@ export default function AdminDeclarationDetailPage() {
     setSaving(false);
   }, [decl, id, notesValue]);
 
-  /* ─── GéoDAE send ──────────────────────────────────────────────────── */
+  /* ─── GéoDAE ────────────────────────────────────────────────────────── */
 
-  const handleSendToGeodae = useCallback(async () => {
-    if (!decl) return;
-    setSendingGeodae(true);
-    setGeodaeResults(null);
-    setShowGeodaeDialog(true);
-
-    try {
-      const res = await apiFetch(`/api/admin/geodae/send/${id}`, {
-        method: "POST",
-        body: JSON.stringify({}),
-      });
-      const data = await res.json();
-
-      if (Array.isArray(data)) {
-        setGeodaeResults(data);
-        const successes = data.filter((r: any) => r.success).length;
-        const failures = data.filter((r: any) => !r.success).length;
-        if (failures === 0) {
-          toast.success(`${successes} DAE envoyé(s) vers GéoDAE`);
-        } else {
-          toast.error(`${failures} échec(s) sur ${data.length} DAE`);
-        }
-      } else {
-        toast.error(data.message || "Erreur lors de l'envoi");
-        setGeodaeResults([]);
-      }
-    } catch {
-      toast.error("Erreur réseau");
-      setGeodaeResults([]);
-    }
-
-    setSendingGeodae(false);
-
-    // Reload declaration + audit logs
+  const reloadDeclAndLogs = useCallback(async () => {
     const [declRes, logsRes] = await Promise.all([
       apiFetch(`/api/admin/declarations/${id}`),
       apiFetch(`/api/admin/declarations/${id}/audit-logs`),
@@ -593,81 +552,46 @@ export default function AdminDeclarationDetailPage() {
       const data = await declRes.json();
       setDecl(data);
       setNotesValue(data.notes || "");
-    }
-    if (logsRes.ok) setAuditLogs(await logsRes.json());
-  }, [decl, id]);
-
-  const handleRetryDevice = useCallback(async (deviceId: string) => {
-    const res = await apiFetch(`/api/admin/geodae/retry/${deviceId}`, {
-      method: "POST",
-    });
-    const data = await res.json();
-    if (data.success) {
-      toast.success(`DAE envoyé (GéoDAE #${data.gid})`);
-    } else {
-      toast.error(data.error || "Échec de l'envoi");
-    }
-
-    // Reload
-    const [declRes, logsRes] = await Promise.all([
-      apiFetch(`/api/admin/declarations/${id}`),
-      apiFetch(`/api/admin/declarations/${id}/audit-logs`),
-    ]);
-    if (declRes.ok) {
-      const d = await declRes.json();
-      setDecl(d);
-      setNotesValue(d.notes || "");
     }
     if (logsRes.ok) setAuditLogs(await logsRes.json());
   }, [id]);
 
-  /* ─── GéoDAE delete ────────────────────────────────────────── */
-
-  const handleDeleteFromGeodae = useCallback(async () => {
-    if (!decl) return;
-    setDeletingGeodae(true);
-    setShowGeodaeDeleteConfirm(false);
-    setShowGeodaeDialog(true);
-    setGeodaeResults(null);
-
+  const handleShowGeodaeDetail = useCallback(async (device: DaeDevice) => {
+    setGeodaeDetailDevice(device);
+    setGeodaeDetailData(null);
+    setGeodaeDetailError(null);
+    setGeodaeDetailLoading(true);
     try {
-      const res = await apiFetch(`/api/admin/geodae/delete/${id}`, {
-        method: "POST",
-      });
-      const data = await res.json();
-
-      if (Array.isArray(data)) {
-        setGeodaeResults(data);
-        const successes = data.filter((r: any) => r.success).length;
-        const failures = data.filter((r: any) => !r.success).length;
-        if (failures === 0) {
-          toast.success(`${successes} DAE supprimé(s) de GéoDAE`);
-        } else {
-          toast.error(`${failures} échec(s) de suppression`);
-        }
+      const res = await apiFetch(`/api/admin/geodae/fetch/${device.id}`);
+      if (res.ok) {
+        setGeodaeDetailData(await res.json());
       } else {
-        toast.error(data.message || "Erreur lors de la suppression");
-        setGeodaeResults([]);
+        const err = await res.json().catch(() => ({}));
+        setGeodaeDetailError(err.message || "Erreur");
+      }
+    } catch {
+      setGeodaeDetailError("Erreur réseau");
+    }
+    setGeodaeDetailLoading(false);
+  }, []);
+
+  const handleDeleteDevice = useCallback(async (deviceId: string) => {
+    setDeletingDevice(true);
+    try {
+      const res = await apiFetch(`/api/admin/geodae/delete-device/${deviceId}`, { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("DAE supprimé de GéoDAE");
+        setGeodaeDetailDevice(null);
+      } else {
+        toast.error(data.error || "Erreur");
       }
     } catch {
       toast.error("Erreur réseau");
-      setGeodaeResults([]);
     }
-
-    setDeletingGeodae(false);
-
-    // Reload
-    const [declRes, logsRes] = await Promise.all([
-      apiFetch(`/api/admin/declarations/${id}`),
-      apiFetch(`/api/admin/declarations/${id}/audit-logs`),
-    ]);
-    if (declRes.ok) {
-      const data = await declRes.json();
-      setDecl(data);
-      setNotesValue(data.notes || "");
-    }
-    if (logsRes.ok) setAuditLogs(await logsRes.json());
-  }, [decl, id]);
+    setDeletingDevice(false);
+    reloadDeclAndLogs();
+  }, [reloadDeclAndLogs]);
 
   /* ─── Render ───────────────────────────────────────────────────────── */
 
@@ -721,12 +645,22 @@ export default function AdminDeclarationDetailPage() {
               {STATUS_LABELS[decl.status] || decl.status}
             </span>
             {decl.user ? (
-              <a
-                href={`/admin/users/${decl.user.id}`}
-                className="text-xs text-[#000091] hover:underline ml-1"
-              >
-                Compte : {decl.user.email}
-              </a>
+              <span className="flex items-center gap-1.5 ml-1">
+                <a
+                  href={`/admin/users/${decl.user.id}`}
+                  className="text-xs text-[#000091] hover:underline"
+                >
+                  Compte : {decl.user.email}
+                </a>
+                {decl.user.emailVerified ? (
+                  <CheckCircle className="w-3.5 h-3.5 text-[#18753C] shrink-0" />
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-700">
+                    <AlertTriangle className="w-3 h-3" />
+                    Non vérifié
+                  </span>
+                )}
+              </span>
             ) : (
               <span className="text-xs text-amber-600 ml-1">Non rattachée</span>
             )}
@@ -807,9 +741,6 @@ export default function AdminDeclarationDetailPage() {
             )}
             <p className="text-xs text-[#929292] mt-0.5">
               {TYPE_ERP_LABELS[decl.typeERP || ""] || decl.typeERP || "—"}
-              {decl.typeERP === "erp" && decl.categorieERP && (
-                <span> · {CATEGORIE_ERP_LABELS[decl.categorieERP] || decl.categorieERP}</span>
-              )}
             </p>
 
             <div className="mt-3 pt-3 border-t border-[#E5E5E5]">
@@ -1033,40 +964,38 @@ export default function AdminDeclarationDetailPage() {
       </div>
 
       {/* GéoDAE sync card */}
-      {decl.status === "VALIDATED" && (
+      {(decl.status === "VALIDATED" || decl.status === "COMPLETE") && (
         <div className={`rounded-lg border mb-6 overflow-hidden ${
-          geodaeAllSynced
-            ? "border-green-200"
-            : geodaeFailed.length > 0
-              ? "border-red-200"
-              : geodaeNoneSynced
-                ? "border-amber-200"
-                : "border-[#000091]/20"
-        }`}>
-          {/* Colored top bar */}
-          <div className={`h-1 ${
-            geodaeAllSynced
-              ? "bg-[#18753C]"
+          needsResync
+            ? "border-amber-300 ring-2 ring-amber-200"
+            : geodaeAllSynced
+              ? "border-green-200"
               : geodaeFailed.length > 0
-                ? "bg-red-500"
+                ? "border-red-200"
                 : geodaeNoneSynced
-                  ? "bg-amber-400"
-                  : "bg-[#000091]"
+                  ? "border-amber-200"
+                  : "border-[#000091]/20"
+        }`}>
+          <div className={`h-1 ${
+            needsResync ? "bg-amber-500"
+              : geodaeAllSynced ? "bg-[#18753C]"
+              : geodaeFailed.length > 0 ? "bg-red-500"
+              : geodaeNoneSynced ? "bg-amber-400"
+              : "bg-[#000091]"
           }`} />
 
           <div className="bg-white p-5">
             <div className="flex items-start gap-4">
-              {/* Icon */}
               <div className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 ${
-                geodaeAllSynced
-                  ? "bg-green-100"
-                  : geodaeFailed.length > 0
-                    ? "bg-red-100"
-                    : geodaeNoneSynced
-                      ? "bg-amber-100"
-                      : "bg-[#F5F5FE]"
+                needsResync ? "bg-amber-100"
+                  : geodaeAllSynced ? "bg-green-100"
+                  : geodaeFailed.length > 0 ? "bg-red-100"
+                  : geodaeNoneSynced ? "bg-amber-100"
+                  : "bg-[#F5F5FE]"
               }`}>
-                {geodaeAllSynced ? (
+                {needsResync ? (
+                  <AlertTriangle className="h-5 w-5 text-amber-600" />
+                ) : geodaeAllSynced ? (
                   <CheckCircle className="h-5 w-5 text-[#18753C]" />
                 ) : geodaeFailed.length > 0 ? (
                   <AlertTriangle className="h-5 w-5 text-red-600" />
@@ -1075,29 +1004,22 @@ export default function AdminDeclarationDetailPage() {
                 )}
               </div>
 
-              {/* Content */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <h3 className="text-sm font-bold text-[#3A3A3A]">
-                    Base nationale GéoDAE
-                  </h3>
-                  {geodaeAllSynced && (
+                  <h3 className="text-sm font-bold text-[#3A3A3A]">Base nationale GéoDAE</h3>
+                  {needsResync && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700">
+                      <AlertTriangle className="h-2.5 w-2.5" />
+                      Mise à jour requise
+                    </span>
+                  )}
+                  {geodaeAllSynced && !needsResync && (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-[#18753C]">
                       <CheckCircle className="h-2.5 w-2.5" />
                       Synchronisé
                     </span>
                   )}
-                  {geodaeFailed.length > 0 && geodaeSent.length === 0 && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-100 text-red-700">
-                      Échec
-                    </span>
-                  )}
-                  {!geodaeAllSynced && geodaeSent.length > 0 && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#F5F5FE] text-[#000091]">
-                      Partiellement synchronisé
-                    </span>
-                  )}
-                  {geodaeNoneSynced && (
+                  {geodaeNoneSynced && !needsResync && (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700">
                       Non envoyé
                     </span>
@@ -1108,76 +1030,48 @@ export default function AdminDeclarationDetailPage() {
                   {geodaeAllSynced
                     ? `${geodaeSent.length} DAE enregistré${geodaeSent.length > 1 ? "s" : ""} dans la base nationale`
                     : geodaeNoneSynced
-                      ? `${decl.daeDevices.length} DAE en attente d'envoi vers la base nationale`
-                      : `${geodaeSent.length}/${decl.daeDevices.length} DAE synchronisé${geodaeSent.length > 1 ? "s" : ""}${geodaeFailed.length > 0 ? `, ${geodaeFailed.length} en échec` : ""}${geodaeNotSent.length > 0 ? `, ${geodaeNotSent.length} non envoyé${geodaeNotSent.length > 1 ? "s" : ""}` : ""}`
-                  }
+                      ? `${decl.daeDevices.length} DAE en attente d'envoi`
+                      : `${geodaeSent.length}/${decl.daeDevices.length} DAE synchronisé${geodaeSent.length > 1 ? "s" : ""}`}
                   {geodaeLastSync && (
                     <> · Dernière sync : {new Date(geodaeLastSync).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}</>
                   )}
                 </p>
 
-                {/* Device badges with individual retry */}
+                {/* Device badges — clickable for synced devices */}
                 <div className="flex flex-wrap gap-1.5">
                   {decl.daeDevices.map((device, i) => {
-                    const status = device.geodaeStatus;
-                    const isSent = status === "SENT" || status === "UPDATED";
-                    const isFailed = status === "FAILED";
-                    const isDeleted = status === "DELETED";
-                    const hasGid = !!device.geodaeGid;
-                    const isRetrying = retryingDeviceId === device.id;
-                    const geodaeUrl = hasGid
-                      ? `https://geodae.atlasante.fr/form/8777a504-6c3e-4abe-8100-60bb58767faa/${device.geodaeGid}`
-                      : null;
+                    const isSent = device.geodaeStatus === "SENT" || device.geodaeStatus === "UPDATED";
+                    const isDeleted = device.geodaeStatus === "DELETED";
+                    const isFailed = device.geodaeStatus === "FAILED";
                     return (
-                      <div key={device.id} className="inline-flex items-center gap-0.5">
-                        {geodaeUrl && (isSent || isDeleted) ? (
-                          <a
-                            href={geodaeUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border transition-colors ${
-                              isDeleted
-                                ? "bg-[#F6F6F6] border-[#E5E5E5] text-[#929292] line-through hover:bg-[#E5E5E5]"
-                                : "bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
-                            }`}
-                          >
-                            {isDeleted ? <Trash2 className="h-3 w-3" /> : <CheckCircle className="h-3 w-3" />}
-                            {device.nom || `DAE ${i + 1}`}
-                            <span className="text-[10px] opacity-75">#{device.geodaeGid}</span>
-                            {isDeleted && <span className="text-[10px] opacity-75">Supprimé</span>}
-                          </a>
-                        ) : (
-                          <span
-                            className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border ${
-                              isFailed
-                                ? "bg-red-50 border-red-200 text-red-700"
-                                : "bg-[#F6F6F6] border-[#E5E5E5] text-[#929292]"
-                            }`}
-                          >
-                            {isFailed ? <XCircle className="h-3 w-3" /> : <Globe className="h-3 w-3" />}
-                            {device.nom || `DAE ${i + 1}`}
-                            {isFailed && <span className="text-[10px] opacity-75">Échec</span>}
-                          </span>
-                        )}
-                        {/* Individual retry/send button */}
-                        {!isDeleted && (
+                      <div key={device.id} className="inline-flex items-center">
+                        {isSent ? (
                           <button
                             type="button"
-                            onClick={async () => {
-                              setRetryingDeviceId(device.id);
-                              await handleRetryDevice(device.id);
-                              setRetryingDeviceId(null);
-                            }}
-                            disabled={sendingGeodae || isRetrying}
-                            title={isSent ? "Resynchroniser ce DAE" : isFailed ? "Réessayer l'envoi" : "Envoyer ce DAE"}
-                            className="p-1 rounded text-[#929292] hover:text-[#000091] hover:bg-[#F5F5FE] transition-colors disabled:opacity-40"
+                            onClick={() => handleShowGeodaeDetail(device)}
+                            className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border transition-colors cursor-pointer ${
+                              needsResync
+                                ? "bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100"
+                                : "bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+                            }`}
+                            title="Voir la fiche GéoDAE"
                           >
-                            {isRetrying ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <RotateCw className="h-3.5 w-3.5" />
-                            )}
+                            {needsResync ? <AlertTriangle className="h-3 w-3" /> : <CheckCircle className="h-3 w-3" />}
+                            {device.nom || `DAE ${i + 1}`}
+                            <span className="text-[10px] opacity-75">#{device.geodaeGid}</span>
                           </button>
+                        ) : isDeleted ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border bg-[#F6F6F6] border-[#E5E5E5] text-[#929292] line-through opacity-60">
+                            <Trash2 className="h-3 w-3" />
+                            {device.nom || `DAE ${i + 1}`}
+                          </span>
+                        ) : (
+                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border ${
+                            isFailed ? "bg-red-50 border-red-200 text-red-700" : "bg-[#F6F6F6] border-[#E5E5E5] text-[#929292]"
+                          }`}>
+                            {isFailed ? <XCircle className="h-3 w-3" /> : <Globe className="h-3 w-3" />}
+                            {device.nom || `DAE ${i + 1}`}
+                          </span>
                         )}
                       </div>
                     );
@@ -1185,44 +1079,18 @@ export default function AdminDeclarationDetailPage() {
                 </div>
               </div>
 
-              {/* Action button */}
-              <div className="shrink-0 flex flex-col items-end gap-2">
+              <div className="shrink-0">
                 <Button
                   size="sm"
-                  onClick={() => setShowGeodaeConfirm(true)}
-                  disabled={sendingGeodae}
-                  className={geodaeIsUpdate && geodaeFailed.length === 0
+                  onClick={() => setShowGeodaeSyncManager(true)}
+                  className={geodaeIsUpdate && geodaeFailed.length === 0 && !needsResync
                     ? "bg-white text-[#000091] border border-[#000091] hover:bg-[#F5F5FE] shadow-none"
                     : "bg-gradient-to-r from-[#000091] via-[#1a0f91] to-[#4a00e0] hover:from-[#000078] hover:via-[#15087a] hover:to-[#3d00c0] text-white shadow-md hover:shadow-lg transition-all duration-200"
                   }
                 >
-                  {sendingGeodae ? (
-                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                  ) : geodaeIsUpdate ? (
-                    <RotateCw className="h-3.5 w-3.5 mr-1.5" />
-                  ) : (
-                    <Upload className="h-3.5 w-3.5 mr-1.5" />
-                  )}
-                  {sendingGeodae
-                    ? "Envoi en cours..."
-                    : geodaeFailed.length > 0 && geodaeSent.length === 0
-                      ? "Réessayer l'envoi"
-                      : geodaeIsUpdate
-                        ? "Mettre à jour"
-                        : "Envoyer vers GéoDAE"
-                  }
+                  {geodaeIsUpdate ? <RotateCw className="h-3.5 w-3.5 mr-1.5" /> : <Upload className="h-3.5 w-3.5 mr-1.5" />}
+                  {geodaeIsUpdate ? "Mettre à jour" : "Envoyer vers GéoDAE"}
                 </Button>
-                {geodaeSent.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setShowGeodaeDeleteConfirm(true)}
-                    disabled={deletingGeodae || sendingGeodae}
-                    className="inline-flex items-center gap-1 text-[11px] text-red-500 hover:text-red-700 transition-colors disabled:opacity-50"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                    Retirer de GéoDAE
-                  </button>
-                )}
               </div>
             </div>
           </div>
@@ -1316,7 +1184,6 @@ export default function AdminDeclarationDetailPage() {
               startEdit("site", {
                 nomEtablissement: decl.nomEtablissement,
                 typeERP: decl.typeERP,
-                categorieERP: decl.categorieERP,
                 adrNum: decl.adrNum,
                 adrVoie: decl.adrVoie,
                 adrComplement: (decl as any).adrComplement || "",
@@ -1345,15 +1212,6 @@ export default function AdminDeclarationDetailPage() {
               label="Type"
               value={TYPE_ERP_LABELS[decl.typeERP || ""] || decl.typeERP}
             />
-            {decl.typeERP === "erp" && (
-              <InfoRow
-                label="Catégorie ERP"
-                value={
-                  CATEGORIE_ERP_LABELS[decl.categorieERP || ""] ||
-                  decl.categorieERP
-                }
-              />
-            )}
             <InfoRow
               label="Adresse"
               value={[decl.adrNum, decl.adrVoie].filter(Boolean).join(" ")}
@@ -1816,230 +1674,87 @@ export default function AdminDeclarationDetailPage() {
         </DialogContent>
       </Dialog>
 
-      {/* GéoDAE delete confirmation dialog */}
-      <Dialog open={showGeodaeDeleteConfirm} onOpenChange={setShowGeodaeDeleteConfirm}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-full flex items-center justify-center bg-red-100">
-                <Trash2 className="h-4.5 w-4.5 text-red-600" />
-              </div>
-              Retirer de GéoDAE
-            </DialogTitle>
-            <DialogDescription className="pt-1">
-              Vous allez marquer {geodaeSent.length} DAE comme « Supprimé définitivement » dans la base nationale GéoDAE.
-            </DialogDescription>
-          </DialogHeader>
+      {/* GéoDAE sync manager (shared component) */}
+      <GeodaeSyncManager
+        open={showGeodaeSyncManager}
+        onOpenChange={setShowGeodaeSyncManager}
+        decl={decl}
+        onDone={() => {
+          setNeedsResync(false);
+          reloadDeclAndLogs();
+        }}
+        onDiffsFound={setNeedsResync}
+        onAllDeleted={async () => {
+          reloadDeclAndLogs();
+        }}
+        api={{
+          fetchDeviceData: (deviceId) => apiFetch(`/api/admin/geodae/fetch/${deviceId}`),
+          sendDevices: (deviceIds) => apiFetch(`/api/admin/geodae/send/${id}`, {
+            method: "POST",
+            body: JSON.stringify(deviceIds ? { deviceIds } : {}),
+          }),
+          deleteDevice: (deviceId) => apiFetch(`/api/admin/geodae/delete-device/${deviceId}`, { method: "POST" }),
+        }}
+      />
 
-          <div className="rounded-lg bg-red-50 border border-red-200 p-4 my-1 space-y-2.5">
-            <p className="text-xs font-semibold text-red-800 uppercase tracking-wide">Cette action va :</p>
-            <div className="space-y-1.5">
-              <div className="flex items-start gap-2">
-                <Trash2 className="h-3.5 w-3.5 text-red-600 mt-0.5 shrink-0" />
-                <p className="text-sm text-red-800">
-                  Passer l'état de <span className="font-semibold">{geodaeSent.length}</span> fiche{geodaeSent.length > 1 ? "s" : ""} à <span className="font-semibold">« Supprimé définitivement »</span> dans GéoDAE
-                </p>
-              </div>
-              <div className="flex items-start gap-2">
-                <Globe className="h-3.5 w-3.5 text-red-400 mt-0.5 shrink-0" />
-                <p className="text-sm text-red-600/80">
-                  Les DAE ne seront plus visibles sur la carte nationale (la fiche reste dans GéoDAE avec le statut supprimé)
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 p-3">
-            <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-            <p className="text-xs text-amber-800">
-              DAE concernés : {geodaeSent.map(d => `${d.nom || "Sans nom"} (#${d.geodaeGid})`).join(", ")}
-            </p>
-          </div>
-
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              variant="ghost"
-              onClick={() => setShowGeodaeDeleteConfirm(false)}
-            >
-              Annuler
-            </Button>
-            <Button
-              onClick={handleDeleteFromGeodae}
-              className="bg-red-600 hover:bg-red-700 text-white"
-            >
-              <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-              Confirmer le retrait
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* GéoDAE confirmation dialog */}
-      <Dialog open={showGeodaeConfirm} onOpenChange={setShowGeodaeConfirm}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <div className={`w-9 h-9 rounded-full flex items-center justify-center ${
-                geodaeIsUpdate ? "bg-[#F5F5FE]" : "bg-amber-100"
-              }`}>
-                {geodaeIsUpdate ? (
-                  <RotateCw className="h-4.5 w-4.5 text-[#000091]" />
-                ) : (
-                  <Upload className="h-4.5 w-4.5 text-amber-600" />
-                )}
-              </div>
-              {geodaeIsUpdate ? "Mettre à jour vers GéoDAE" : "Envoyer vers GéoDAE"}
-            </DialogTitle>
-            <DialogDescription className="pt-1">
-              {geodaeIsUpdate
-                ? "Vous allez synchroniser les modifications vers la base nationale des défibrillateurs."
-                : "Vous allez enregistrer les DAE de cette déclaration dans la base nationale des défibrillateurs (GéoDAE)."}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="rounded-lg bg-[#F6F6F6] border border-[#E5E5E5] p-4 my-1 space-y-2.5">
-            <p className="text-xs font-semibold text-[#3A3A3A] uppercase tracking-wide">Cette action va :</p>
-            <div className="space-y-1.5">
-              {geodaeNotSent.length > 0 && (
-                <div className="flex items-start gap-2">
-                  <Upload className="h-3.5 w-3.5 text-[#000091] mt-0.5 shrink-0" />
-                  <p className="text-sm text-[#3A3A3A]">
-                    Créer <span className="font-semibold">{geodaeNotSent.length}</span> nouvelle{geodaeNotSent.length > 1 ? "s" : ""} fiche{geodaeNotSent.length > 1 ? "s" : ""} dans GéoDAE
-                  </p>
-                </div>
-              )}
-              {geodaeSent.length > 0 && (
-                <div className="flex items-start gap-2">
-                  <RotateCw className="h-3.5 w-3.5 text-[#000091] mt-0.5 shrink-0" />
-                  <p className="text-sm text-[#3A3A3A]">
-                    Mettre à jour <span className="font-semibold">{geodaeSent.length}</span> fiche{geodaeSent.length > 1 ? "s" : ""} existante{geodaeSent.length > 1 ? "s" : ""}
-                  </p>
-                </div>
-              )}
-              {geodaeFailed.length > 0 && (
-                <div className="flex items-start gap-2">
-                  <RefreshCw className="h-3.5 w-3.5 text-amber-600 mt-0.5 shrink-0" />
-                  <p className="text-sm text-[#3A3A3A]">
-                    Réessayer <span className="font-semibold">{geodaeFailed.length}</span> envoi{geodaeFailed.length > 1 ? "s" : ""} en échec
-                  </p>
-                </div>
-              )}
-              <div className="flex items-start gap-2">
-                <Globe className="h-3.5 w-3.5 text-[#929292] mt-0.5 shrink-0" />
-                <p className="text-sm text-[#929292]">
-                  Les DAE seront visibles sur la carte nationale
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {!geodaeIsUpdate && (
-            <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 p-3">
-              <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-              <p className="text-xs text-amber-800">
-                Premier envoi : les DAE seront créés dans la base nationale. Vérifiez que les informations sont correctes avant de continuer.
-              </p>
-            </div>
-          )}
-
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              variant="ghost"
-              onClick={() => setShowGeodaeConfirm(false)}
-            >
-              Annuler
-            </Button>
-            <Button
-              onClick={() => {
-                setShowGeodaeConfirm(false);
-                handleSendToGeodae();
-              }}
-              className="bg-gradient-to-r from-[#000091] via-[#1a0f91] to-[#4a00e0] hover:from-[#000078] hover:via-[#15087a] hover:to-[#3d00c0] text-white shadow-md hover:shadow-lg transition-all duration-200"
-            >
-              {geodaeIsUpdate ? (
-                <RotateCw className="h-3.5 w-3.5 mr-1.5" />
-              ) : (
-                <Upload className="h-3.5 w-3.5 mr-1.5" />
-              )}
-              {geodaeIsUpdate ? "Confirmer la mise à jour" : "Confirmer l'envoi"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* GéoDAE sync result dialog */}
-      <Dialog open={showGeodaeDialog} onOpenChange={setShowGeodaeDialog}>
-        <DialogContent className="max-w-lg">
+      {/* GéoDAE detail dialog */}
+      <Dialog
+        open={!!geodaeDetailDevice}
+        onOpenChange={(open) => { if (!open) setGeodaeDetailDevice(null); }}
+      >
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Globe className="h-5 w-5 text-[#000091]" />
-              Envoi vers GéoDAE
+              Fiche GéoDAE — {geodaeDetailDevice?.nom || "DAE"}
+              {geodaeDetailDevice?.geodaeGid && (
+                <span className="text-xs font-normal text-[#929292]">#{geodaeDetailDevice.geodaeGid}</span>
+              )}
             </DialogTitle>
             <DialogDescription>
-              {sendingGeodae
-                ? "Envoi en cours vers la base nationale GéoDAE..."
-                : geodaeResults
-                  ? `${geodaeResults.filter((r) => r.success).length} succès, ${geodaeResults.filter((r) => !r.success).length} échec(s)`
-                  : "Résultats de l'envoi"}
+              Données actuellement enregistrées dans la base nationale GéoDAE
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-2 my-2">
-            {sendingGeodae && !geodaeResults && (
-              <div className="flex items-center justify-center py-6">
-                <Loader2 className="h-8 w-8 animate-spin text-[#000091]" />
-              </div>
-            )}
+          {geodaeDetailLoading && (
+            <div className="flex items-center justify-center py-10">
+              <Loader2 className="h-8 w-8 animate-spin text-[#000091]" />
+            </div>
+          )}
 
-            {geodaeResults?.map((result) => (
-              <div
-                key={result.deviceId}
-                className={`rounded-lg border ${
-                  result.success ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"
-                }`}
-              >
-                <div className="flex items-center gap-3 p-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[#3A3A3A]">
-                      {result.deviceName}
-                    </p>
-                    {result.success && (
-                      <p className="text-xs text-green-700">
-                        {result.updated ? "Mis à jour" : "Envoyé"} — GéoDAE #{result.gid}
-                      </p>
-                    )}
-                  </div>
-                  {result.success ? (
-                    <CheckCircle className="h-5 w-5 text-green-600 shrink-0" />
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => handleRetryDevice(result.deviceId)}
-                      className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-red-700 hover:bg-red-100 transition-colors shrink-0"
-                    >
-                      <RefreshCw className="h-3.5 w-3.5" />
-                      Réessayer
-                    </button>
-                  )}
-                </div>
-                {!result.success && result.error && (
-                  <div className="px-3 pb-3">
-                    <p className="text-xs text-red-600 bg-red-100 rounded p-2 break-words whitespace-pre-wrap max-h-32 overflow-y-auto">
-                      {result.error}
-                    </p>
-                  </div>
-                )}
+          {geodaeDetailError && (
+            <div className="alert-danger rounded text-sm">
+              <div className="flex items-center gap-2">
+                <XCircle className="w-4 h-4 text-[#E1000F] shrink-0" />
+                <span>{geodaeDetailError}</span>
               </div>
-            ))}
-          </div>
+            </div>
+          )}
+
+          {geodaeDetailData && geodaeDetailDevice && decl && (
+            <GeodaeDetailContent
+              geodaeData={geodaeDetailData}
+              device={geodaeDetailDevice}
+              decl={decl}
+              onResync={() => {
+                setGeodaeDetailDevice(null);
+                setShowGeodaeSyncManager(true);
+              }}
+              onDelete={() => handleDeleteDevice(geodaeDetailDevice.id)}
+              deleting={deletingDevice}
+            />
+          )}
 
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setShowGeodaeDialog(false)}>
+            <Button variant="ghost" onClick={() => setGeodaeDetailDevice(null)}>
               Fermer
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* (Legacy GéoDAE dialogs replaced by GeodaeSyncManager + GeodaeDetailContent above) */}
     </div>
   );
 }
+

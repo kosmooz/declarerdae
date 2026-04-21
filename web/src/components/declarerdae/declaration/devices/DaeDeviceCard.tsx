@@ -1,13 +1,14 @@
 "use client";
 
 import type { DaeDeviceFormState } from "@/lib/declaration-types";
-import { Cpu, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
+import { Cpu, ChevronDown, ChevronUp, Trash2, Globe } from "lucide-react";
 
 interface DaeDeviceCardProps {
   device: DaeDeviceFormState;
   index: number;
   isOpen: boolean;
   canDelete: boolean;
+  syncedToGeodae?: boolean;
   onToggle: () => void;
   onDelete: () => void;
 }
@@ -17,6 +18,7 @@ export default function DaeDeviceCard({
   index,
   isOpen,
   canDelete,
+  syncedToGeodae,
   onToggle,
   onDelete,
 }: DaeDeviceCardProps) {
@@ -78,7 +80,15 @@ export default function DaeDeviceCard({
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
-          {canDelete && (
+          {syncedToGeodae && (
+            <span
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-medium bg-green-100 text-[#18753C]"
+            >
+              <Globe className="w-2.5 h-2.5" />
+              GéoDAE
+            </span>
+          )}
+          {(canDelete || syncedToGeodae) && (
             <button
               type="button"
               onClick={(e) => {
@@ -86,7 +96,7 @@ export default function DaeDeviceCard({
                 onDelete();
               }}
               className="p-1 text-[#929292] hover:text-[#E1000F] transition-colors"
-              title="Supprimer ce DAE"
+              title={syncedToGeodae ? "Supprimer de GéoDAE" : "Supprimer ce DAE"}
             >
               <Trash2 className="w-4 h-4" />
             </button>

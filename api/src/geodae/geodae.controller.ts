@@ -54,6 +54,19 @@ export class GeodaeController {
     return this.geodaeService.deleteFromGeodae(declarationId, req.user.sub);
   }
 
+  @Get("fetch/:deviceId")
+  async fetchDevice(@Param("deviceId") deviceId: string) {
+    return this.geodaeService.fetchDeviceFromGeodae(deviceId);
+  }
+
+  @Post("delete-device/:deviceId")
+  async deleteSingleDevice(
+    @Param("deviceId") deviceId: string,
+    @Req() req: any,
+  ) {
+    return this.geodaeService.deleteSingleDevice(deviceId, req.user.sub);
+  }
+
   @Post("test-connection")
   async testConnection() {
     return this.geodaeService.testConnection();

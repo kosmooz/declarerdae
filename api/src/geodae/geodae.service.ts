@@ -236,8 +236,9 @@ export class GeodaeService {
 
   async sendDeclarationToGeodae(
     declarationId: string,
-    adminId: string,
+    initiatorId: string,
     deviceIds?: string[],
+    allowedStatuses: string[] = ["VALIDATED"],
   ): Promise<DeviceSendResult[]> {
     // Load declaration with devices
     const declaration = await this.prisma.declaration.findUnique({
@@ -251,9 +252,9 @@ export class GeodaeService {
       throw new NotFoundException("Déclaration introuvable");
     }
 
-    if (declaration.status !== "VALIDATED") {
+    if (!allowedStatuses.includes(declaration.status)) {
       throw new BadRequestException(
-        "Seules les déclarations validées peuvent être envoyées à GéoDAE.",
+        "Cette déclaration ne peut pas être envoyée à GéoDAE dans son état actuel.",
       );
     }
 
@@ -272,8 +273,12 @@ export class GeodaeService {
     }
 
     const results: DeviceSendResult[] = [];
+    const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-    for (const device of devices) {
+    for (let di = 0; di < devices.length; di++) {
+      // Throttle: 500ms between each API call to avoid rate-limiting
+      if (di > 0) await delay(500);
+      const device = devices[di];
       try {
         // Convert photos to base64
         const photo1Base64 = this.photoToBase64(device.photo1);
@@ -329,7 +334,7 @@ export class GeodaeService {
         await this.prisma.declarationAuditLog.create({
           data: {
             declarationId: declaration.id,
-            adminId,
+            adminId: initiatorId,
             action: "GEODAE_SYNC",
             deviceId: device.id,
             deviceName: device.nom,
@@ -372,7 +377,7 @@ export class GeodaeService {
         await this.prisma.declarationAuditLog.create({
           data: {
             declarationId: declaration.id,
-            adminId,
+            adminId: initiatorId,
             action: "GEODAE_SYNC",
             deviceId: device.id,
             deviceName: device.nom,
@@ -397,6 +402,48 @@ export class GeodaeService {
       }
     }
 
+    // Auto-transition COMPLETE -> VALIDATED if all devices synced successfully
+    if (
+      declaration.status === "COMPLETE" &&
+      results.length > 0 &&
+      results.every((r) => r.success)
+    ) {
+      // Check ALL devices in the declaration are now synced (not just the ones we just sent)
+      const allDevices = await this.prisma.daeDevice.findMany({
+        where: { declarationId },
+        select: { geodaeStatus: true },
+      });
+      const allSynced = allDevices.every(
+        (d) => d.geodaeStatus === "SENT" || d.geodaeStatus === "UPDATED",
+      );
+
+      if (allSynced) {
+        await this.prisma.declaration.update({
+          where: { id: declarationId },
+          data: { status: "VALIDATED" },
+        });
+
+        await this.prisma.declarationAuditLog.create({
+          data: {
+            declarationId: declaration.id,
+            adminId: initiatorId,
+            action: "STATUS_CHANGE",
+            fieldName: "status",
+            oldValue: "COMPLETE",
+            newValue: "VALIDATED",
+            metadata: JSON.stringify({
+              reason: "Auto-validated after successful GéoDAE sync",
+              timestamp: new Date().toISOString(),
+            }),
+          },
+        });
+
+        this.logger.log(
+          `Declaration ${declarationId} auto-validated after full GéoDAE sync`,
+        );
+      }
+    }
+
     return results;
   }
 
@@ -404,7 +451,8 @@ export class GeodaeService {
 
   async retryDevice(
     deviceId: string,
-    adminId: string,
+    initiatorId: string,
+    allowedStatuses: string[] = ["VALIDATED"],
   ): Promise<DeviceSendResult> {
     const device = await this.prisma.daeDevice.findUnique({
       where: { id: deviceId },
@@ -415,16 +463,17 @@ export class GeodaeService {
       throw new NotFoundException("Appareil introuvable");
     }
 
-    if (device.declaration.status !== "VALIDATED") {
+    if (!allowedStatuses.includes(device.declaration.status)) {
       throw new BadRequestException(
-        "La déclaration doit être validée pour envoyer vers GéoDAE.",
+        "Cette déclaration ne peut pas être envoyée à GéoDAE dans son état actuel.",
       );
     }
 
     const results = await this.sendDeclarationToGeodae(
       device.declarationId,
-      adminId,
+      initiatorId,
       [deviceId],
+      allowedStatuses,
     );
 
     return results[0];
@@ -464,7 +513,155 @@ export class GeodaeService {
     }));
   }
 
-  // ── Delete from GéoDAE ──────────────────────────────────────
+  // ── Fetch single DAE from GéoDAE API ─────────────────────────
+
+  async fetchDaeFromGeodae(gid: number): Promise<Record<string, any>> {
+    await this.getCredentials(); // ensures enabled + configured
+
+    return this.withSession(async (cookie) => {
+      const response = await axios.get(`${DATA_URL}`, {
+        params: { gid },
+        headers: {
+          Cookie: `PHPSESSID=${cookie}`,
+        },
+      });
+
+      const data = response.data;
+
+      // Response is a FeatureCollection with matching features
+      if (
+        data?.type === "FeatureCollection" &&
+        Array.isArray(data.features) &&
+        data.features.length > 0
+      ) {
+        return data.features[0].properties || {};
+      }
+
+      // Fallback: some API versions return an array
+      if (Array.isArray(data) && data.length > 0) {
+        return data[0].properties || data[0];
+      }
+
+      throw new NotFoundException(
+        `Fiche GéoDAE #${gid} introuvable sur le serveur distant.`,
+      );
+    });
+  }
+
+  /** Fetch live GéoDAE data for a device by its local DB id */
+  async fetchDeviceFromGeodae(deviceId: string): Promise<Record<string, any>> {
+    const device = await this.prisma.daeDevice.findUnique({
+      where: { id: deviceId },
+    });
+    if (!device) {
+      throw new NotFoundException("Appareil introuvable");
+    }
+    if (!device.geodaeGid) {
+      throw new BadRequestException(
+        "Cet appareil n'a pas encore été envoyé vers GéoDAE.",
+      );
+    }
+    return this.fetchDaeFromGeodae(device.geodaeGid);
+  }
+
+  // ── Delete single device from GéoDAE ─────────────────────────
+
+  async deleteSingleDevice(
+    deviceId: string,
+    initiatorId: string,
+  ): Promise<DeviceSendResult> {
+    const device = await this.prisma.daeDevice.findUnique({
+      where: { id: deviceId },
+      include: { declaration: true },
+    });
+
+    if (!device) {
+      throw new NotFoundException("Appareil introuvable");
+    }
+
+    if (!device.geodaeGid) {
+      throw new BadRequestException(
+        "Cet appareil n'a pas de fiche GéoDAE à supprimer.",
+      );
+    }
+
+    const settings = await this.getSettings();
+    const declaration = device.declaration;
+
+    try {
+      const overriddenDevice = {
+        ...device,
+        etatFonct: "Supprimé définitivement",
+      };
+
+      const geoJson = mapDeviceToGeoJson(declaration, overriddenDevice, {
+        testMode: settings.testMode,
+        photo1Base64: null,
+        photo2Base64: null,
+        mntSiren: settings.mntSiren,
+        mntRais: settings.mntRais,
+      });
+
+      await this.updateDae(geoJson);
+
+      await this.prisma.daeDevice.update({
+        where: { id: deviceId },
+        data: {
+          geodaeStatus: "DELETED",
+          geodaeLastSync: new Date(),
+          geodaeLastError: null,
+        },
+      });
+
+      await this.prisma.declarationAuditLog.create({
+        data: {
+          declarationId: declaration.id,
+          adminId: initiatorId,
+          action: "GEODAE_SYNC",
+          deviceId: device.id,
+          deviceName: device.nom,
+          newValue: `Supprimé de GéoDAE (GID: ${device.geodaeGid})`,
+          metadata: JSON.stringify({
+            status: "DELETED",
+            gid: device.geodaeGid,
+            timestamp: new Date().toISOString(),
+          }),
+        },
+      });
+
+      this.logger.log(
+        `GéoDAE marked device "${device.nom}" (GID ${device.geodaeGid}) as "Supprimé définitivement"`,
+      );
+
+      return {
+        deviceId: device.id,
+        deviceName: device.nom || "Sans nom",
+        success: true,
+        gid: device.geodaeGid,
+      };
+    } catch (error) {
+      const errorMsg =
+        error?.response?.data
+          ? JSON.stringify(error.response.data)
+          : error?.message || "Erreur inconnue";
+
+      await this.prisma.daeDevice.update({
+        where: { id: deviceId },
+        data: {
+          geodaeLastError: `Échec suppression: ${errorMsg}`.slice(0, 500),
+        },
+      });
+
+      return {
+        deviceId: device.id,
+        deviceName: device.nom || "Sans nom",
+        success: false,
+        error: errorMsg,
+      };
+    }
+  }
+
+  // ── Delete from GéoDAE (batch — admin) ──────────────────────
 
   /**
    * "Delete" DAE from GéoDAE by PATCHing etat_fonct to "Supprimé définitivement".
@@ -472,7 +669,7 @@ export class GeodaeService {
    */
   async deleteFromGeodae(
     declarationId: string,
-    adminId: string,
+    initiatorId: string,
   ): Promise<DeviceSendResult[]> {
     const declaration = await this.prisma.declaration.findUnique({
       where: { id: declarationId },
@@ -497,8 +694,11 @@ export class GeodaeService {
     }
 
     const results: DeviceSendResult[] = [];
+    const delayMs = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-    for (const device of devices) {
+    for (let di = 0; di < devices.length; di++) {
+      if (di > 0) await delayMs(500);
+      const device = devices[di];
       try {
         // Build GeoJSON with etat_fonct overridden to "Supprimé définitivement"
         const overriddenDevice = {
@@ -530,7 +730,7 @@ export class GeodaeService {
         await this.prisma.declarationAuditLog.create({
           data: {
             declarationId: declaration.id,
-            adminId,
+            adminId: initiatorId,
             action: "GEODAE_SYNC",
             deviceId: device.id,
             deviceName: device.nom,
@@ -569,7 +769,7 @@ export class GeodaeService {
         await this.prisma.declarationAuditLog.create({
           data: {
             declarationId: declaration.id,
-            adminId,
+            adminId: initiatorId,
             action: "GEODAE_SYNC",
             deviceId: device.id,
             deviceName: device.nom,

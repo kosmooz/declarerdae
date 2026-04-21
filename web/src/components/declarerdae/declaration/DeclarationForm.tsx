@@ -1,10 +1,20 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { apiFetch } from "@/lib/api";
-import { ChevronRight, ChevronLeft, Send } from "lucide-react";
+import {
+  ChevronRight,
+  ChevronLeft,
+  Send,
+  Mail,
+  ClipboardList,
+  Globe,
+  CheckCircle,
+  ArrowRight,
+} from "lucide-react";
 import {
   INITIAL_FORM_DATA,
   createEmptyDevice,
@@ -20,6 +30,7 @@ import Step1Exploitant from "./steps/Step1Exploitant";
 import Step2SiteLocalisation from "./steps/Step2SiteLocalisation";
 import Step3Defibrillateurs from "./steps/Step3Defibrillateurs";
 import Step4Recapitulatif from "./steps/Step4Recapitulatif";
+import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import AuthDialog from "@/components/AuthDialog";
 
@@ -31,7 +42,8 @@ const LS_KEY_STEP = "declaration_draft_step";
 const LS_KEY_EXTRA = "declaration_draft_extra";
 
 export default function DeclarationForm() {
-  const { user, register } = useAuth();
+  const router = useRouter();
+  const { user, loading: authLoading, register } = useAuth();
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState<DeclarationFormState>(INITIAL_FORM_DATA);
   const [draftId, setDraftId] = useState<string | null>(null);
@@ -43,14 +55,53 @@ export default function DeclarationForm() {
   const [accountEmail, setAccountEmail] = useState("");
   const [authOpen, setAuthOpen] = useState(false);
   const [consentRgpd, setConsentRgpd] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(() => {
+    try {
+      const until = parseInt(localStorage.getItem("resend_verify_until") || "0", 10);
+      return Math.max(0, Math.ceil((until - Date.now()) / 1000));
+    } catch { return 0; }
+  });
+
+  // Existing declarations reminder for logged-in users
+  const [existingDecls, setExistingDecls] = useState<Array<{
+    id: string;
+    exptRais: string | null;
+    status: string;
+    deviceCount: number;
+    geodaeSyncedCount: number;
+    geodaeTotalCount: number;
+  }>>([]);
+  const [existingDeclsDismissed, setExistingDeclsDismissed] = useState(false);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendCooldown]);
+
+  // Fetch existing declarations for logged-in users
+  useEffect(() => {
+    if (!user || authLoading) return;
+    apiFetch("/api/declarations/my?limit=5")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.declarations?.length > 0) {
+          setExistingDecls(data.declarations);
+        }
+      })
+      .catch(() => {});
+  }, [user, authLoading]);
 
   // Refs to avoid stale closures in callbacks
   const draftIdRef = useRef<string | null>(null);
   const deviceIdsRef = useRef<Record<string, string>>({});
+  const formDataRef = useRef<DeclarationFormState>(formData);
 
   // Keep refs in sync
   draftIdRef.current = draftId;
   deviceIdsRef.current = deviceIds;
+  formDataRef.current = formData;
 
   const saveTimerParent = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saveTimerDevices = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -150,15 +201,82 @@ export default function DeclarationForm() {
     }
   }, []);
 
-  // ─── Link draft to user on login ─────────────────────────
+  // ─── On login: flush saves, link draft, redirect to dashboard ──
+  // null = not yet resolved, true/false = resolved initial auth state
+  const wasAnonymous = useRef<boolean | null>(null);
   useEffect(() => {
-    if (user && draftId) {
-      apiFetch(`/api/declarations/draft/${draftId}/link`, {
-        method: "POST",
-        silent: true,
-      }).catch(() => {});
+    if (authLoading) return;
+    // First time auth resolves: record whether user was anonymous
+    if (wasAnonymous.current === null) {
+      wasAnonymous.current = !user;
+      return;
     }
-  }, [user, draftId]);
+    if (!user || !wasAnonymous.current) return;
+    wasAnonymous.current = false;
+
+    const currentDraftId = draftIdRef.current;
+
+    const cleanup = () => {
+      localStorage.removeItem(LS_KEY_ID);
+      localStorage.removeItem(LS_KEY_DATA);
+      localStorage.removeItem(LS_KEY_VERSION);
+      localStorage.removeItem(LS_KEY_DEVICES);
+      localStorage.removeItem(LS_KEY_STEP);
+      localStorage.removeItem(LS_KEY_EXTRA);
+    };
+
+    if (currentDraftId) {
+      // Flush all pending debounced saves before redirect
+      if (saveTimerParent.current) clearTimeout(saveTimerParent.current);
+      for (const key of Object.keys(saveTimerDevices.current)) {
+        clearTimeout(saveTimerDevices.current[key]);
+      }
+
+      const data = formDataRef.current;
+      const { daeDevices, ...parentFields } = data;
+      const LOCAL_ONLY = new Set(["exptComplement"]);
+      const parentPayload: Record<string, any> = {};
+      for (const [k, v] of Object.entries(parentFields)) {
+        if (v !== "" && v !== null && !LOCAL_ONLY.has(k)) parentPayload[k] = v;
+      }
+
+      // Save parent + all devices in parallel, then link + redirect
+      const flushPromises: Promise<any>[] = [
+        fetch(`/api/declarations/draft/${currentDraftId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(parentPayload),
+        }).catch(() => {}),
+        ...data.daeDevices.map((device) => {
+          const serverId = deviceIdsRef.current[device.localId];
+          if (!serverId) return Promise.resolve();
+          return fetch(
+            `/api/declarations/draft/${currentDraftId}/devices/${serverId}`,
+            {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(serializeDevice(device)),
+            },
+          ).catch(() => {});
+        }),
+      ];
+
+      Promise.all(flushPromises)
+        .then(() =>
+          apiFetch(`/api/declarations/draft/${currentDraftId}/link`, {
+            method: "POST",
+            silent: true,
+          }),
+        )
+        .finally(() => {
+          cleanup();
+          router.push(`/dashboard/mes-declarations?linked=${currentDraftId}`);
+        });
+    } else {
+      cleanup();
+      router.push("/dashboard/mes-declarations");
+    }
+  }, [user, authLoading, router]);
 
   // ─── Persist extra fields (not in backend) to localStorage ──
   const persistExtra = useCallback((data: DeclarationFormState) => {
@@ -529,16 +647,23 @@ export default function DeclarationForm() {
       );
 
       if (res.ok) {
-        setSubmitted(true);
         localStorage.removeItem(LS_KEY_ID);
         localStorage.removeItem(LS_KEY_DATA);
         localStorage.removeItem(LS_KEY_VERSION);
         localStorage.removeItem(LS_KEY_DEVICES);
         localStorage.removeItem(LS_KEY_STEP);
         localStorage.removeItem(LS_KEY_EXTRA);
-        toast.success(
-          "Déclaration soumise avec succès ! Notre équipe va la traiter et vous recevrez votre attestation de conformité.",
-        );
+
+        // If email verified → redirect straight to declaration detail
+        if (user?.emailVerified) {
+          toast.success("Déclaration complète ! Finalisez l'envoi vers GéoDAE.");
+          router.push(`/dashboard/mes-declarations/${draftId}`);
+          return;
+        }
+
+        // Otherwise show verification prompt
+        setSubmitted(true);
+        toast.success("Déclaration enregistrée ! Vérifiez votre email pour continuer.");
       } else {
         const err = await res.json().catch(() => null);
         toast.error(
@@ -555,48 +680,174 @@ export default function DeclarationForm() {
 
   // ─── Reset after submission ─────────────────────────────
   if (submitted) {
-    return (
-      <div className="border border-[#18753C] bg-[#e8f5e9] rounded-sm p-8 text-center">
-        <div className="w-16 h-16 bg-[#18753C] rounded-full flex items-center justify-center mx-auto mb-4">
-          <Send className="w-7 h-7 text-white" />
+    // Email not verified: show verification prompt
+    if (user && !user.emailVerified) {
+      return (
+        <div className="border border-[#000091] bg-[#F5F5FE] rounded-sm p-8 text-center">
+          <div className="w-16 h-16 bg-[#000091] rounded-full flex items-center justify-center mx-auto mb-4">
+            <Mail className="w-7 h-7 text-white" />
+          </div>
+          <h3 className="font-heading font-bold text-xl text-[#161616] mb-2">
+            Vérifiez votre email
+          </h3>
+          <p className="text-[#666] text-sm mb-2 max-w-md mx-auto">
+            Votre déclaration a bien été soumise. Un email de vérification a été envoyé à :
+          </p>
+          <p className="text-[#000091] font-semibold text-sm mb-4">{user.email}</p>
+          <p className="text-[#666] text-sm mb-6 max-w-md mx-auto">
+            Cliquez sur le lien dans l'email pour valider votre compte et accéder au suivi de vos déclarations.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Button
+              onClick={async () => {
+                if (resendCooldown > 0) return;
+                setResending(true);
+                try {
+                  await fetch("/api/auth/resend-verification", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email: user.email }),
+                  });
+                  toast.success("Email de vérification renvoyé !");
+                  localStorage.setItem("resend_verify_until", String(Date.now() + 60_000));
+                  setResendCooldown(60);
+                } catch {
+                  toast.error("Erreur lors du renvoi.");
+                } finally {
+                  setResending(false);
+                }
+              }}
+              disabled={resending || resendCooldown > 0}
+              className="bg-[#000091] hover:bg-[#000091]/90 text-white"
+            >
+              {resending
+                ? "Envoi en cours..."
+                : resendCooldown > 0
+                  ? `Renvoyer dans ${resendCooldown}s`
+                  : "Renvoyer l'email de vérification"}
+            </Button>
+            <Button
+              onClick={() => {
+                setSubmitted(false);
+                setDraftId(null);
+                setDeviceIds({});
+                setFormData(INITIAL_FORM_DATA);
+                setStep(1);
+              }}
+              variant="outline"
+              className="text-[#000091] border-[#000091] hover:bg-[#000091]/5"
+            >
+              Nouvelle déclaration
+            </Button>
+          </div>
         </div>
-        <h3 className="font-heading font-bold text-xl text-[#161616] mb-2">
-          Déclaration envoyée !
-        </h3>
-        <p className="text-[#666] text-sm mb-6 max-w-md mx-auto">
-          Votre déclaration de {formData.daeDevices.length} défibrillateur
-          {formData.daeDevices.length > 1 ? "s" : ""} a été soumise avec
-          succès. Notre équipe va la traiter et vous accompagner jusqu'à
-          l'obtention de votre attestation de conformité Géo'DAE.
-        </p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-          <a
-            href="/dashboard/mes-declarations"
-            className="inline-flex items-center justify-center px-5 py-2.5 rounded-sm bg-[#18753C] hover:bg-[#18753C]/90 text-white text-sm font-medium transition-colors"
-          >
-            Suivre ma déclaration
-          </a>
-          <Button
-            onClick={() => {
-              setSubmitted(false);
-              setDraftId(null);
-              setDeviceIds({});
-              setFormData(INITIAL_FORM_DATA);
-              setStep(1);
-            }}
-            variant="outline"
-            className="text-[#000091] border-[#000091] hover:bg-[#000091]/5"
-          >
-            Nouvelle déclaration
-          </Button>
-        </div>
-      </div>
-    );
+      );
+    }
+
+    // Email verified users are redirected in handleSubmit, should not reach here
+    // but as a fallback, redirect them
+    router.push(`/dashboard/mes-declarations`);
+    return null;
   }
 
   // ─── Render ─────────────────────────────────────────────
+
+  const STATUS_LABEL: Record<string, string> = {
+    DRAFT: "Brouillon",
+    COMPLETE: "Finaliser l'envoi",
+    VALIDATED: "Validée",
+    CANCELLED: "Annulée",
+  };
+
+  const pendingDecls = existingDecls.filter(
+    (d) => d.status === "COMPLETE" || d.status === "DRAFT",
+  );
+  const showExistingReminder =
+    user && !existingDeclsDismissed && existingDecls.length > 0;
+
   return (
     <>
+    {/* Existing declarations reminder */}
+    {showExistingReminder && (
+      <div className="mb-6 rounded-sm border border-[#000091]/20 bg-[#F5F5FE] overflow-hidden">
+        <div className="px-5 py-4">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-full bg-[#000091]/10 flex items-center justify-center shrink-0 mt-0.5">
+              <ClipboardList className="w-4.5 h-4.5 text-[#000091]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-sm font-bold text-[#000091] mb-1">
+                Vous avez déjà {existingDecls.length} déclaration{existingDecls.length > 1 ? "s" : ""}
+              </h4>
+              <div className="space-y-1.5 mb-3">
+                {existingDecls.slice(0, 3).map((d) => {
+                  const needsGeodae = d.status === "COMPLETE" && d.geodaeSyncedCount === 0;
+                  return (
+                    <Link
+                      key={d.id}
+                      href={`/dashboard/mes-declarations/${d.id}`}
+                      className="flex items-center justify-between gap-2 px-3 py-2 rounded bg-white border border-[#E5E5E5] hover:border-[#000091]/30 hover:shadow-sm transition-all group"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-sm font-medium text-[#161616] truncate">
+                          {d.exptRais || "Déclaration"}
+                        </span>
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0 ${
+                          d.status === "DRAFT"
+                            ? "bg-[#F6F6F6] text-[#666]"
+                            : d.status === "COMPLETE"
+                              ? "bg-[#FEF3C7] text-[#92400E]"
+                              : d.status === "VALIDATED"
+                                ? "bg-[#D1FAE5] text-[#18753C]"
+                                : "bg-[#FEE2E2] text-[#E1000F]"
+                        }`}>
+                          {STATUS_LABEL[d.status] || d.status}
+                        </span>
+                        {needsGeodae && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700 shrink-0">
+                            <Globe className="w-2.5 h-2.5" />
+                            Envoi requis
+                          </span>
+                        )}
+                        {d.status === "VALIDATED" && d.geodaeSyncedCount === d.geodaeTotalCount && d.geodaeTotalCount > 0 && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-[#18753C] shrink-0">
+                            <CheckCircle className="w-2.5 h-2.5" />
+                            GéoDAE OK
+                          </span>
+                        )}
+                      </div>
+                      <ArrowRight className="w-3.5 h-3.5 text-[#929292] group-hover:text-[#000091] transition-colors shrink-0" />
+                    </Link>
+                  );
+                })}
+                {existingDecls.length > 3 && (
+                  <p className="text-xs text-[#929292] pl-3">
+                    + {existingDecls.length - 3} autre{existingDecls.length - 3 > 1 ? "s" : ""}
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/dashboard/mes-declarations"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-sm bg-[#000091] hover:bg-[#000091]/90 text-white text-xs font-medium transition-colors"
+                >
+                  Voir mes déclarations
+                  <ArrowRight className="w-3 h-3" />
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setExistingDeclsDismissed(true)}
+                  className="text-xs text-[#929292] hover:text-[#3A3A3A] transition-colors"
+                >
+                  Continuer une nouvelle déclaration
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+
     <DeclarationLayout
       sidebar={<DeclarationPreview data={formData} currentStep={step} onGoToStep={goToStep} />}
     >
