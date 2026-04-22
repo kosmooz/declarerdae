@@ -4,6 +4,16 @@
 @import "leaflet.markercluster/dist/MarkerCluster.css";
 @import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 
+/* Leaflet containers must not create high stacking contexts that cover Radix popovers/selects */
+.leaflet-container {
+  z-index: 0;
+}
+
+/* Radix portal wrappers must float above everything (Leaflet, maps, etc.) */
+[data-radix-popper-content-wrapper] {
+  z-index: 9999 !important;
+}
+
 /* Self-hosted fonts (RGPD: no requests to Google servers) */
 @font-face {
   font-family: "Libre Franklin";

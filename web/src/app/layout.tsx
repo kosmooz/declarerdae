@@ -4,7 +4,7 @@ import { Providers } from "@/components/providers";
 
 export const metadata: Metadata = {
   title: "Déclarer Défibrillateur | Service Simplifié de Déclaration DAE en Ligne",
-  description: "Déclarez votre défibrillateur automatisé externe (DAE) en ligne en moins de 5 minutes. Service conforme au décret n°2018-1259. Attestation de déclaration sous 24h.",
+  description: "Déclarez votre défibrillateur automatisé externe (DAE) en ligne gratuitement. Déclaration DAE conforme au décret n°2018-1259, enregistrement Géo'DAE et attestation sous 24h.",
 };
 
 export default function RootLayout({

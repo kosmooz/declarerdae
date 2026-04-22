@@ -159,4 +159,13 @@ export class UpdateShopSettingsDto {
   @IsString()
   @IsOptional()
   dpoPhone?: string;
+
+  // Authentification
+  @IsBoolean()
+  @IsOptional()
+  skipEmailVerification?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  skip2FA?: boolean;
 }

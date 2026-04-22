@@ -68,24 +68,23 @@ export function validateStep(step: number, data: DeclarationFormState): StepErro
     if (data.daeDevices.length === 0) {
       errors._devices = "Au moins un défibrillateur est requis";
     } else {
-      const hasComplete = data.daeDevices.some(
-        (d) =>
-          d.nom?.trim() &&
-          d.fabRais?.trim() &&
-          d.modele?.trim() &&
-          d.numSerie?.trim() &&
-          d.etatFonct?.trim() &&
-          d.acc?.trim() &&
-          d.accLib?.trim() &&
-          d.daeMobile?.trim() &&
-          d.dermnt?.trim() &&
-          d.dispJ?.length > 0 &&
-          d.dispH?.length > 0,
-      );
-      if (!hasComplete) {
-        errors._devices =
-          "Au moins 1 DAE doit avoir tous les champs obligatoires remplis (nom, fabricant, modèle, N° série, état, accès, disponibilité, date maintenance)";
-      }
+      data.daeDevices.forEach((d, i) => {
+        const missing: string[] = [];
+        if (!d.nom?.trim()) missing.push("nom");
+        if (!d.fabRais?.trim()) missing.push("fabricant");
+        if (!d.modele?.trim()) missing.push("modèle");
+        if (!d.numSerie?.trim()) missing.push("n° série");
+        if (!d.etatFonct?.trim()) missing.push("état de fonctionnement");
+        if (!d.acc?.trim()) missing.push("environnement");
+        if (!d.accLib?.trim()) missing.push("accès libre");
+        if (!d.daeMobile?.trim()) missing.push("DAE itinérant");
+        if (!d.dermnt?.trim()) missing.push("date maintenance");
+        if (!d.dispJ || d.dispJ.length === 0) missing.push("jours de disponibilité");
+        if (!d.dispH || d.dispH.length === 0) missing.push("heures de disponibilité");
+        if (missing.length > 0) {
+          errors[`_device_${i}`] = `DAE ${i + 1} (${d.nom?.trim() || "sans nom"}) : ${missing.join(", ")}`;
+        }
+      });
     }
   }
 

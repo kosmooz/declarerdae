@@ -121,7 +121,7 @@ export default function SiteLocationMap({
       </div>
 
       {/* Address search */}
-      <div ref={containerRef} className="relative z-[1001]">
+      <div ref={containerRef} className="relative z-40">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#000091]" />
           {loading && (
@@ -135,7 +135,7 @@ export default function SiteLocationMap({
           />
         </div>
         {open && results.length > 0 && (
-          <div className="absolute z-[1000] mt-1 w-full bg-white border border-[#CECECE] rounded-md shadow-lg max-h-48 overflow-y-auto">
+          <div className="absolute z-40 mt-1 w-full bg-white border border-[#CECECE] rounded-md shadow-lg max-h-48 overflow-y-auto">
             {results.map((r, i) => (
               <button
                 key={i}
@@ -162,7 +162,7 @@ export default function SiteLocationMap({
                 onPositionChange={handlePositionChange}
                 locatedZoom={16}
               />
-              <div className="absolute bottom-2 right-2 z-[1000] bg-white/90 backdrop-blur-sm rounded px-2.5 py-1 shadow text-xs font-medium text-[#000091] pointer-events-none">
+              <div className="absolute bottom-2 right-2 z-10 bg-white/90 backdrop-blur-sm rounded px-2.5 py-1 shadow text-xs font-medium text-[#000091] pointer-events-none">
                 Glissez le marqueur pour ajuster
               </div>
             </div>

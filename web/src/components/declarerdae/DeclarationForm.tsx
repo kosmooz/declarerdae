@@ -127,7 +127,6 @@ export default function DeclarationForm() {
         if (formData.siren?.trim()) payload.siren = formData.siren;
         if (formData.nomEtablissement?.trim()) payload.nomEtablissement = formData.nomEtablissement;
         if (formData.typeERP) payload.typeERP = formData.typeERP;
-        if (formData.categorieERP) payload.categorieERP = formData.categorieERP;
         if (formData.adresse?.trim()) payload.adresse = formData.adresse;
         if (formData.codePostal?.trim()) payload.codePostal = formData.codePostal;
         if (formData.ville?.trim()) payload.ville = formData.ville;
@@ -322,22 +321,6 @@ export default function DeclarationForm() {
                   <SelectItem value="entreprise">Entreprise privée</SelectItem>
                   <SelectItem value="association">Association</SelectItem>
                   <SelectItem value="collectivite">Collectivité territoriale</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="text-sm font-semibold text-[#3A3A3A] mb-1.5">Catégorie ERP</Label>
-              <Select value={formData.categorieERP} onValueChange={(v) => updateField("categorieERP", v)}>
-                <SelectTrigger className="border-[#CECECE] focus:border-[#000091]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cat-1">Catégorie 1 (+ de 1 500 personnes)</SelectItem>
-                  <SelectItem value="cat-2">Catégorie 2 (701 à 1 500 personnes)</SelectItem>
-                  <SelectItem value="cat-3">Catégorie 3 (301 à 700 personnes)</SelectItem>
-                  <SelectItem value="cat-4">Catégorie 4 (jusqu'à 300 personnes)</SelectItem>
-                  <SelectItem value="cat-5">Catégorie 5 (selon types définis par arrêté)</SelectItem>
-                  <SelectItem value="non-applicable">Non applicable</SelectItem>
                 </SelectContent>
               </Select>
             </div>

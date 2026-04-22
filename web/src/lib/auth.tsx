@@ -97,6 +97,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => { cancelled = true; };
   }, [fetchUser]);
 
+  // Listen for session expiry from apiFetch
+  useEffect(() => {
+    const handleExpired = () => {
+      setAccessToken(null);
+      setUser(null);
+    };
+    window.addEventListener("auth:session-expired", handleExpired);
+    return () => window.removeEventListener("auth:session-expired", handleExpired);
+  }, []);
+
   const login = useCallback(
     async (email: string, password: string): Promise<LoginResult> => {
       const res = await fetch("/api/auth/login", {

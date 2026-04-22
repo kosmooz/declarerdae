@@ -6,7 +6,7 @@ import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Search, ClipboardList, Clock, CheckCircle, ShieldCheck } from "lucide-react";
+import { Search, ClipboardList, Clock, CheckCircle, ShieldCheck, AlertTriangle, Globe } from "lucide-react";
 
 interface DeclarationItem {
   id: string;
@@ -21,6 +21,10 @@ interface DeclarationItem {
   status: string;
   deviceCount: number;
   createdAt: string;
+  updatedAt: string;
+  user: { id: string; email: string; emailVerified: boolean } | null;
+  geodaeSynced: number;
+  geodaeTotal: number;
 }
 
 interface Stats {
@@ -293,9 +297,10 @@ export default function AdminDeclarationsPage() {
                       <th className="pb-2 font-medium text-[#929292]">N°</th>
                       <th className="pb-2 font-medium text-[#929292]">Date</th>
                       <th className="pb-2 font-medium text-[#929292]">Exploitant</th>
-                      <th className="pb-2 font-medium text-[#929292]">Email</th>
+                      <th className="pb-2 font-medium text-[#929292]">Compte</th>
                       <th className="pb-2 font-medium text-[#929292]">Ville</th>
-                      <th className="pb-2 font-medium text-[#929292]">DAE</th>
+                      <th className="pb-2 font-medium text-[#929292] text-center">DAE</th>
+                      <th className="pb-2 font-medium text-[#929292] text-center">GéoDAE</th>
                       <th className="pb-2 font-medium text-[#929292]">Statut</th>
                     </tr>
                   </thead>
@@ -309,16 +314,45 @@ export default function AdminDeclarationsPage() {
                         <td className="py-2.5 text-xs font-medium text-[#000091]">
                           #{d.number}
                         </td>
-                        <td className="py-2.5 text-xs text-[#929292]">
+                        <td className="py-2.5 text-xs text-[#929292] whitespace-nowrap">
                           {new Date(d.createdAt).toLocaleDateString("fr-FR")}
                         </td>
                         <td className="py-2.5">{formatExploitant(d)}</td>
-                        <td className="py-2.5 text-[#3A3A3A]">{d.exptEmail || "---"}</td>
-                        <td className="py-2.5 text-[#3A3A3A]">{d.ville || "---"}</td>
+                        <td className="py-2.5">
+                          {d.user ? (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs text-[#3A3A3A] truncate max-w-[160px]">{d.user.email}</span>
+                              {d.user.emailVerified ? (
+                                <CheckCircle className="w-3.5 h-3.5 text-[#18753C] shrink-0" />
+                              ) : (
+                                <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-[#929292]">---</span>
+                          )}
+                        </td>
+                        <td className="py-2.5 text-xs text-[#3A3A3A]">{d.ville || "---"}</td>
                         <td className="py-2.5 text-center">
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#000091]/10 text-[#000091]">
                             {d.deviceCount}
                           </span>
+                        </td>
+                        <td className="py-2.5 text-center">
+                          {d.geodaeTotal > 0 ? (
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${
+                              d.geodaeSynced === d.geodaeTotal
+                                ? "bg-green-100 text-green-700"
+                                : d.geodaeSynced > 0
+                                  ? "bg-amber-100 text-amber-700"
+                                  : "bg-[#F6F6F6] text-[#929292]"
+                            }`}>
+                              <Globe className="w-3 h-3" />
+                              {d.geodaeSynced}/{d.geodaeTotal}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-[#929292]">---</span>
+                          )}
                         </td>
                         <td className="py-2.5">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${STATUS_COLORS[d.status] || ""}`}>
@@ -329,7 +363,7 @@ export default function AdminDeclarationsPage() {
                     ))}
                     {declarations.length === 0 && (
                       <tr>
-                        <td colSpan={7} className="py-8 text-center text-[#929292]">
+                        <td colSpan={8} className="py-8 text-center text-[#929292]">
                           Aucune déclaration trouvée
                         </td>
                       </tr>

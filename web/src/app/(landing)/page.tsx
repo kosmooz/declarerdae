@@ -8,7 +8,6 @@ import FAQ from "@/components/declarerdae/FAQ";
 import ScrollReveal from "@/components/declarerdae/ScrollReveal";
 import CTABanner from "@/components/declarerdae/CTABanner";
 import StickyFooterCTA from "@/components/declarerdae/StickyFooterCTA";
-import Testimonials from "@/components/declarerdae/Testimonials";
 import TrustBadges from "@/components/declarerdae/TrustBadges";
 import DaeMapFrance from "@/components/declarerdae/DaeMapFrance";
 import { Button } from "@/components/ui/button";
@@ -79,11 +78,11 @@ export default function Home() {
 
                 <h1 className="font-heading font-black text-3xl sm:text-4xl lg:text-5xl text-white leading-tight mb-5 tracking-tight">
                   Déclarez votre défibrillateur en ligne,{" "}
-                  <span className="text-[#99C1F1]">simplement et rapidement</span>
+                  <span className="text-[#99C1F1]">gratuitement et en quelques minutes</span>
                 </h1>
 
                 <p className="text-base sm:text-lg lg:text-xl text-white/85 leading-relaxed mb-6 sm:mb-8 max-w-xl">
-                  Chaque année, <strong className="text-white">40 000 à 50 000 personnes</strong> sont victimes d'un arrêt cardiaque en France. Votre DAE peut sauver des vies — encore faut-il qu'il soit déclaré et localisable. Notre service automatisé vous met en conformité en moins de 5 minutes.
+                  Chaque année, <strong className="text-white">50 000 personnes</strong> sont victimes d'un arrêt cardiaque en France. Votre DAE peut sauver des vies — encore faut-il qu'il soit déclaré et localisable. Notre service automatisé vous met en conformité en moins de 5 minutes.
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-3">
@@ -206,7 +205,7 @@ export default function Home() {
             <ScrollReveal>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 {[
-                  { value: "40 000", label: "Arrêts cardiaques", sublabel: "chaque année en France", color: "text-[#E1000F]" },
+                  { value: "50 000", label: "Arrêts cardiaques", sublabel: "chaque année en France", color: "text-[#E1000F]" },
                   { value: "< 10 %", label: "Taux de survie", sublabel: "sans intervention rapide", color: "text-[#000091]" },
                   { value: "5 min", label: "Durée de déclaration", sublabel: "sur notre plateforme", color: "text-[#18753C]" },
                   { value: "50 %", label: "Survie avec DAE", sublabel: "dans les premières minutes", color: "text-[#000091]" },
@@ -248,10 +247,10 @@ export default function Home() {
                     <HeartPulse className="w-5 h-5 text-[#E1000F]" />
                   </div>
                   <h3 className="font-heading font-bold text-base text-[#161616] mb-2">
-                    40 000 à 50 000 vies en jeu chaque année
+                    50 000 vies en jeu chaque année
                   </h3>
                   <p className="text-sm text-[#666] leading-relaxed">
-                    En France, entre 40 000 et 50 000 personnes décèdent d'un arrêt cardiaque chaque année. Le taux de survie est aujourd'hui inférieur à 10 %, l'un des plus bas d'Europe occidentale. Chaque minute sans défibrillation réduit les chances de survie de 7 à 10 %. Lorsqu'un DAE est utilisé dans les premières minutes suivant l'arrêt, le taux de survie est majoré à 50 % (source : PPL n° 274 du Sénat, 13 janvier 2026).
+                    En France, près de 50 000 personnes décèdent d'un arrêt cardiaque chaque année. Le taux de survie est aujourd'hui inférieur à 10 %, l'un des plus bas d'Europe occidentale. Chaque minute sans défibrillation réduit les chances de survie de 7 à 10 %. Lorsqu'un DAE est utilisé dans les premières minutes suivant l'arrêt, le taux de survie est majoré à 50 % (source : PPL n° 274 du Sénat, 13 janvier 2026).
                   </p>
                 </div>
               </ScrollReveal>
@@ -339,7 +338,7 @@ export default function Home() {
         <CTABanner
           title="Ne laissez pas votre DAE dans l'ombre. Déclarez-le maintenant."
           subtitle="67% des défibrillateurs en France ne sont pas déclarés. Et le vôtre ?"
-          buttonText="Déclarer en 5 minutes"
+          buttonText="Déclarer gratuitement"
           href="/declaration"
           variant="danger"
         />
@@ -629,7 +628,7 @@ export default function Home() {
 
         {/* ===== CTA INTERMÉDIAIRE VERT ===== */}
         <CTABanner
-          title="Attestation d'enregistrement Géo'DAE délivrée sous 24 heures"
+          title="Attestation d'enregistrement Géo'DAE délivrée gratuitement sous 24 heures"
           subtitle="via declarerdefibrillateur.fr"
           buttonText="Obtenir mon attestation"
           href="/declaration"
@@ -886,39 +885,6 @@ export default function Home() {
         {/* ===== CARTE DES DAE ===== */}
         <DaeMapFrance />
 
-        {/* ===== TÉMOIGNAGES ===== */}
-        <section className="bg-[#F6F6F6] py-10 sm:py-16">
-          <div className="container">
-            <ScrollReveal>
-              <div className="max-w-3xl mx-auto text-center mb-8 sm:mb-10">
-                <span className="inline-block text-xs font-semibold uppercase tracking-widest text-[#000091] mb-3">
-                  Ils nous font confiance
-                </span>
-                <h2 className="font-heading font-bold text-2xl sm:text-3xl text-[#161616] mb-4">
-                  Ce que disent les exploitants qui ont déclaré leur DAE
-                </h2>
-                <p className="text-[#666] text-base leading-relaxed">
-                  Plus de 1 000 défibrillateurs ont été déclarés grâce à notre plateforme. Voici les retours de nos utilisateurs.
-                </p>
-              </div>
-            </ScrollReveal>
-
-            <Testimonials />
-
-            {/* CTA après témoignages */}
-            <ScrollReveal>
-              <div className="max-w-md mx-auto mt-10 text-center">
-                <p className="text-sm text-[#666] mb-3">Rejoignez les milliers d'exploitants en conformité.</p>
-                <Link href="/declaration">
-                  <Button className="bg-[#000091] hover:bg-[#000070] text-white font-semibold px-6">
-                    Déclarer mon DAE maintenant
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-                </Link>
-              </div>
-            </ScrollReveal>
-          </div>
-        </section>
 
         {/* ===== TEXTES DE RÉFÉRENCE ===== */}
         <section className="bg-white py-10 sm:py-16">
@@ -1030,7 +996,7 @@ export default function Home() {
                 Ne prenez plus de risque. Déclarez votre DAE aujourd'hui.
               </h2>
               <p className="text-white/75 text-base max-w-xl mx-auto mb-6 leading-relaxed">
-                Rejoignez les milliers d'exploitants qui ont déjà mis leur défibrillateur en conformité grâce à notre service simplifié. Protégez vos usagers, protégez-vous.
+                Rejoignez les milliers d'exploitants qui ont déjà mis leur défibrillateur en conformité gratuitement grâce à notre service simplifié. Protégez vos usagers, protégez-vous.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                 <Link href="/declaration">

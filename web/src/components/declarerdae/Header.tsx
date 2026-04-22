@@ -357,7 +357,7 @@ export default function Header() {
         </nav>
       )}
 
-      <AuthDialog open={authOpen} onOpenChange={setAuthOpen} />
+      <AuthDialog open={authOpen} onOpenChange={setAuthOpen} skipRedirect={pathname === "/declaration"} />
     </header>
   );
 }

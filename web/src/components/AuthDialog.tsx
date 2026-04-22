@@ -7,10 +7,12 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, Loader2, X, ShieldCheck } from "lucide-react";
+import { Eye, EyeOff, Loader2, X, ShieldCheck, Mail } from "lucide-react";
 import { toast } from "sonner";
 
 type View = "login" | "register" | "forgot" | "code";
+
+const UNVERIFIED_MSG = "Veuillez vérifier votre adresse email avant de vous connecter";
 
 interface AuthDialogProps {
   open: boolean;
@@ -23,7 +25,7 @@ export default function AuthDialog({ open, onOpenChange, skipRedirect = false }:
   const router = useRouter();
   const [view, setView] = useState<View>("login");
   const isDev = process.env.NODE_ENV === "development";
-  const [email, setEmail] = useState(isDev ? "admin@star-aid.fr" : "");
+  const [email, setEmail] = useState(isDev ? "guilhem.rossi@gmail.com" : "");
   const [password, setPassword] = useState(isDev ? "changeme12345" : "");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [code, setCode] = useState("");
@@ -31,6 +33,13 @@ export default function AuthDialog({ open, onOpenChange, skipRedirect = false }:
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const submittingRef = useRef(false);
+  const [resending, setResending] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(() => {
+    try {
+      const until = parseInt(localStorage.getItem("resend_verify_until") || "0", 10);
+      return Math.max(0, Math.ceil((until - Date.now()) / 1000));
+    } catch { return 0; }
+  });
 
   const reset = () => {
     setEmail("");
@@ -81,6 +90,32 @@ export default function AuthDialog({ open, onOpenChange, skipRedirect = false }:
     } finally {
       setSubmitting(false);
       submittingRef.current = false;
+    }
+  };
+
+  // Resend cooldown timer
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendCooldown]);
+
+  const handleResendVerification = async () => {
+    if (resending || resendCooldown > 0) return;
+    setResending(true);
+    try {
+      await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      toast.success("Email de vérification renvoyé !");
+      localStorage.setItem("resend_verify_until", String(Date.now() + 60_000));
+      setResendCooldown(60);
+    } catch {
+      toast.error("Erreur lors du renvoi.");
+    } finally {
+      setResending(false);
     }
   };
 
@@ -136,7 +171,7 @@ export default function AuthDialog({ open, onOpenChange, skipRedirect = false }:
   if (!open) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => onOpenChange(false)}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
       <div
         className="bg-white w-full max-w-md mx-4 shadow-2xl overflow-hidden rounded"
         onClick={(e) => e.stopPropagation()}
@@ -171,11 +206,35 @@ export default function AuthDialog({ open, onOpenChange, skipRedirect = false }:
           {/* Login */}
           {view === "login" && (
             <form onSubmit={handleLogin} className="space-y-4">
-              {error && (
+              {error && error === UNVERIFIED_MSG ? (
+                <div className="bg-[#F5F5FE] border-l-4 border-[#000091] px-4 py-3 text-sm">
+                  <div className="flex items-start gap-2">
+                    <Mail className="w-4 h-4 text-[#000091] mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-[#3A3A3A] font-medium">{error}</p>
+                      <p className="text-[#666] text-xs mt-1">
+                        Consultez votre boîte email (et vos spams) pour le lien de vérification.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleResendVerification}
+                        disabled={resending || resendCooldown > 0}
+                        className="mt-2 text-xs font-medium text-[#000091] hover:underline disabled:text-[#929292] disabled:no-underline"
+                      >
+                        {resending
+                          ? "Envoi en cours..."
+                          : resendCooldown > 0
+                            ? `Renvoyer dans ${resendCooldown}s`
+                            : "Renvoyer l'email de vérification"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : error ? (
                 <div className="bg-red-50 border-l-4 border-[#E1000F] px-4 py-3 text-sm text-[#E1000F]">
                   {error}
                 </div>
-              )}
+              ) : null}
               <div className="space-y-1.5">
                 <Label htmlFor="login-email" className="text-sm font-semibold text-[#3A3A3A]">
                   Adresse email

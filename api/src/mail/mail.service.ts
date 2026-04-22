@@ -89,6 +89,21 @@ export class MailService {
     this.cacheExpiry = 0;
   }
 
+  /** In dev, redirect all emails to adminEmail from ShopSettings */
+  private async devRecipient(originalTo: string): Promise<string> {
+    if (process.env.NODE_ENV === "production") return originalTo;
+    const shop = await this.prisma.shopSettings.findFirst({
+      where: { deleted: false },
+      select: { adminEmail: true },
+      orderBy: { createdAt: "asc" },
+    });
+    const target = shop?.adminEmail || originalTo;
+    if (target !== originalTo) {
+      this.logger.log(`Dev override: email to ${originalTo} → ${target}`);
+    }
+    return target;
+  }
+
   // ─── Email layout ──────────────────────────────────────────────
 
   private wrapEmail(content: string): string {
@@ -175,16 +190,17 @@ export class MailService {
     const verifyUrl = `${this.frontendUrl}/verify-email?token=${token}`;
     const transporter = await this.getTransporter();
     const cfg = await this.getSmtpConfig();
+    const recipient = await this.devRecipient(to);
 
     try {
       await transporter.sendMail({
         from: `"${BRAND}" <${cfg.from}>`,
-        to,
+        to: recipient,
         subject: `Verifiez votre adresse email - ${BRAND}`,
         html: this.wrapEmail(`
-          <h1 style="color:#000091;font-size:22px;margin:0 0 16px;">Bienvenue sur ${BRAND}</h1>
+          <h1 style="color:#000091;font-size:22px;margin:0 0 16px;">Vérifiez votre adresse email</h1>
           <p style="color:#3A3A3A;font-size:15px;line-height:1.6;">
-            Merci pour votre inscription ! Cliquez sur le bouton ci-dessous pour verifier votre adresse email.
+            Cliquez sur le bouton ci-dessous pour vérifier votre email et finaliser votre déclaration.
           </p>
           ${this.makeButton("Verifier mon email", verifyUrl)}
           <p style="color:#929292;font-size:12px;line-height:1.5;">
@@ -203,11 +219,12 @@ export class MailService {
   async sendLoginCode(to: string, code: string): Promise<void> {
     const transporter = await this.getTransporter();
     const cfg = await this.getSmtpConfig();
+    const recipient = await this.devRecipient(to);
 
     try {
       await transporter.sendMail({
         from: `"${BRAND}" <${cfg.from}>`,
-        to,
+        to: recipient,
         subject: `Votre code de connexion - ${BRAND}`,
         html: this.wrapEmail(`
           <h1 style="color:#000091;font-size:22px;margin:0 0 16px;">Code de connexion</h1>
@@ -446,11 +463,12 @@ export class MailService {
     const resetUrl = `${this.frontendUrl}/reset-password?token=${token}&email=${encodeURIComponent(to)}`;
     const transporter = await this.getTransporter();
     const cfg = await this.getSmtpConfig();
+    const recipient = await this.devRecipient(to);
 
     try {
       await transporter.sendMail({
         from: `"${BRAND}" <${cfg.from}>`,
-        to,
+        to: recipient,
         subject: `Reinitialisation de votre mot de passe - ${BRAND}`,
         html: this.wrapEmail(`
           <h1 style="color:#000091;font-size:22px;margin:0 0 16px;">Reinitialisation du mot de passe</h1>

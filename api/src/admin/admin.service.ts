@@ -592,15 +592,28 @@ export class AdminService {
         orderBy: { [sortBy]: sortOrder },
         skip: (page - 1) * limit,
         take: limit,
-        include: { _count: { select: { daeDevices: true } } },
+        include: {
+          _count: { select: { daeDevices: true } },
+          user: { select: { id: true, email: true, emailVerified: true } },
+          daeDevices: { select: { geodaeStatus: true }, orderBy: { position: "asc" } },
+        },
       }),
       this.prisma.declaration.count({ where }),
     ]);
 
-    const declarations = rawDeclarations.map((d) => ({
-      ...d,
-      deviceCount: d._count.daeDevices,
-    }));
+    const declarations = rawDeclarations.map((d) => {
+      const geodaeSynced = d.daeDevices.filter((dev) => dev.geodaeStatus === "SYNCED").length;
+      const geodaeTotal = d.daeDevices.length;
+      return {
+        ...d,
+        deviceCount: d._count.daeDevices,
+        daeDevices: undefined,
+        _count: undefined,
+        user: d.user,
+        geodaeSynced,
+        geodaeTotal,
+      };
+    });
 
     return {
       declarations,
@@ -616,7 +629,7 @@ export class AdminService {
       where: { id },
       include: {
         daeDevices: { orderBy: { position: "asc" } },
-        user: { select: { id: true, email: true, firstName: true, lastName: true } },
+        user: { select: { id: true, email: true, emailVerified: true, firstName: true, lastName: true } },
       },
     });
 
@@ -867,7 +880,7 @@ export class AdminService {
       data: declUpdate,
       include: {
         daeDevices: { orderBy: { position: "asc" } },
-        user: { select: { id: true, email: true, firstName: true, lastName: true } },
+        user: { select: { id: true, email: true, emailVerified: true, firstName: true, lastName: true } },
       },
     });
   }

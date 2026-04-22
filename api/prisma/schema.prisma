@@ -140,6 +140,10 @@ model ShopSettings {
   dpoAddress             String?   // Adresse postale du DPO
   dpoPhone               String?   // Telephone du DPO
 
+  // Authentification
+  skipEmailVerification  Boolean  @default(false)  // Ignorer la verification email a la connexion
+  skip2FA                Boolean  @default(false)  // Ignorer le 2FA (code 6 chiffres) a la connexion
+
   deleted                Boolean  @default(false)
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt

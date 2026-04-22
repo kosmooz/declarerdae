@@ -76,6 +76,12 @@ export async function apiFetch(
         headers,
         credentials: "include",
       });
+    } else {
+      // Refresh failed — session fully expired
+      if (!silent) {
+        toast.error("Votre session a expiré. Veuillez vous reconnecter.");
+      }
+      window.dispatchEvent(new Event("auth:session-expired"));
     }
   }
 

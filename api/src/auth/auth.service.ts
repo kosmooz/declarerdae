@@ -16,12 +16,32 @@ import { randomBytes, randomInt, createHash } from "crypto";
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
+  private cachedAuthSettings: { skipEmailVerification: boolean; skip2FA: boolean } | null = null;
+  private authSettingsCacheExpiry = 0;
 
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
     private mailService: MailService,
   ) {}
+
+  private async getAuthSettings(): Promise<{ skipEmailVerification: boolean; skip2FA: boolean }> {
+    const now = Date.now();
+    if (this.cachedAuthSettings && now < this.authSettingsCacheExpiry) {
+      return this.cachedAuthSettings;
+    }
+    const shop = await this.prisma.shopSettings.findFirst({
+      where: { deleted: false },
+      select: { skipEmailVerification: true, skip2FA: true },
+      orderBy: { createdAt: "asc" },
+    });
+    this.cachedAuthSettings = {
+      skipEmailVerification: shop?.skipEmailVerification ?? false,
+      skip2FA: shop?.skip2FA ?? false,
+    };
+    this.authSettingsCacheExpiry = now + 60_000;
+    return this.cachedAuthSettings;
+  }
 
   private hashToken(token: string): string {
     return createHash("sha256").update(token).digest("hex");
@@ -124,7 +144,9 @@ export class AuthService {
       throw new UnauthorizedException("Adresse email ou mot de passe incorrect");
     }
 
-    if (!user.emailVerified) {
+    const authSettings = await this.getAuthSettings();
+
+    if (!user.emailVerified && !authSettings.skipEmailVerification) {
       await this.logAuth(
         user.id,
         email,
@@ -137,8 +159,8 @@ export class AuthService {
       );
     }
 
-    // In development: skip 2FA, issue tokens directly
-    if (process.env.NODE_ENV !== "production") {
+    // Skip 2FA if configured in admin settings
+    if (authSettings.skip2FA) {
       const accessToken = this.generateAccessToken(user.id, user.email, user.role);
       const refreshToken = this.generateRandomToken();
       const refreshTokenHash = this.hashToken(refreshToken);
@@ -412,7 +434,7 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new BadRequestException("Invalid verification token");
+      throw new BadRequestException("Ce lien de vérification est invalide ou a expiré.\nVeuillez demander un nouveau lien.");
     }
 
     await this.prisma.user.update({
@@ -420,7 +442,20 @@ export class AuthService {
       data: { emailVerified: true, emailVerifyToken: null },
     });
 
-    return { message: "Email verified successfully" };
+    // Auto-login: issue tokens so user is connected immediately
+    const accessToken = this.generateAccessToken(user.id, user.email, user.role);
+    const refreshToken = this.generateRandomToken();
+    const refreshTokenHash = this.hashToken(refreshToken);
+
+    await this.prisma.refreshToken.create({
+      data: {
+        tokenHash: refreshTokenHash,
+        userId: user.id,
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      },
+    });
+
+    return { message: "Votre adresse email a bien été vérifiée.", accessToken, refreshToken };
   }
 
   // ─── Resend verification email ─────────────────────────────────────

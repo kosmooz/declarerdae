@@ -1101,7 +1101,7 @@ function GeodaeSyncManager({
   onOpenChange: (open: boolean) => void;
   decl: Declaration;
   declarationId: string;
-  onDone: () => void;
+  onDone: (allSucceeded?: boolean) => void | Promise<void>;
   onDiffsFound: (hasDiffs: boolean) => void;
   onAllDeleted: () => Promise<void> | void;
 }) {
@@ -1190,13 +1190,19 @@ function GeodaeSyncManager({
   const syncedDevices = devices.filter((d) => d.device.geodaeGid && d.device.geodaeStatus !== "DELETED");
   const devicesWithDiffs = activeDevices.filter((d) => d.diffCount > 0);
   const notSentDevices = activeDevices.filter((d) => !d.device.geodaeGid);
+  const errorDevices = activeDevices.filter((d) => d.error !== null);
   const anyLoading = activeDevices.some((d) => d.loading);
+  const actionCount = devicesWithDiffs.length + notSentDevices.length;
 
   // Sync a single device
   const handleSyncOne = async (deviceId: string) => {
     setDevices((prev) => prev.map((p) =>
-      p.device.id === deviceId ? { ...p, syncing: true } : p
+      p.device.id === deviceId ? { ...p, syncing: true, error: null } : p
     ));
+
+    let success = false;
+    let errorMsg: string | null = null;
+
     try {
       const res = await apiFetch(`/api/declarations/my/${declarationId}/geodae/send`, {
         method: "POST",
@@ -1205,33 +1211,46 @@ function GeodaeSyncManager({
       const data = await res.json();
       if (Array.isArray(data) && data[0]?.success) {
         toast.success(`${data[0].deviceName} synchronisé`);
+        success = true;
       } else {
-        toast.error(data[0]?.error || "Erreur");
+        errorMsg = data[0]?.error || "Erreur de synchronisation";
+        toast.error(errorMsg);
       }
     } catch {
-      toast.error("Erreur réseau");
+      errorMsg = "Erreur réseau";
+      toast.error(errorMsg);
     }
-    setDevices((prev) => prev.map((p) =>
-      p.device.id === deviceId ? { ...p, syncing: false, diffCount: 0 } : p
-    ));
+
+    if (success) {
+      await onDone();
+      setFetchKey((k) => k + 1);
+    } else {
+      setDevices((prev) => prev.map((p) =>
+        p.device.id === deviceId ? { ...p, syncing: false, error: errorMsg } : p
+      ));
+    }
   };
 
-  // Sync all that have diffs (+ not sent)
+  // Sync all that have diffs (+ not sent + errors)
   const handleSyncAllChanged = async () => {
     setSyncingAll(true);
     const ids = [
       ...devicesWithDiffs.map((d) => d.device.id),
       ...notSentDevices.map((d) => d.device.id),
+      ...errorDevices.filter((d) => d.diffCount === 0 && d.device.geodaeGid).map((d) => d.device.id),
     ];
+    const uniqueIds = [...new Set(ids)];
+    let allSucceeded = false;
     try {
       const res = await apiFetch(`/api/declarations/my/${declarationId}/geodae/send`, {
         method: "POST",
-        body: JSON.stringify(ids.length < decl.daeDevices.length ? { deviceIds: ids } : {}),
+        body: JSON.stringify(uniqueIds.length < decl.daeDevices.length ? { deviceIds: uniqueIds } : {}),
       });
       const data = await res.json();
       if (Array.isArray(data)) {
         const ok = data.filter((r: any) => r.success).length;
         const ko = data.filter((r: any) => !r.success).length;
+        allSucceeded = ko === 0;
         if (ko === 0) toast.success(`${ok} DAE synchronisé${ok > 1 ? "s" : ""}`);
         else toast.error(`${ko} échec(s) sur ${data.length}`);
       }
@@ -1240,7 +1259,7 @@ function GeodaeSyncManager({
     }
     setSyncingAll(false);
     onOpenChange(false);
-    onDone();
+    await onDone(allSucceeded);
   };
 
   // Delete a single device
@@ -1248,6 +1267,7 @@ function GeodaeSyncManager({
     setDevices((prev) => prev.map((p) =>
       p.device.id === deviceId ? { ...p, deleting: true } : p
     ));
+    let success = false;
     try {
       const res = await apiFetch(`/api/declarations/my/${declarationId}/geodae/delete/${deviceId}`, {
         method: "POST",
@@ -1255,16 +1275,21 @@ function GeodaeSyncManager({
       const data = await res.json();
       if (data.success) {
         toast.success("DAE supprimé de GéoDAE");
+        success = true;
       } else {
         toast.error(data.error || "Erreur");
       }
     } catch {
       toast.error("Erreur réseau");
     }
-    setDevices((prev) => prev.map((p) =>
-      p.device.id === deviceId ? { ...p, deleting: false } : p
-    ));
-    onDone();
+    if (success) {
+      await onDone();
+      setFetchKey((k) => k + 1);
+    } else {
+      setDevices((prev) => prev.map((p) =>
+        p.device.id === deviceId ? { ...p, deleting: false } : p
+      ));
+    }
   };
 
   // Delete all — delete from GéoDAE then cancel the declaration
@@ -1296,9 +1321,11 @@ function GeodaeSyncManager({
           <DialogDescription>
             {anyLoading
               ? "Chargement des données GéoDAE..."
-              : devicesWithDiffs.length > 0 || notSentDevices.length > 0
-                ? `${devicesWithDiffs.length + notSentDevices.length} DAE nécessite${devicesWithDiffs.length + notSentDevices.length > 1 ? "nt" : ""} une action`
-                : "Tous les DAE sont à jour"}
+              : errorDevices.length > 0
+                ? `${errorDevices.length} DAE en erreur${actionCount > 0 ? `, ${actionCount} en attente` : ""}`
+                : actionCount > 0
+                  ? `${actionCount} DAE nécessite${actionCount > 1 ? "nt" : ""} une action`
+                  : "Tous les DAE sont à jour"}
           </DialogDescription>
         </DialogHeader>
 
@@ -1320,27 +1347,29 @@ function GeodaeSyncManager({
                 className={`rounded-lg border p-3 ${
                   ds.loading
                     ? "border-[#E5E5E5] bg-[#F6F6F6]"
-                    : hasDiffs
-                      ? "border-amber-200 bg-amber-50"
-                      : isNotSent
-                        ? "border-[#000091]/20 bg-[#F5F5FE]"
-                        : isDeleted
-                          ? "border-[#E5E5E5] bg-[#F6F6F6] opacity-60"
-                          : "border-green-200 bg-green-50"
+                    : ds.error
+                      ? "border-red-200 bg-red-50"
+                      : hasDiffs
+                        ? "border-amber-200 bg-amber-50"
+                        : isNotSent
+                          ? "border-[#000091]/20 bg-[#F5F5FE]"
+                          : isDeleted
+                            ? "border-[#E5E5E5] bg-[#F6F6F6] opacity-60"
+                            : "border-green-200 bg-green-50"
                 }`}
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2 min-w-0">
                     {ds.loading ? (
                       <Loader2 className="h-4 w-4 animate-spin text-[#929292] shrink-0" />
+                    ) : ds.error ? (
+                      <XCircle className="h-4 w-4 text-red-500 shrink-0" />
                     ) : hasDiffs ? (
                       <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
                     ) : isNotSent ? (
                       <Globe className="h-4 w-4 text-[#000091] shrink-0" />
                     ) : isDeleted ? (
                       <Trash2 className="h-4 w-4 text-[#929292] shrink-0" />
-                    ) : ds.error ? (
-                      <XCircle className="h-4 w-4 text-red-500 shrink-0" />
                     ) : (
                       <CheckCircle className="h-4 w-4 text-[#18753C] shrink-0" />
                     )}
@@ -1366,7 +1395,7 @@ function GeodaeSyncManager({
 
                   {!ds.loading && !isDeleted && (
                     <div className="flex items-center gap-1.5 shrink-0">
-                      {(hasDiffs || isNotSent) && (
+                      {(hasDiffs || isNotSent || ds.error) && (
                         <Button
                           size="sm"
                           onClick={() => handleSyncOne(ds.device.id)}
@@ -1375,6 +1404,11 @@ function GeodaeSyncManager({
                         >
                           {ds.syncing ? (
                             <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : ds.error ? (
+                            <>
+                              <RotateCw className="h-3 w-3 mr-1" />
+                              Réessayer
+                            </>
                           ) : isNotSent ? (
                             <>
                               <Upload className="h-3 w-3 mr-1" />
@@ -1429,9 +1463,9 @@ function GeodaeSyncManager({
             <Button variant="ghost" onClick={() => onOpenChange(false)}>
               Fermer
             </Button>
-            {(devicesWithDiffs.length > 0 || notSentDevices.length > 0) && (() => {
-              const total = devicesWithDiffs.length + notSentDevices.length;
-              const allNew = devicesWithDiffs.length === 0;
+            {(devicesWithDiffs.length > 0 || notSentDevices.length > 0 || errorDevices.length > 0) && (() => {
+              const total = devicesWithDiffs.length + notSentDevices.length + errorDevices.filter((d) => d.diffCount === 0 && d.device.geodaeGid).length;
+              const allNew = devicesWithDiffs.length === 0 && errorDevices.length === 0;
               return (
                 <Button
                   onClick={handleSyncAllChanged}
@@ -1786,6 +1820,15 @@ interface DeviceSendResult {
   error?: string;
 }
 
+function computeNeedsResync(decl: Declaration): boolean {
+  const synced = decl.daeDevices.filter(
+    (d) => (d.geodaeStatus === "SENT" || d.geodaeStatus === "UPDATED") && d.geodaeLastSync,
+  );
+  if (synced.length === 0) return false;
+  const declUpdated = new Date(decl.updatedAt).getTime();
+  return synced.some((d) => declUpdated > new Date(d.geodaeLastSync!).getTime());
+}
+
 export default function DeclarationDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -1809,10 +1852,11 @@ export default function DeclarationDetailPage() {
   const geodaeCardRef = useRef<HTMLDivElement>(null);
 
   const loadDecl = useCallback(async () => {
-    setLoading(true);
     const res = await apiFetch(`/api/declarations/my/${id}`);
     if (res.ok) {
-      setDecl(await res.json());
+      const data = await res.json();
+      setDecl(data);
+      setNeedsResync(computeNeedsResync(data));
     } else {
       router.push("/dashboard/mes-declarations");
     }
@@ -2236,11 +2280,11 @@ export default function DeclarationDetailPage() {
         onOpenChange={setShowGeodaeConfirm}
         decl={decl}
         declarationId={id}
-        onDone={() => {
-          setNeedsResync(false);
-          loadDecl();
+        onDone={async (allSucceeded) => {
+          if (allSucceeded !== false) setNeedsResync(false);
+          await loadDecl();
         }}
-        onDiffsFound={setNeedsResync}
+        onDiffsFound={(hasDiffs) => { if (hasDiffs) setNeedsResync(true); }}
         onAllDeleted={async () => {
           // Cancel the declaration and redirect
           await apiFetch(`/api/declarations/my/${id}/cancel`, {

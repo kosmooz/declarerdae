@@ -409,6 +409,40 @@ export default function AdminSettingsPage() {
                 <Label>Email admin (notifications)</Label>
                 <Input type="email" value={form.adminEmail || ""} onChange={(e) => set("adminEmail", e.target.value)} />
               </div>
+
+              <div className="border-t border-[#E5E5E5] pt-4 mt-4">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-[#929292] mb-3">Authentification</h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="flex items-center gap-2.5 py-1 text-sm font-medium cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={form.skipEmailVerification || false}
+                        onChange={(e) => set("skipEmailVerification", e.target.checked)}
+                        className="cursor-pointer"
+                      />
+                      Ignorer la vérification email
+                    </label>
+                    <p className="text-xs text-[#929292] ml-6">
+                      Si activé, les utilisateurs peuvent se connecter sans avoir vérifié leur adresse email.
+                    </p>
+                  </div>
+                  <div>
+                    <label className="flex items-center gap-2.5 py-1 text-sm font-medium cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={form.skip2FA || false}
+                        onChange={(e) => set("skip2FA", e.target.checked)}
+                        className="cursor-pointer"
+                      />
+                      Ignorer la double authentification (2FA)
+                    </label>
+                    <p className="text-xs text-[#929292] ml-6">
+                      Si activé, les utilisateurs ne reçoivent pas de code de vérification par email lors de la connexion.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </>
           )}
 

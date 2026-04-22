@@ -120,6 +120,18 @@ Le formulaire de déclaration multi-étapes (v2) avec auto-save serveur :
 | `shared/LeafletMap.tsx` | Composant carte Leaflet + couche satellite Mapbox (dynamic import, SSR disabled) |
 | `shared/EntrepriseSearch.tsx` | Recherche entreprise via API recherche-entreprises.api.gouv.fr |
 
+### GéoDAE Shared Components (`components/declarerdae/geodae/`)
+
+Composants partagés entre le dashboard utilisateur et l'administration pour la gestion GéoDAE :
+
+| Fichier | Description |
+|---------|-------------|
+| `types.ts` | Interfaces partagées : `GeodaeDaeDevice`, `GeodaeDeclaration`, `DeviceSyncStatus`, `GeodaeSyncApi` |
+| `geodae-fields.ts` | `GEODAE_FIELDS` (mapping champs GéoDAE ↔ local), `computeDiffCount()`, `formatGeodaeValue()`, helpers comparaison (téléphones E.164, coordonnées tolérance, nom sans "test") |
+| `GeodaeSyncManager.tsx` | Popup de gestion GéoDAE : charge live chaque DAE (batch 3), compare, affiche état (vert/orange/bleu/gris), actions sync/delete individuelles et globales. API abstraction via prop `api: GeodaeSyncApi` (callbacks). Header/footer fixes, liste scrollable. Labels adaptatifs premier envoi vs mise à jour. Popups confirmation suppression irréversible |
+| `GeodaeDetailContent.tsx` | Tableau comparatif champ par champ GéoDAE vs local, détection diffs, card mainteneur declarerdefibrillateur.re, option changement mainteneur |
+| `index.ts` | Barrel exports |
+
 ### Data Files (`data/`)
 
 | Fichier | Description |
@@ -308,8 +320,8 @@ export default function MyPage() {
 - **Statuts** : DRAFT → COMPLETE → VALIDATED → CANCELLED (+ CANCELLED → COMPLETE pour réactivation). Labels utilisateur : COMPLETE = "Finaliser l'envoi", VALIDATED = "Validée"
 - **Annulation** : popup avec 5 raisons prédéfinies, email pré-rempli éditable, envoi automatique au déclarant (en dev → adminEmail des réglages)
 - **Formulaires d'édition admin** : `ExploitantEditForm` (recherche entreprise + contact), `SiteEditForm` (carte + géocodage + contact), `DeviceEditForm` (tous champs DAE) — tous avec `PhonePrefixSelect` pour les téléphones
-- **Envoi GéoDAE admin** : bouton dans la page détail admin pour envoyer/resynchroniser les DAE vers `catalogue.atlasante.fr` (déclarations VALIDATED uniquement côté admin)
-- **Audit trail** : modèle `DeclarationAuditLog` — chaque modification admin est loguée (action, fieldName, oldValue, newValue, adminId, deviceId)
+- **GéoDAE admin** : même panneau et popup que le dashboard utilisateur, utilisant les composants partagés `GeodaeSyncManager` + `GeodaeDetailContent` (`@/components/declarerdae/geodae/`). Visible pour COMPLETE et VALIDATED. Badges DAE cliquables → popup détail live. Bouton "Mettre à jour" / "Envoyer vers GéoDAE" ouvre le sync manager avec comparaison live par device. Endpoints admin : `GET /api/admin/geodae/fetch/:deviceId` (fetch live), `POST /api/admin/geodae/delete-device/:deviceId` (suppression individuelle), `POST /api/admin/geodae/send/:declarationId`, `POST /api/admin/geodae/delete/:declarationId` (batch). API callbacks injectés via la prop `api` du `GeodaeSyncManager`
+- **Audit trail** : modèle `DeclarationAuditLog` — chaque modification admin/utilisateur est loguée (action, fieldName, oldValue, newValue, adminId/initiatorId, deviceId)
 - **Pas d'affichage d'ID technique** ni d'étape X/4
 - **Pas de noms de champs GéoDAE** dans les labels (expt_rais, etc.)
 
@@ -343,8 +355,8 @@ export default function MyPage() {
 - **CRUD** : POST (create) / PATCH (update via `geodaeGid`) / GET (fetch fiche live par GID) — résultats stockés sur DaeDevice (`geodaeGid`, `geodaeStatus`, `geodaeLastSync`, `geodaeLastError`)
 - **Suppression** : `deleteSingleDevice()` PATCH `etat_fonct: "Supprimé définitivement"` — l'API GéoDAE ne supporte pas DELETE, pas de transfert de mainteneur possible. Le nouveau mainteneur doit redéclarer le DAE. Backend `removeMyDevice` bloque la suppression de devices synchronisés (geodaeGid + status != DELETED)
 - **Throttling** : 500ms de délai entre chaque appel API GéoDAE dans `sendDeclarationToGeodae` et `deleteFromGeodae`. Frontend fetch live par batch de 3
-- **Envoi admin** : déclarations VALIDATED uniquement, déclenché depuis l'admin
-- **Envoi utilisateur** : déclarations COMPLETE ou VALIDATED, endpoints sous `/api/declarations/my/:id/geodae/` (send, retry, status, fetch, delete). Ownership check via `getUserDeclaration()`. Auto-transition COMPLETE → VALIDATED après sync complète réussie (audit log `STATUS_CHANGE` avec metadata `reason: "Auto-validated after successful GéoDAE sync"`). Paramètre `allowedStatuses` dans `sendDeclarationToGeodae()` et `retryDevice()` (default `["VALIDATED"]` pour admin, `["COMPLETE", "VALIDATED"]` pour users). Annulation automatique de la déclaration (→ CANCELLED) quand tous les DAE sont supprimés de GéoDAE
+- **Envoi admin** : déclarations COMPLETE et VALIDATED, endpoints sous `/api/admin/geodae/` (send/:declarationId, delete/:declarationId, fetch/:deviceId, delete-device/:deviceId, retry/:deviceId, status/:declarationId, test-connection). Utilise le `GeodaeSyncManager` partagé avec callbacks admin
+- **Envoi utilisateur** : déclarations COMPLETE ou VALIDATED, endpoints sous `/api/declarations/my/:id/geodae/` (send, retry, status, fetch/:deviceId, delete/:deviceId, cancel). Ownership check via `getUserDeclaration()`. Auto-transition COMPLETE → VALIDATED après sync complète réussie (audit log `STATUS_CHANGE` avec metadata `reason: "Auto-validated after successful GéoDAE sync"`). Paramètre `allowedStatuses` dans `sendDeclarationToGeodae()` et `retryDevice()` (default `["VALIDATED"]` pour admin, `["COMPLETE", "VALIDATED"]` pour users). Annulation automatique de la déclaration (→ CANCELLED) quand tous les DAE sont supprimés de GéoDAE
 
 ### Authentication
 - JWT tokens (access in memory, refresh in HTTP-only cookie)

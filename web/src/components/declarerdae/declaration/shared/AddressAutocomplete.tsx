@@ -118,7 +118,7 @@ export default function AddressAutocomplete({
             className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]"
           />
           {open && results.length > 0 && (
-            <div className="absolute z-50 mt-1 w-full bg-white border border-[#CECECE] rounded-md shadow-lg max-h-48 overflow-y-auto">
+            <div className="absolute z-40 mt-1 w-full bg-white border border-[#CECECE] rounded-md shadow-lg max-h-48 overflow-y-auto">
               {results.map((r, i) => (
                 <button
                   key={i}

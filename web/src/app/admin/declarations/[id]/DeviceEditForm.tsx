@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -10,6 +11,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ACC_OPTIONS, TYPE_DAE_OPTIONS } from "@/lib/declaration-types";
+import {
+  DAE_MANUFACTURERS,
+  OTHER_VALUE,
+  getModelsForManufacturer,
+} from "@/data/dae-manufacturers";
 import OuiNonSwitch from "@/components/declarerdae/declaration/shared/OuiNonSwitch";
 import EtatFonctSelect from "@/components/declarerdae/declaration/shared/EtatFonctSelect";
 import DispJourSelector from "@/components/declarerdae/declaration/shared/DispJourSelector";
@@ -29,6 +35,45 @@ export default function DeviceEditForm({
   siteLng,
   onChange,
 }: DeviceEditFormProps) {
+  // Maintenance mode: derive from existing data
+  const dermnt = data.dermnt || "";
+  const dateInstal = data.dateInstal || "";
+  const [hadMaintenance, setHadMaintenance] = useState(() => {
+    if (dermnt && dateInstal && dermnt === dateInstal) return "NON";
+    if (dermnt) return "OUI";
+    return "";
+  });
+
+  const fabRais = data.fabRais || "";
+  const modele = data.modele || "";
+
+  // Track "Autre" mode locally
+  const knownFabNames = DAE_MANUFACTURERS.map((m) => m.name);
+  const [fabAutre, setFabAutre] = useState(
+    () => fabRais !== "" && !knownFabNames.includes(fabRais),
+  );
+  const isKnownFab = !fabAutre && knownFabNames.includes(fabRais);
+  const modelsForSelected = isKnownFab
+    ? getModelsForManufacturer(fabRais)
+    : [];
+
+  const [modelAutre, setModelAutre] = useState(() => {
+    if (!knownFabNames.includes(fabRais)) return false;
+    const models = getModelsForManufacturer(fabRais);
+    return modele !== "" && !models.some((m) => m.name === modele);
+  });
+
+  const selectFabValue = fabAutre
+    ? OTHER_VALUE
+    : isKnownFab
+      ? fabRais
+      : "";
+  const selectModelValue = modelAutre
+    ? OTHER_VALUE
+    : modelsForSelected.some((m) => m.name === modele)
+      ? modele
+      : "";
+
   return (
     <div className="space-y-5">
       {/* ── Section 1 : Identification ── */}
@@ -57,23 +102,99 @@ export default function DeviceEditForm({
               <Label className="text-xs text-[#666] mb-1 block">
                 Fabricant <span className="text-[#E1000F]">*</span>
               </Label>
-              <Input
-                value={data.fabRais || ""}
-                onChange={(e) => onChange("fabRais", e.target.value)}
-                placeholder="Zoll, Philips, Schiller..."
-                className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]"
-              />
+              <Select
+                value={selectFabValue}
+                onValueChange={(v) => {
+                  if (v === OTHER_VALUE) {
+                    setFabAutre(true);
+                    setModelAutre(false);
+                    onChange("fabRais", "");
+                    onChange("modele", "");
+                  } else {
+                    setFabAutre(false);
+                    setModelAutre(false);
+                    onChange("fabRais", v);
+                    onChange("modele", "");
+                  }
+                }}
+              >
+                <SelectTrigger className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]">
+                  <SelectValue placeholder="Choisir un fabricant" />
+                </SelectTrigger>
+                <SelectContent position="popper" sideOffset={4}>
+                  {DAE_MANUFACTURERS.map((m) => (
+                    <SelectItem key={m.name} value={m.name}>
+                      {m.name}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value={OTHER_VALUE}>Autre</SelectItem>
+                </SelectContent>
+              </Select>
+              {fabAutre && (
+                <Input
+                  value={fabRais}
+                  onChange={(e) => onChange("fabRais", e.target.value)}
+                  placeholder="Nom du fabricant"
+                  className="mt-1.5 border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]"
+                  autoFocus
+                />
+              )}
             </div>
             <div>
               <Label className="text-xs text-[#666] mb-1 block">
-                Modele <span className="text-[#E1000F]">*</span>
+                Modèle <span className="text-[#E1000F]">*</span>
               </Label>
-              <Input
-                value={data.modele || ""}
-                onChange={(e) => onChange("modele", e.target.value)}
-                placeholder="AED 3, HS1, CR+..."
-                className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]"
-              />
+              {fabAutre ? (
+                <Input
+                  value={modele}
+                  onChange={(e) => onChange("modele", e.target.value)}
+                  placeholder="Nom du modèle"
+                  className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]"
+                />
+              ) : isKnownFab ? (
+                <>
+                  <Select
+                    value={selectModelValue}
+                    onValueChange={(v) => {
+                      if (v === OTHER_VALUE) {
+                        setModelAutre(true);
+                        onChange("modele", "");
+                      } else {
+                        setModelAutre(false);
+                        onChange("modele", v);
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]">
+                      <SelectValue placeholder="Choisir un modèle" />
+                    </SelectTrigger>
+                    <SelectContent position="popper" sideOffset={4}>
+                      {modelsForSelected.map((m) => (
+                        <SelectItem key={m.name} value={m.name}>
+                          {m.name}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value={OTHER_VALUE}>Autre</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {modelAutre && (
+                    <Input
+                      value={modele}
+                      onChange={(e) => onChange("modele", e.target.value)}
+                      placeholder="Nom du modèle"
+                      className="mt-1.5 border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]"
+                      autoFocus
+                    />
+                  )}
+                </>
+              ) : (
+                <Input
+                  value=""
+                  disabled
+                  placeholder="Choisir d'abord un fabricant"
+                  className="border-[#CECECE] disabled:opacity-50"
+                />
+              )}
             </div>
           </div>
 
@@ -101,7 +222,7 @@ export default function DeviceEditForm({
                 <SelectTrigger className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" sideOffset={4}>
                   {TYPE_DAE_OPTIONS.map((opt) => (
                     <SelectItem key={opt.value} value={opt.value}>
                       {opt.label}
@@ -152,7 +273,7 @@ export default function DeviceEditForm({
                 <SelectTrigger className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" sideOffset={4}>
                   {ACC_OPTIONS.map((opt) => (
                     <SelectItem key={opt.value} value={opt.value}>
                       {opt.label}
@@ -227,32 +348,67 @@ export default function DeviceEditForm({
         </h4>
 
         <div className="space-y-3">
-          {/* Date derniere maintenance + Date d'installation */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
+          {/* Maintenance */}
+          <OuiNonSwitch
+            label="Le DAE a-t-il déjà subi une maintenance ?"
+            value={hadMaintenance}
+            onChange={(v) => {
+              setHadMaintenance(v);
+              if (v === "NON") {
+                onChange("dermnt", data.dateInstal || "");
+              } else {
+                if ((data.dermnt || "") === (data.dateInstal || "")) onChange("dermnt", "");
+              }
+            }}
+            required
+          />
+
+          {hadMaintenance === "OUI" && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs text-[#666] mb-1 block">
+                  Date dernière maintenance{" "}
+                  <span className="text-[#E1000F]">*</span>
+                </Label>
+                <Input
+                  type="date"
+                  value={data.dermnt || ""}
+                  onChange={(e) => onChange("dermnt", e.target.value)}
+                  className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-[#666] mb-1 block">
+                  Date d&apos;installation{" "}
+                  <span className="text-[#929292]">(facultatif)</span>
+                </Label>
+                <Input
+                  type="date"
+                  value={data.dateInstal || ""}
+                  onChange={(e) => onChange("dateInstal", e.target.value)}
+                  className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]"
+                />
+              </div>
+            </div>
+          )}
+
+          {hadMaintenance === "NON" && (
+            <div className="max-w-xs">
               <Label className="text-xs text-[#666] mb-1 block">
-                Date dernière maintenance{" "}
+                Date d&apos;installation{" "}
                 <span className="text-[#E1000F]">*</span>
               </Label>
               <Input
                 type="date"
-                value={data.dermnt || ""}
-                onChange={(e) => onChange("dermnt", e.target.value)}
-                className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]"
-              />
-            </div>
-            <div>
-              <Label className="text-xs text-[#666] mb-1 block">
-                Date d&apos;installation
-              </Label>
-              <Input
-                type="date"
                 value={data.dateInstal || ""}
-                onChange={(e) => onChange("dateInstal", e.target.value)}
+                onChange={(e) => {
+                  onChange("dateInstal", e.target.value);
+                  onChange("dermnt", e.target.value);
+                }}
                 className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]"
               />
             </div>
-          </div>
+          )}
 
           {/* Electrodes pediatriques + Surveillance a distance */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

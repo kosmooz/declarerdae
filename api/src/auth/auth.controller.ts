@@ -159,8 +159,15 @@ export class AuthController {
   }
 
   @Get("verify-email")
-  async verifyEmail(@Query("token") token: string) {
-    return this.authService.verifyEmail(token);
+  async verifyEmail(
+    @Query("token") token: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.verifyEmail(token);
+    if (result.refreshToken) {
+      setRefreshCookie(res, result.refreshToken);
+    }
+    return { message: result.message, accessToken: result.accessToken };
   }
 
   @Post("resend-verification")

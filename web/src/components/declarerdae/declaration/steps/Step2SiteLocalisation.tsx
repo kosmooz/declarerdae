@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { DeclarationFormState } from "@/lib/declaration-types";
-import { TYPE_ERP_OPTIONS, CATEGORIE_ERP_OPTIONS } from "@/lib/declaration-types";
+import { TYPE_ERP_OPTIONS } from "@/lib/declaration-types";
 import { getPhonePlaceholder } from "@/data/phone-prefixes";
 import SiteLocationMap from "../shared/SiteLocationMap";
 import PhonePrefixSelect from "../shared/PhonePrefixSelect";
@@ -63,7 +63,7 @@ export default function Step2SiteLocalisation({
             <SelectTrigger className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent position="popper" sideOffset={4}>
               {TYPE_ERP_OPTIONS.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value}>
                   {opt.label}
@@ -72,28 +72,6 @@ export default function Step2SiteLocalisation({
             </SelectContent>
           </Select>
         </div>
-        {data.typeERP === "erp" && (
-          <div>
-            <Label className="text-xs text-[#666] mb-1 block">
-              Catégorie ERP
-            </Label>
-            <Select
-              value={data.categorieERP}
-              onValueChange={(v) => onChange("categorieERP", v)}
-            >
-              <SelectTrigger className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {CATEGORIE_ERP_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
       </div>
 
       {/* Adresse avec geocodage BAN + carte */}

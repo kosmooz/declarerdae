@@ -211,14 +211,6 @@ export const TYPE_ERP_OPTIONS = [
   { value: "collectivite", label: "Collectivité territoriale" },
 ];
 
-export const CATEGORIE_ERP_OPTIONS = [
-  { value: "cat-1", label: "Catégorie 1 (+ de 1 500 personnes)" },
-  { value: "cat-2", label: "Catégorie 2 (701 à 1 500)" },
-  { value: "cat-3", label: "Catégorie 3 (301 à 700)" },
-  { value: "cat-4", label: "Catégorie 4 (jusqu'à 300 personnes)" },
-  { value: "cat-5", label: "Catégorie 5 (selon types définis par arrêté)" },
-  { value: "non-applicable", label: "Non applicable" },
-];
 
 export const ACC_OPTIONS = [
   { value: "interieur", label: "Intérieur" },

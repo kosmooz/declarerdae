@@ -78,7 +78,7 @@ export default function DaeMarkerMap({
             lng={displayLng}
             onPositionChange={handlePositionChange}
           />
-          <div className="absolute bottom-2 right-2 z-[1000] bg-white/90 backdrop-blur-sm rounded px-2.5 py-1 shadow text-xs font-medium text-[#000091] pointer-events-none">
+          <div className="absolute bottom-2 right-2 z-10 bg-white/90 backdrop-blur-sm rounded px-2.5 py-1 shadow text-xs font-medium text-[#000091] pointer-events-none">
             Glissez le marqueur pour ajuster
           </div>
         </div>

@@ -284,6 +284,15 @@ function InfoRow({
 
 /* ─── Page component ──────────────────────────────────────────────────── */
 
+function computeNeedsResync(decl: Declaration): boolean {
+  const synced = decl.daeDevices.filter(
+    (d) => (d.geodaeStatus === "SENT" || d.geodaeStatus === "UPDATED") && d.geodaeLastSync,
+  );
+  if (synced.length === 0) return false;
+  const declUpdated = new Date(decl.updatedAt).getTime();
+  return synced.some((d) => declUpdated > new Date(d.geodaeLastSync!).getTime());
+}
+
 export default function AdminDeclarationDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -340,6 +349,7 @@ export default function AdminDeclarationDetailPage() {
         const data = await declRes.json();
         setDecl(data);
         setNotesValue(data.notes || "");
+        setNeedsResync(computeNeedsResync(data));
       } else {
         toast.error("Déclaration introuvable");
         router.push("/admin/declarations");
@@ -552,6 +562,7 @@ export default function AdminDeclarationDetailPage() {
       const data = await declRes.json();
       setDecl(data);
       setNotesValue(data.notes || "");
+      setNeedsResync(computeNeedsResync(data));
     }
     if (logsRes.ok) setAuditLogs(await logsRes.json());
   }, [id]);
@@ -985,6 +996,18 @@ export default function AdminDeclarationDetailPage() {
           }`} />
 
           <div className="bg-white p-5">
+            {/* Resync needed banner */}
+            {needsResync && (
+              <div className="alert-warning rounded text-sm mb-4">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-[#92400E] shrink-0" />
+                  <span className="text-[#92400E]">
+                    Les informations ont été modifiées. Mettez à jour les DAE sur GéoDAE pour synchroniser les changements.
+                  </span>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-start gap-4">
               <div className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 ${
                 needsResync ? "bg-amber-100"
@@ -1008,7 +1031,7 @@ export default function AdminDeclarationDetailPage() {
                 <div className="flex items-center gap-2 mb-1">
                   <h3 className="text-sm font-bold text-[#3A3A3A]">Base nationale GéoDAE</h3>
                   {needsResync && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 animate-pulse">
                       <AlertTriangle className="h-2.5 w-2.5" />
                       Mise à jour requise
                     </span>
@@ -1017,6 +1040,16 @@ export default function AdminDeclarationDetailPage() {
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-[#18753C]">
                       <CheckCircle className="h-2.5 w-2.5" />
                       Synchronisé
+                    </span>
+                  )}
+                  {geodaeFailed.length > 0 && geodaeSent.length === 0 && !needsResync && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-100 text-red-700">
+                      Échec
+                    </span>
+                  )}
+                  {!geodaeAllSynced && geodaeSent.length > 0 && !needsResync && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#F5F5FE] text-[#000091]">
+                      Partiellement synchronisé
                     </span>
                   )}
                   {geodaeNoneSynced && !needsResync && (
@@ -1031,7 +1064,7 @@ export default function AdminDeclarationDetailPage() {
                     ? `${geodaeSent.length} DAE enregistré${geodaeSent.length > 1 ? "s" : ""} dans la base nationale`
                     : geodaeNoneSynced
                       ? `${decl.daeDevices.length} DAE en attente d'envoi`
-                      : `${geodaeSent.length}/${decl.daeDevices.length} DAE synchronisé${geodaeSent.length > 1 ? "s" : ""}`}
+                      : `${geodaeSent.length}/${decl.daeDevices.length} DAE synchronisé${geodaeSent.length > 1 ? "s" : ""}${geodaeFailed.length > 0 ? `, ${geodaeFailed.length} en échec` : ""}${geodaeNotSent.length > 0 ? `, ${geodaeNotSent.length} non envoyé${geodaeNotSent.length > 1 ? "s" : ""}` : ""}`}
                   {geodaeLastSync && (
                     <> · Dernière sync : {new Date(geodaeLastSync).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}</>
                   )}
@@ -1089,7 +1122,11 @@ export default function AdminDeclarationDetailPage() {
                   }
                 >
                   {geodaeIsUpdate ? <RotateCw className="h-3.5 w-3.5 mr-1.5" /> : <Upload className="h-3.5 w-3.5 mr-1.5" />}
-                  {geodaeIsUpdate ? "Mettre à jour" : "Envoyer vers GéoDAE"}
+                  {geodaeFailed.length > 0 && geodaeSent.length === 0
+                    ? "Réessayer l'envoi"
+                    : geodaeIsUpdate
+                      ? "Mettre à jour"
+                      : "Envoyer vers GéoDAE"}
                 </Button>
               </div>
             </div>
@@ -1679,11 +1716,11 @@ export default function AdminDeclarationDetailPage() {
         open={showGeodaeSyncManager}
         onOpenChange={setShowGeodaeSyncManager}
         decl={decl}
-        onDone={() => {
-          setNeedsResync(false);
-          reloadDeclAndLogs();
+        onDone={async (allSucceeded) => {
+          if (allSucceeded !== false) setNeedsResync(false);
+          await reloadDeclAndLogs();
         }}
-        onDiffsFound={setNeedsResync}
+        onDiffsFound={(hasDiffs) => { if (hasDiffs) setNeedsResync(true); }}
         onAllDeleted={async () => {
           reloadDeclAndLogs();
         }}
