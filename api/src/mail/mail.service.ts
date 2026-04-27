@@ -459,6 +459,116 @@ export class MailService {
     }
   }
 
+  async sendGeodaeConfirmation(data: {
+    contactEmail: string;
+    userEmail: string | null;
+    exptRais: string;
+    exptNom: string;
+    exptPrenom: string;
+    declarationNumber: number;
+    declarationId: string;
+    devices: { nom: string; gid: number | null; updated: boolean }[];
+  }): Promise<void> {
+    const transporter = await this.getTransporter();
+    const cfg = await this.getSmtpConfig();
+
+    const deviceCount = data.devices.length;
+    const plural = deviceCount > 1;
+    const declUrl = `${this.frontendUrl}/dashboard/mes-declarations/${data.declarationId}`;
+
+    const deviceRows = data.devices
+      .map(
+        (d) =>
+          `<tr>
+            <td style="padding:8px 12px;border-bottom:1px solid #E5E5E5;font-size:14px;color:#3A3A3A;">${d.nom || "DAE"}</td>
+            <td style="padding:8px 12px;border-bottom:1px solid #E5E5E5;font-size:14px;color:#929292;">${d.gid ? `#${d.gid}` : "-"}</td>
+            <td style="padding:8px 12px;border-bottom:1px solid #E5E5E5;font-size:14px;color:#18753C;">${d.updated ? "Mis a jour" : "Enregistre"}</td>
+          </tr>`,
+      )
+      .join("");
+
+    const html = this.wrapEmail(`
+      <div style="background:#e8f5e9;border-left:4px solid #18753C;border-radius:4px;padding:16px;margin-bottom:24px;">
+        <h1 style="color:#18753C;font-size:20px;margin:0 0 4px;">
+          ${plural ? "Vos defibrillateurs sont enregistres" : "Votre defibrillateur est enregistre"} dans la base nationale
+        </h1>
+        <p style="color:#929292;font-size:13px;margin:0;">
+          Demande #${data.declarationNumber} &mdash; ${data.exptRais || ""}
+        </p>
+      </div>
+
+      <p style="color:#3A3A3A;font-size:15px;line-height:1.6;margin-bottom:24px;">
+        Bonjour ${data.exptPrenom || ""} ${data.exptNom || ""},<br/><br/>
+        ${plural ? `${deviceCount} defibrillateurs ont ete synchronises` : "Votre defibrillateur a ete synchronise"}
+        avec succes dans la base nationale Geo'DAE pour la declaration
+        <strong>${data.exptRais || ""}</strong> (demande #${data.declarationNumber}).
+      </p>
+
+      <div style="background:#F6F6F6;border-radius:4px;padding:20px;margin-bottom:24px;">
+        <h2 style="font-size:16px;color:#000091;margin:0 0 12px;">
+          ${plural ? "Defibrillateurs enregistres" : "Defibrillateur enregistre"}
+        </h2>
+        <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;">
+          <tr style="background:#E5E5E5;">
+            <td style="padding:8px 12px;font-weight:700;font-size:13px;color:#3A3A3A;">Nom du DAE</td>
+            <td style="padding:8px 12px;font-weight:700;font-size:13px;color:#3A3A3A;">N&deg; Geo'DAE</td>
+            <td style="padding:8px 12px;font-weight:700;font-size:13px;color:#3A3A3A;">Statut</td>
+          </tr>
+          ${deviceRows}
+        </table>
+      </div>
+
+      <p style="color:#3A3A3A;font-size:14px;line-height:1.6;margin-bottom:24px;">
+        ${plural ? "Vos defibrillateurs sont desormais" : "Votre defibrillateur est desormais"}
+        visibles par les services de secours et les citoyens via l'application SAUV Life et les centres d'appels d'urgence.
+      </p>
+
+      ${this.makeButton("Voir ma declaration", declUrl, "#18753C")}
+
+      <div style="background:#F6F6F6;border-radius:4px;padding:16px;">
+        <p style="margin:0;font-size:13px;color:#929292;line-height:1.6;">
+          <strong style="color:#3A3A3A;">Besoin d'aide ?</strong><br/>
+          Email : <a href="mailto:${CONTACT_EMAIL}" style="color:#000091;">${CONTACT_EMAIL}</a>
+        </p>
+      </div>
+    `);
+
+    const subject = `Confirmation de declaration Geo'DAE - Demande #${data.declarationNumber}`;
+
+    // Send to contact email (exptEmail)
+    const contactRecipient = await this.devRecipient(data.contactEmail);
+    try {
+      await transporter.sendMail({
+        from: `"${BRAND}" <${cfg.from}>`,
+        to: contactRecipient,
+        subject,
+        html,
+      });
+      this.logger.log(`GeoDAE confirmation sent to contact ${data.contactEmail}`);
+    } catch (err) {
+      this.logger.error(`Failed to send GeoDAE confirmation to ${data.contactEmail}: ${err}`);
+    }
+
+    // Send to user account email if different
+    if (
+      data.userEmail &&
+      data.userEmail.toLowerCase() !== data.contactEmail.toLowerCase()
+    ) {
+      const userRecipient = await this.devRecipient(data.userEmail);
+      try {
+        await transporter.sendMail({
+          from: `"${BRAND}" <${cfg.from}>`,
+          to: userRecipient,
+          subject,
+          html,
+        });
+        this.logger.log(`GeoDAE confirmation sent to user ${data.userEmail}`);
+      } catch (err) {
+        this.logger.error(`Failed to send GeoDAE confirmation to ${data.userEmail}: ${err}`);
+      }
+    }
+  }
+
   async sendPasswordResetEmail(to: string, token: string): Promise<void> {
     const resetUrl = `${this.frontendUrl}/reset-password?token=${token}&email=${encodeURIComponent(to)}`;
     const transporter = await this.getTransporter();

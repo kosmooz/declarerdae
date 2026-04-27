@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { MailService } from "../mail/mail.service";
 import Axios from "axios";
 
 const axios = Axios.create({ timeout: 10_000 });
@@ -34,7 +35,10 @@ export class GeodaeService {
   private sessionCookieTime: number = 0;
   private static readonly SESSION_TTL = 25 * 60 * 1000; // 25 min
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mailService: MailService,
+  ) {}
 
   // ── Credentials ──────────────────────────────────────────────
 
@@ -454,6 +458,38 @@ export class GeodaeService {
           `Declaration ${declarationId} auto-validated after full GéoDAE sync`,
         );
       }
+    }
+
+    // ── Send confirmation email for successful syncs ──────────
+    const successResults = results.filter((r) => r.success);
+    if (successResults.length > 0) {
+      let userEmail: string | null = null;
+      if (declaration.userId) {
+        const user = await this.prisma.user.findUnique({
+          where: { id: declaration.userId },
+          select: { email: true },
+        });
+        userEmail = user?.email || null;
+      }
+
+      this.mailService
+        .sendGeodaeConfirmation({
+          contactEmail: declaration.exptEmail || "",
+          userEmail,
+          exptRais: declaration.exptRais || "",
+          exptNom: declaration.exptNom || "",
+          exptPrenom: declaration.exptPrenom || "",
+          declarationNumber: declaration.number,
+          declarationId: declaration.id,
+          devices: successResults.map((r) => ({
+            nom: r.deviceName,
+            gid: r.gid ?? null,
+            updated: r.updated ?? false,
+          })),
+        })
+        .catch((err) =>
+          this.logger.error(`Failed to send GéoDAE confirmation email: ${err}`),
+        );
     }
 
     return results;
