@@ -1,4 +1,11 @@
+import type { Metadata } from "next";
 import Breadcrumb from "@/components/declarerdae/Breadcrumb";
+
+export const metadata: Metadata = {
+  title: "Mentions légales",
+  description: "Mentions légales de DéclarerDéfibrillateur.fr : éditeur, hébergement, conditions d'utilisation et politique de protection des données.",
+  alternates: { canonical: "/mentions-legales" },
+};
 import ScrollReveal from "@/components/declarerdae/ScrollReveal";
 
 export default function MentionsLegalesPage() {

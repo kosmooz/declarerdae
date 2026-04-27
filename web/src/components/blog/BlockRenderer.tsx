@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { slugify } from "@/components/admin/blog/types";
 
 interface ContentBlock {
@@ -111,11 +112,13 @@ function ImageRenderer({ block }: { block: ContentBlock }) {
   const { url, alt, caption, linkUrl } = block.data;
   if (!url) return null;
   const img = (
-    <img
+    <Image
       src={url}
-      alt={alt}
-      loading="lazy"
+      alt={alt || ""}
+      width={800}
+      height={500}
       className="rounded-lg w-full max-h-[500px] object-contain"
+      unoptimized
     />
   );
   return (

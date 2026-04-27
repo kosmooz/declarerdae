@@ -40,10 +40,11 @@ export default function Step2SiteLocalisation({
 
       {/* Établissement */}
       <div>
-        <Label className="text-xs text-[#666] mb-1 block">
+        <Label htmlFor="site-nom" className="text-xs text-[#666] mb-1 block">
           Nom de l'établissement
         </Label>
         <Input
+          id="site-nom"
           value={data.nomEtablissement}
           onChange={(e) => onChange("nomEtablissement", e.target.value)}
           placeholder="Mairie de Paris, Centre commercial..."
@@ -53,14 +54,14 @@ export default function Step2SiteLocalisation({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <Label className="text-xs text-[#666] mb-1 block">
+          <Label htmlFor="site-typeERP" className="text-xs text-[#666] mb-1 block">
             Type d'établissement
           </Label>
           <Select
             value={data.typeERP}
             onValueChange={(v) => onChange("typeERP", v)}
           >
-            <SelectTrigger className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]">
+            <SelectTrigger id="site-typeERP" className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent position="popper" sideOffset={4}>
@@ -96,7 +97,7 @@ export default function Step2SiteLocalisation({
         </h4>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <Label className="text-xs text-[#666] mb-1 block">
+            <Label htmlFor="site-tel1" className="text-xs text-[#666] mb-1 block">
               Téléphone sur site <span className="text-[#E1000F]">*</span>
             </Label>
             <div className="flex">
@@ -106,6 +107,8 @@ export default function Step2SiteLocalisation({
                 className="shrink-0 w-[120px]"
               />
               <Input
+                id="site-tel1"
+                aria-required="true"
                 type="tel"
                 inputMode="tel"
                 value={data.tel1}
@@ -116,7 +119,7 @@ export default function Step2SiteLocalisation({
             </div>
           </div>
           <div>
-            <Label className="text-xs text-[#666] mb-1 block">
+            <Label htmlFor="site-tel2" className="text-xs text-[#666] mb-1 block">
               Téléphone 2{" "}
               <span className="text-[#929292]">(facultatif)</span>
             </Label>
@@ -127,6 +130,7 @@ export default function Step2SiteLocalisation({
                 className="shrink-0 w-[120px]"
               />
               <Input
+                id="site-tel2"
                 type="tel"
                 inputMode="tel"
                 value={data.tel2}
@@ -138,11 +142,12 @@ export default function Step2SiteLocalisation({
           </div>
         </div>
         <div className="mt-3">
-          <Label className="text-xs text-[#666] mb-1 block">
+          <Label htmlFor="site-email" className="text-xs text-[#666] mb-1 block">
             Email du site{" "}
             <span className="text-[#929292]">(facultatif)</span>
           </Label>
           <Input
+            id="site-email"
             type="email"
             value={data.siteEmail}
             onChange={(e) => onChange("siteEmail", e.target.value)}

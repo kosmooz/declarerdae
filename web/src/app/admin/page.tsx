@@ -77,15 +77,18 @@ export default function AdminDashboardPage() {
   const dev = useDevMode();
 
   useEffect(() => {
+    const ctrl = new AbortController();
+    const sig = ctrl.signal;
     Promise.all([
-      apiFetch("/api/admin/dashboard").then((r) => (r.ok ? r.json() : null)),
-      apiFetch("/api/admin/stats").then((r) => (r.ok ? r.json() : null)),
-      apiFetch("/api/admin/declarations/stats").then((r) => (r.ok ? r.json() : null)),
+      apiFetch("/api/admin/dashboard", { signal: sig }).then((r) => (r.ok ? r.json() : null)),
+      apiFetch("/api/admin/stats", { signal: sig }).then((r) => (r.ok ? r.json() : null)),
+      apiFetch("/api/admin/declarations/stats", { signal: sig }).then((r) => (r.ok ? r.json() : null)),
     ]).then(([d, s, ds]) => {
       setDashboard(d);
       setStats(s);
       setDeclStats(ds);
-    });
+    }).catch((err: unknown) => { if ((err as Error).name !== "AbortError") console.error("[admin-dashboard]", err); });
+    return () => ctrl.abort();
   }, []);
 
   const loading = !stats || !dashboard;

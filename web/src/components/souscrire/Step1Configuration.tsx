@@ -1,6 +1,7 @@
 "use client";
 
 import { Minus, Plus, ArrowRight, CheckCircle2 } from "lucide-react";
+import Image from "next/image";
 import { calculatePricing, UNIT_PRICE_TTC } from "@/lib/schemas/subscribe";
 import { cn } from "@/lib/utils";
 
@@ -38,9 +39,11 @@ export default function Step1Configuration({ quantity, onQuantityChange, onNext 
         <div className="sm:flex">
           {/* Product image */}
           <div className="sm:w-48 md:w-56 bg-gradient-to-br from-gray-50 to-gray-100 p-6 flex items-center justify-center shrink-0">
-            <img
+            <Image
               src="/images/defibrillateurs-lineup.png"
               alt="ZOLL AED 3"
+              width={400}
+              height={300}
               className="w-36 sm:w-full h-auto object-contain drop-shadow-lg"
             />
           </div>

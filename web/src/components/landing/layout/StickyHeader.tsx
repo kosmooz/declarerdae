@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Phone, LogIn, User } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import AuthDialog from "@/components/AuthDialog";
@@ -29,7 +30,7 @@ export default function StickyHeader() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm shadow-sm">
         <div className="container flex items-center justify-between h-14 md:h-16">
           <a href="/" className="shrink-0">
-            <img src={IMAGES.logo} alt="Star Aid" className="h-9 md:h-12 w-auto" />
+            <Image src={IMAGES.logo} alt="Star Aid" width={120} height={48} className="h-9 md:h-12 w-auto" />
           </a>
           <nav className="hidden lg:flex items-center gap-6 text-sm font-medium text-gray-900">
             {NAV_ITEMS.map((item) => (

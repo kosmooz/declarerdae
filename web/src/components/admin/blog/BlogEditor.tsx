@@ -39,7 +39,7 @@ export default function BlogEditor({ articleId }: BlogEditorProps) {
     apiFetch("/api/blog/admin/categories")
       .then((res) => res.ok ? res.json() : [])
       .then(setCategories)
-      .catch(() => {});
+      .catch((err: unknown) => console.error("[blog-editor-categories]", err));
   }, []);
 
   useEffect(() => {

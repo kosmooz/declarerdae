@@ -13,6 +13,7 @@ import {
   CreditCard,
   GraduationCap,
 } from "lucide-react";
+import Image from "next/image";
 import {
   AED3_FEATURES,
   AED3_SPECS,
@@ -76,11 +77,12 @@ export default function MobileFallback() {
           <p className="text-lg text-gray-600 font-sans font-light mb-6">
             Le défibrillateur qui sauve des vies
           </p>
-          <img
+          <Image
             src={IMAGES.defibArmoire}
             alt="ZOLL AED 3"
+            width={192}
+            height={192}
             className="w-48 h-auto mx-auto mb-6"
-            loading="lazy"
           />
           <a
             href="/souscrire"

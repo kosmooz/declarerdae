@@ -12,6 +12,16 @@ export default function ScrollReveal({ children, className = "", delay = 0 }: Sc
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    // Already in viewport (e.g. browser back navigation with scroll restore)
+    const rect = el.getBoundingClientRect();
+    if (rect.top < window.innerHeight && rect.bottom > 0) {
+      setTimeout(() => setIsVisible(true), delay);
+      return;
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -21,7 +31,7 @@ export default function ScrollReveal({ children, className = "", delay = 0 }: Sc
       },
       { threshold: 0.1 }
     );
-    if (ref.current) observer.observe(ref.current);
+    observer.observe(el);
     return () => observer.disconnect();
   }, [delay]);
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowLeft, ArrowRight } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { IMAGES } from "@/data/landing-content";
@@ -11,9 +12,11 @@ export default function DefibrillatorHeader() {
       <div className="container flex items-center justify-between h-14 md:h-16">
         <div className="flex items-center gap-4">
           <Link href="/">
-            <img
+            <Image
               src={IMAGES.logo}
               alt="Star Aid"
+              width={120}
+              height={48}
               className="h-9 md:h-12 w-auto"
             />
           </Link>

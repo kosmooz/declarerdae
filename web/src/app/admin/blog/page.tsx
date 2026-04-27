@@ -35,7 +35,7 @@ export default function AdminBlogPage() {
   const [loading, setLoading] = useState(true);
   const limit = 20;
 
-  const fetchArticles = useCallback(async () => {
+  const fetchArticles = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     const params = new URLSearchParams();
     params.set("page", String(page));
@@ -45,26 +45,32 @@ export default function AdminBlogPage() {
     if (categoryFilter) params.set("categoryId", categoryFilter);
 
     try {
-      const res = await apiFetch(`/api/blog/admin/articles?${params}`);
+      const res = await apiFetch(`/api/blog/admin/articles?${params}`, { signal });
       if (res.ok) {
         const data = await res.json();
         setArticles(data.items);
         setTotal(data.total);
       }
+    } catch (err: unknown) {
+      if ((err as Error).name !== "AbortError") console.error("[admin-blog-articles]", err);
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
   }, [page, search, statusFilter, categoryFilter]);
 
   useEffect(() => {
-    apiFetch("/api/blog/admin/categories")
+    const ctrl = new AbortController();
+    apiFetch("/api/blog/admin/categories", { signal: ctrl.signal })
       .then((r) => (r.ok ? r.json() : []))
       .then(setCategories)
-      .catch(() => {});
+      .catch((err: unknown) => { if ((err as Error).name !== "AbortError") console.error("[admin-blog-categories]", err); });
+    return () => ctrl.abort();
   }, []);
 
   useEffect(() => {
-    fetchArticles();
+    const ctrl = new AbortController();
+    fetchArticles(ctrl.signal).catch(() => {});
+    return () => ctrl.abort();
   }, [fetchArticles]);
 
   useEffect(() => {

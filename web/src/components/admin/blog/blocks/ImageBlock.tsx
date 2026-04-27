@@ -2,6 +2,7 @@
 
 import { Upload, X, Link } from "lucide-react";
 import { useState } from "react";
+import NextImage from "next/image";
 import { apiFetch } from "@/lib/api";
 import { BlockComponentProps, ImageBlockData } from "../types";
 
@@ -38,10 +39,13 @@ export default function ImageBlock({
     <div className="space-y-2">
       {data.url ? (
         <div className="relative group">
-          <img
+          <NextImage
             src={data.url}
             alt={data.alt}
+            width={800}
+            height={256}
             className="max-h-64 rounded-md border object-contain"
+            unoptimized
           />
           <button
             type="button"

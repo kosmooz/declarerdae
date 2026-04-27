@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { Shield, Check, ArrowRight, ChevronDown, Zap } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { useCounter } from "@/hooks/useCounter";
 import { IMAGES, STATS, HERO_FEATURES, HERO_BADGES } from "@/data/landing-content";
@@ -32,7 +33,7 @@ export default function HeroSection() {
     <section id="hero" className="relative pt-14 md:pt-16 overflow-hidden">
       <div className="relative min-h-[85vh] flex flex-col justify-center">
         <div className="absolute inset-0">
-          <img src={IMAGES.heroBg} alt="" className="w-full h-full object-cover" />
+          <Image src={IMAGES.heroBg} alt="" fill priority className="object-cover" />
           <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/20" />
         </div>
 

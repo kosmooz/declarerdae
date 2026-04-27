@@ -30,7 +30,7 @@ export default function AdminUsersPage() {
   const [includeDeleted, setIncludeDeleted] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const fetchUsers = useCallback(async () => {
+  const fetchUsers = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     const params = new URLSearchParams({
       page: String(page),
@@ -39,16 +39,20 @@ export default function AdminUsersPage() {
     });
     if (search) params.set("search", search);
 
-    const res = await apiFetch(`/api/admin/users?${params}`);
+    const res = await apiFetch(`/api/admin/users?${params}`, { signal });
     if (res.ok) {
       const data = await res.json();
       setUsers(data.users);
       setTotal(data.total);
     }
-    setLoading(false);
+    if (!signal?.aborted) setLoading(false);
   }, [page, search, includeDeleted]);
 
-  useEffect(() => { fetchUsers(); }, [fetchUsers]);
+  useEffect(() => {
+    const ctrl = new AbortController();
+    fetchUsers(ctrl.signal).catch((err: unknown) => { if ((err as Error).name !== "AbortError") console.error("[admin-users]", err); });
+    return () => ctrl.abort();
+  }, [fetchUsers]);
 
   const handleDelete = async (id: string) => {
     if (!confirm("Désactiver cet utilisateur ?")) return;

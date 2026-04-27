@@ -22,8 +22,8 @@ export interface DaeDeviceFormState {
   fabRais: string;
   modele: string;
   numSerie: string;
-  typeDAE: string;
   // Maintenance
+  hadMaintenance: string; // "OUI" | "NON" — UI only, not sent to API
   dateInstal: string;
   dermnt: string;
   dispSurv: string;
@@ -97,7 +97,7 @@ export function createEmptyDevice(position: number): DaeDeviceFormState {
     fabRais: "",
     modele: "",
     numSerie: "",
-    typeDAE: "automatique",
+    hadMaintenance: "NON",
     dateInstal: "",
     dermnt: "",
     dispSurv: "NON",
@@ -152,7 +152,7 @@ const DEVICE_API_FIELDS = [
   "position", "nom",
   "acc", "accLib", "accEtg", "accComplt", "daeMobile",
   "dispJ", "dispH", "dispComplt", "etatFonct",
-  "fabRais", "modele", "numSerie", "typeDAE",
+  "fabRais", "modele", "numSerie",
   "dateInstal", "dermnt", "dispSurv",
   "lcPed", "dtprLcped", "dtprLcad",
   "daeLat", "daeLng", "photo1", "photo2",
@@ -215,11 +215,6 @@ export const TYPE_ERP_OPTIONS = [
 export const ACC_OPTIONS = [
   { value: "interieur", label: "Intérieur" },
   { value: "exterieur", label: "Extérieur" },
-];
-
-export const TYPE_DAE_OPTIONS = [
-  { value: "automatique", label: "Entièrement automatique (DEA)" },
-  { value: "semi-automatique", label: "Semi-automatique (DSA)" },
 ];
 
 export const ETAT_FONCT_OPTIONS = [

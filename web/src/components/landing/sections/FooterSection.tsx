@@ -1,6 +1,7 @@
 "use client";
 
 import { Phone, Mail, MapPin, Clock } from "lucide-react";
+import Image from "next/image";
 import { IMAGES, CONTACT } from "@/data/landing-content";
 
 export default function FooterSection() {
@@ -10,7 +11,7 @@ export default function FooterSection() {
       <div className="container py-12">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
           <div className="col-span-2">
-            <img src={IMAGES.logo} alt="Star Aid" className="h-10 w-auto mb-3 brightness-0 invert" />
+            <Image src={IMAGES.logo} alt="Star Aid" width={120} height={40} className="h-10 w-auto mb-3 brightness-0 invert" />
             <p className="text-gray-400 font-sans text-xs leading-relaxed max-w-md mb-3">
               STAR aid, organisme de formation certifié Qualiopi et leader outre-mer de la vente, location et maintenance de défibrillateurs. Depuis 2012 à La Réunion.
             </p>

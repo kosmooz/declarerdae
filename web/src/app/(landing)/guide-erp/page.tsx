@@ -1,4 +1,11 @@
+import type { Metadata } from "next";
 import Breadcrumb from "@/components/declarerdae/Breadcrumb";
+
+export const metadata: Metadata = {
+  title: "Guide ERP — Catégories et obligations DAE",
+  description: "Guide complet des obligations de défibrillateurs par catégorie d'ERP. Calendrier d'équipement, types d'établissements concernés et réglementation en vigueur.",
+  alternates: { canonical: "/guide-erp" },
+};
 import PageHero from "@/components/declarerdae/PageHero";
 import CTABanner from "@/components/declarerdae/CTABanner";
 import ScrollReveal from "@/components/declarerdae/ScrollReveal";

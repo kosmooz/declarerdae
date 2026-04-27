@@ -37,7 +37,8 @@ function VerifyEmailContent() {
       return;
     }
 
-    fetch(`/api/auth/verify-email?token=${token}`)
+    const ctrl = new AbortController();
+    fetch(`/api/auth/verify-email?token=${token}`, { signal: ctrl.signal })
       .then(async (res) => {
         const data = await res.json();
         if (res.ok) {
@@ -54,10 +55,12 @@ function VerifyEmailContent() {
           setMessage(data.message || "Ce lien de vérification est invalide ou a expiré.");
         }
       })
-      .catch(() => {
+      .catch((err: unknown) => {
+        if ((err as Error).name === "AbortError") return;
         setStatus("error");
         setMessage("Erreur réseau. Veuillez réessayer.");
       });
+    return () => ctrl.abort();
   }, [token, refreshUser, router]);
 
   const handleResend = async () => {

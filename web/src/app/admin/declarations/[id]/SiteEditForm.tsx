@@ -29,10 +29,11 @@ export default function SiteEditForm({
     <div className="space-y-4">
       {/* Nom de l'établissement */}
       <div>
-        <Label className="text-xs text-[#666] mb-1 block">
+        <Label htmlFor="admin-site-nom" className="text-xs text-[#666] mb-1 block">
           Nom de l&apos;établissement
         </Label>
         <Input
+          id="admin-site-nom"
           value={data.nomEtablissement || ""}
           onChange={(e) => onChange("nomEtablissement", e.target.value)}
           placeholder="Mairie, centre commercial, gymnase..."
@@ -43,14 +44,14 @@ export default function SiteEditForm({
       {/* Type d'établissement + Catégorie ERP */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <Label className="text-xs text-[#666] mb-1 block">
+          <Label htmlFor="admin-site-typeERP" className="text-xs text-[#666] mb-1 block">
             Type d&apos;établissement
           </Label>
           <Select
             value={data.typeERP || ""}
             onValueChange={(value) => onChange("typeERP", value)}
           >
-            <SelectTrigger className="w-full border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]">
+            <SelectTrigger id="admin-site-typeERP" className="w-full border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]">
               <SelectValue placeholder="Sélectionner un type" />
             </SelectTrigger>
             <SelectContent position="popper" sideOffset={4}>
@@ -87,7 +88,7 @@ export default function SiteEditForm({
         </h4>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <Label className="text-xs text-[#666] mb-1 block">
+            <Label htmlFor="admin-site-tel1" className="text-xs text-[#666] mb-1 block">
               Téléphone site <span className="text-[#E1000F]">*</span>
             </Label>
             <div className="flex">
@@ -97,6 +98,8 @@ export default function SiteEditForm({
                 className="shrink-0 w-[120px]"
               />
               <Input
+                id="admin-site-tel1"
+                aria-required="true"
                 type="tel"
                 inputMode="tel"
                 value={data.tel1 || ""}
@@ -107,7 +110,7 @@ export default function SiteEditForm({
             </div>
           </div>
           <div>
-            <Label className="text-xs text-[#666] mb-1 block">
+            <Label htmlFor="admin-site-tel2" className="text-xs text-[#666] mb-1 block">
               Téléphone 2
             </Label>
             <div className="flex">
@@ -117,6 +120,7 @@ export default function SiteEditForm({
                 className="shrink-0 w-[120px]"
               />
               <Input
+                id="admin-site-tel2"
                 type="tel"
                 inputMode="tel"
                 value={data.tel2 || ""}
@@ -128,10 +132,11 @@ export default function SiteEditForm({
           </div>
         </div>
         <div className="mt-3">
-          <Label className="text-xs text-[#666] mb-1 block">
+          <Label htmlFor="admin-site-email" className="text-xs text-[#666] mb-1 block">
             Email du site
           </Label>
           <Input
+            id="admin-site-email"
             type="email"
             value={data.siteEmail || ""}
             onChange={(e) => onChange("siteEmail", e.target.value)}

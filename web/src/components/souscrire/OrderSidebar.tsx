@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { calculatePricing, UNIT_PRICE_TTC, TVA_RATE } from "@/lib/schemas/subscribe";
 
 interface OrderSidebarProps {
@@ -13,9 +14,11 @@ export default function OrderSidebar({ quantity }: OrderSidebarProps) {
     <div className="rounded-2xl border bg-card overflow-hidden">
       {/* Product image */}
       <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-5 flex items-center justify-center">
-        <img
+        <Image
           src="/images/defibrillateurs-lineup.png"
           alt="ZOLL AED 3"
+          width={128}
+          height={100}
           className="w-32 h-auto object-contain drop-shadow-lg"
         />
       </div>

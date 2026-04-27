@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -11,12 +10,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { DaeDeviceFormState } from "@/lib/declaration-types";
-import { ACC_OPTIONS, TYPE_DAE_OPTIONS } from "@/lib/declaration-types";
-import {
-  DAE_MANUFACTURERS,
-  OTHER_VALUE,
-  getModelsForManufacturer,
-} from "@/data/dae-manufacturers";
+import { ACC_OPTIONS } from "@/lib/declaration-types";
+import { DAE_MANUFACTURERS, OTHER_VALUE } from "@/data/dae-manufacturers";
+import { useDaeDeviceForm } from "@/hooks/useDaeDeviceForm";
 import OuiNonSwitch from "../shared/OuiNonSwitch";
 import EtatFonctSelect from "../shared/EtatFonctSelect";
 import DispJourSelector from "../shared/DispJourSelector";
@@ -42,39 +38,19 @@ export default function DaeDeviceForm({
   const set = (field: string, value: any) =>
     onChange(device.localId, field, value);
 
-  // Track "Autre" mode locally (survives fabRais being empty while user types)
-  // Maintenance mode: derive from existing data
-  const [hadMaintenance, setHadMaintenance] = useState(() => {
-    if (device.dermnt && device.dateInstal && device.dermnt === device.dateInstal) return "NON";
-    if (device.dermnt) return "OUI";
-    return "";
+  const {
+    fabAutre, isKnownFab, modelsForSelected, modelAutre,
+    selectFabValue, selectModelValue,
+    onFabChange, onModelChange,
+    hadMaintenance, onMaintenanceToggle,
+  } = useDaeDeviceForm({
+    fabRais: device.fabRais,
+    modele: device.modele,
+    dermnt: device.dermnt,
+    dateInstal: device.dateInstal,
+    hadMaintenance: device.hadMaintenance,
+    set,
   });
-
-  const knownFabNames = DAE_MANUFACTURERS.map((m) => m.name);
-  const [fabAutre, setFabAutre] = useState(
-    () => device.fabRais !== "" && !knownFabNames.includes(device.fabRais),
-  );
-  const isKnownFab = !fabAutre && knownFabNames.includes(device.fabRais);
-  const modelsForSelected = isKnownFab
-    ? getModelsForManufacturer(device.fabRais)
-    : [];
-
-  const [modelAutre, setModelAutre] = useState(() => {
-    if (!knownFabNames.includes(device.fabRais)) return false;
-    const models = getModelsForManufacturer(device.fabRais);
-    return device.modele !== "" && !models.some((m) => m.name === device.modele);
-  });
-
-  const selectFabValue = fabAutre
-    ? OTHER_VALUE
-    : isKnownFab
-      ? device.fabRais
-      : "";
-  const selectModelValue = modelAutre
-    ? OTHER_VALUE
-    : modelsForSelected.some((m) => m.name === device.modele)
-      ? device.modele
-      : "";
 
   return (
     <div className="space-y-5">
@@ -89,10 +65,12 @@ export default function DaeDeviceForm({
 
         <div className="space-y-3">
           <div>
-            <Label className="text-xs text-[#666] mb-1 block">
+            <Label htmlFor={`dae-${index}-nom`} className="text-xs text-[#666] mb-1 block">
               Nom donné au DAE <span className="text-[#E1000F]">*</span>
             </Label>
             <Input
+              id={`dae-${index}-nom`}
+              aria-required="true"
               value={device.nom}
               onChange={(e) => set("nom", e.target.value)}
               placeholder={`DAE-${index + 1}-MonSite`}
@@ -106,26 +84,14 @@ export default function DaeDeviceForm({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs text-[#666] mb-1 block">
+              <Label htmlFor={`dae-${index}-fab`} className="text-xs text-[#666] mb-1 block">
                 Fabricant <span className="text-[#E1000F]">*</span>
               </Label>
               <Select
                 value={selectFabValue}
-                onValueChange={(v) => {
-                  if (v === OTHER_VALUE) {
-                    setFabAutre(true);
-                    setModelAutre(false);
-                    set("fabRais", "");
-                    set("modele", "");
-                  } else {
-                    setFabAutre(false);
-                    setModelAutre(false);
-                    set("fabRais", v);
-                    set("modele", "");
-                  }
-                }}
+                onValueChange={onFabChange}
               >
-                <SelectTrigger className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]">
+                <SelectTrigger id={`dae-${index}-fab`} aria-required="true" className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]">
                   <SelectValue placeholder="Choisir un fabricant" />
                 </SelectTrigger>
                 <SelectContent position="popper" sideOffset={4}>
@@ -148,7 +114,7 @@ export default function DaeDeviceForm({
               )}
             </div>
             <div>
-              <Label className="text-xs text-[#666] mb-1 block">
+              <Label htmlFor={`dae-${index}-modele`} className="text-xs text-[#666] mb-1 block">
                 Modèle <span className="text-[#E1000F]">*</span>
               </Label>
               {fabAutre ? (
@@ -162,15 +128,7 @@ export default function DaeDeviceForm({
                 <>
                   <Select
                     value={selectModelValue}
-                    onValueChange={(v) => {
-                      if (v === OTHER_VALUE) {
-                        setModelAutre(true);
-                        set("modele", "");
-                      } else {
-                        setModelAutre(false);
-                        set("modele", v);
-                      }
-                    }}
+                    onValueChange={onModelChange}
                   >
                     <SelectTrigger className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]">
                       <SelectValue placeholder="Choisir un modèle" />
@@ -207,42 +165,23 @@ export default function DaeDeviceForm({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs text-[#666] mb-1 block">
+              <Label htmlFor={`dae-${index}-numSerie`} className="text-xs text-[#666] mb-1 block">
                 N° de série <span className="text-[#E1000F]">*</span>
               </Label>
               <Input
+                id={`dae-${index}-numSerie`}
+                aria-required="true"
                 value={device.numSerie}
                 onChange={(e) => set("numSerie", e.target.value)}
                 placeholder="X09E409930"
                 className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]"
               />
             </div>
-            <div>
-              <Label className="text-xs text-[#666] mb-1 block">
-                Type de DAE
-              </Label>
-              <Select
-                value={device.typeDAE}
-                onValueChange={(v) => set("typeDAE", v)}
-              >
-                <SelectTrigger className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent position="popper" sideOffset={4}>
-                  {TYPE_DAE_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <EtatFonctSelect
+              value={device.etatFonct}
+              onChange={(v) => set("etatFonct", v)}
+            />
           </div>
-
-          <EtatFonctSelect
-            value={device.etatFonct}
-            onChange={(v) => set("etatFonct", v)}
-          />
 
           <DaeMarkerMap
             lat={device.daeLat}
@@ -269,14 +208,14 @@ export default function DaeDeviceForm({
         <div className="space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <Label className="text-xs text-[#666] mb-1 block">
+              <Label htmlFor={`dae-${index}-acc`} className="text-xs text-[#666] mb-1 block">
                 Environnement <span className="text-[#E1000F]">*</span>
               </Label>
               <Select
                 value={device.acc}
                 onValueChange={(v) => set("acc", v)}
               >
-                <SelectTrigger className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]">
+                <SelectTrigger id={`dae-${index}-acc`} aria-required="true" className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent position="popper" sideOffset={4}>
@@ -304,11 +243,12 @@ export default function DaeDeviceForm({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs text-[#666] mb-1 block">
+              <Label htmlFor={`dae-${index}-accEtg`} className="text-xs text-[#666] mb-1 block">
                 Étage{" "}
                 <span className="text-[#929292]">(facultatif)</span>
               </Label>
               <Input
+                id={`dae-${index}-accEtg`}
                 value={device.accEtg}
                 onChange={(e) => set("accEtg", e.target.value)}
                 placeholder="0 = RDC, -1 = sous-sol, 1 = 1er..."
@@ -316,11 +256,12 @@ export default function DaeDeviceForm({
               />
             </div>
             <div>
-              <Label className="text-xs text-[#666] mb-1 block">
+              <Label htmlFor={`dae-${index}-accComplt`} className="text-xs text-[#666] mb-1 block">
                 Complément d'accès{" "}
                 <span className="text-[#929292]">(facultatif)</span>
               </Label>
               <Input
+                id={`dae-${index}-accComplt`}
                 value={device.accComplt}
                 onChange={(e) => set("accComplt", e.target.value)}
                 placeholder="Au bout du couloir gauche..."
@@ -341,25 +282,20 @@ export default function DaeDeviceForm({
           <OuiNonSwitch
             label="Le DAE a-t-il déjà subi une maintenance ?"
             value={hadMaintenance}
-            onChange={(v) => {
-              setHadMaintenance(v);
-              if (v === "NON") {
-                set("dermnt", device.dateInstal || "");
-              } else {
-                if (device.dermnt === device.dateInstal) set("dermnt", "");
-              }
-            }}
+            onChange={onMaintenanceToggle}
             required
           />
 
           {hadMaintenance === "OUI" && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs text-[#666] mb-1 block">
+                <Label htmlFor={`dae-${index}-dermnt`} className="text-xs text-[#666] mb-1 block">
                   Date dernière maintenance{" "}
                   <span className="text-[#E1000F]">*</span>
                 </Label>
                 <Input
+                  id={`dae-${index}-dermnt`}
+                  aria-required="true"
                   type="date"
                   value={device.dermnt}
                   onChange={(e) => set("dermnt", e.target.value)}
@@ -367,11 +303,12 @@ export default function DaeDeviceForm({
                 />
               </div>
               <div>
-                <Label className="text-xs text-[#666] mb-1 block">
+                <Label htmlFor={`dae-${index}-dateInstal-opt`} className="text-xs text-[#666] mb-1 block">
                   Date d'installation{" "}
                   <span className="text-[#929292]">(facultatif)</span>
                 </Label>
                 <Input
+                  id={`dae-${index}-dateInstal-opt`}
                   type="date"
                   value={device.dateInstal}
                   onChange={(e) => set("dateInstal", e.target.value)}
@@ -383,11 +320,13 @@ export default function DaeDeviceForm({
 
           {hadMaintenance === "NON" && (
             <div className="max-w-xs">
-              <Label className="text-xs text-[#666] mb-1 block">
+              <Label htmlFor={`dae-${index}-dateInstal`} className="text-xs text-[#666] mb-1 block">
                 Date d'installation{" "}
                 <span className="text-[#E1000F]">*</span>
               </Label>
               <Input
+                id={`dae-${index}-dateInstal`}
+                aria-required="true"
                 type="date"
                 value={device.dateInstal}
                 onChange={(e) => {
@@ -431,10 +370,11 @@ export default function DaeDeviceForm({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs text-[#666] mb-1 block">
+              <Label htmlFor={`dae-${index}-dtprLcad`} className="text-xs text-[#666] mb-1 block">
                 Date de péremption des électrodes adultes
               </Label>
               <Input
+                id={`dae-${index}-dtprLcad`}
                 type="date"
                 value={device.dtprLcad}
                 onChange={(e) => set("dtprLcad", e.target.value)}
@@ -442,10 +382,11 @@ export default function DaeDeviceForm({
               />
             </div>
             <div>
-              <Label className="text-xs text-[#666] mb-1 block">
+              <Label htmlFor={`dae-${index}-dtprLcped`} className="text-xs text-[#666] mb-1 block">
                 Date de péremption des électrodes pédiatriques
               </Label>
               <Input
+                id={`dae-${index}-dtprLcped`}
                 type="date"
                 value={device.dtprLcped}
                 onChange={(e) => set("dtprLcped", e.target.value)}

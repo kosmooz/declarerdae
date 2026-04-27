@@ -3,6 +3,7 @@
 import { useRef, useState, useEffect } from "react";
 import { motion, useInView } from "framer-motion";
 import { BookOpen, ArrowRight, Clock } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 
@@ -45,10 +46,14 @@ export default function BlogPreviewSection() {
   const [articles, setArticles] = useState<Article[]>([]);
 
   useEffect(() => {
-    apiFetch("/api/blog/public/articles?limit=3", { silent: true } as any)
+    const ctrl = new AbortController();
+    apiFetch("/api/blog/public/articles?limit=3", { silent: true, signal: ctrl.signal } as any)
       .then((r) => (r.ok ? r.json() : { items: [] }))
       .then((data) => setArticles(data.items || []))
-      .catch(() => {});
+      .catch((err: unknown) => {
+        if ((err as Error).name !== "AbortError") console.error("[blog-preview]", err);
+      });
+    return () => ctrl.abort();
   }, []);
 
   if (articles.length === 0) return null;
@@ -92,11 +97,14 @@ export default function BlogPreviewSection() {
                 className="group block bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-lg hover:border-gray-300 transition-all"
               >
                 {article.featuredImage ? (
-                  <div className="aspect-video bg-gray-100 overflow-hidden">
-                    <img
+                  <div className="relative aspect-video bg-gray-100 overflow-hidden">
+                    <Image
                       src={article.featuredImage}
                       alt={article.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      fill
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      unoptimized
                     />
                   </div>
                 ) : (

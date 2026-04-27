@@ -371,21 +371,23 @@ export class DeclarationsService {
       ...pick(dto, DEVICE_FIELDS),
     };
 
-    const device = await this.prisma.daeDevice.create({ data: deviceData as any });
+    return this.prisma.$transaction(async (tx) => {
+      const device = await tx.daeDevice.create({ data: deviceData as any });
 
-    // Recompute step
-    const updated = await this.prisma.declaration.findUnique({
-      where: { id: declarationId },
-      include: { daeDevices: true },
-    });
-    if (updated) {
-      await this.prisma.declaration.update({
+      // Recompute step
+      const updated = await tx.declaration.findUnique({
         where: { id: declarationId },
-        data: { step: computeDeclarationStep(updated) },
+        include: { daeDevices: true },
       });
-    }
+      if (updated) {
+        await tx.declaration.update({
+          where: { id: declarationId },
+          data: { step: computeDeclarationStep(updated) },
+        });
+      }
 
-    return { id: device.id };
+      return { id: device.id };
+    });
   }
 
   async updateDevice(
@@ -410,24 +412,26 @@ export class DeclarationsService {
 
     const updateData = pick(dto, DEVICE_FIELDS);
 
-    await this.prisma.daeDevice.update({
-      where: { id: deviceId },
-      data: updateData,
-    });
-
-    // Recompute step
-    const declaration = await this.prisma.declaration.findUnique({
-      where: { id: declarationId },
-      include: { daeDevices: true },
-    });
-    if (declaration) {
-      await this.prisma.declaration.update({
-        where: { id: declarationId },
-        data: { step: computeDeclarationStep(declaration) },
+    return this.prisma.$transaction(async (tx) => {
+      await tx.daeDevice.update({
+        where: { id: deviceId },
+        data: updateData,
       });
-    }
 
-    return { id: deviceId };
+      // Recompute step
+      const declaration = await tx.declaration.findUnique({
+        where: { id: declarationId },
+        include: { daeDevices: true },
+      });
+      if (declaration) {
+        await tx.declaration.update({
+          where: { id: declarationId },
+          data: { step: computeDeclarationStep(declaration) },
+        });
+      }
+
+      return { id: deviceId };
+    });
   }
 
   async removeDevice(declarationId: string, deviceId: string) {
@@ -452,21 +456,23 @@ export class DeclarationsService {
       );
     }
 
-    await this.prisma.daeDevice.delete({ where: { id: deviceId } });
+    return this.prisma.$transaction(async (tx) => {
+      await tx.daeDevice.delete({ where: { id: deviceId } });
 
-    // Recompute step
-    const declaration = await this.prisma.declaration.findUnique({
-      where: { id: declarationId },
-      include: { daeDevices: true },
-    });
-    if (declaration) {
-      await this.prisma.declaration.update({
+      // Recompute step
+      const declaration = await tx.declaration.findUnique({
         where: { id: declarationId },
-        data: { step: computeDeclarationStep(declaration) },
+        include: { daeDevices: true },
       });
-    }
+      if (declaration) {
+        await tx.declaration.update({
+          where: { id: declarationId },
+          data: { step: computeDeclarationStep(declaration) },
+        });
+      }
 
-    return { success: true };
+      return { success: true };
+    });
   }
 
   /* ─── User edit (authenticated, ownership-checked) ──────── */

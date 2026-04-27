@@ -48,7 +48,6 @@ const INITIAL_FORM_DATA = {
   marque: "",
   modele: "",
   numeroSerie: "",
-  typeDAE: "automatique",
   dateInstallation: "",
   dateMaintenance: "",
   accessibilite: "24h",
@@ -136,7 +135,6 @@ export default function DeclarationForm() {
         if (formData.marque?.trim()) payload.marque = formData.marque;
         if (formData.modele?.trim()) payload.modele = formData.modele;
         if (formData.numeroSerie?.trim()) payload.numeroSerie = formData.numeroSerie;
-        if (formData.typeDAE) payload.typeDAE = formData.typeDAE;
         if (formData.dateInstallation?.trim()) payload.dateInstallation = formData.dateInstallation;
         if (formData.dateMaintenance?.trim()) payload.dateMaintenance = formData.dateMaintenance;
         if (formData.accessibilite) payload.accessibilite = formData.accessibilite;
@@ -375,18 +373,6 @@ export default function DeclarationForm() {
             <div>
               <Label htmlFor="numeroSerie" className="text-sm font-semibold text-[#3A3A3A] mb-1.5">Numéro de série</Label>
               <Input id="numeroSerie" value={formData.numeroSerie} onChange={(e) => updateField("numeroSerie", e.target.value)} placeholder="SN-123456789" className="border-[#CECECE] focus:border-[#000091] focus:ring-[#000091]" />
-            </div>
-            <div>
-              <Label className="text-sm font-semibold text-[#3A3A3A] mb-1.5">Type de DAE *</Label>
-              <Select value={formData.typeDAE} onValueChange={(v) => updateField("typeDAE", v)}>
-                <SelectTrigger className="border-[#CECECE] focus:border-[#000091]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="automatique">Entièrement automatique (DEA)</SelectItem>
-                  <SelectItem value="semi-automatique">Semi-automatique (DSA)</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
             <div>
               <Label htmlFor="dateInstallation" className="text-sm font-semibold text-[#3A3A3A] mb-1.5">Date d'installation *</Label>

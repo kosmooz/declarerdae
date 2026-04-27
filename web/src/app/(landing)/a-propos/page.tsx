@@ -1,4 +1,11 @@
+import type { Metadata } from "next";
 import Breadcrumb from "@/components/declarerdae/Breadcrumb";
+
+export const metadata: Metadata = {
+  title: "A propos — Notre mission",
+  description: "DéclarerDéfibrillateur.fr simplifie la déclaration obligatoire des DAE en France. Découvrez notre mission et notre engagement pour la santé publique.",
+  alternates: { canonical: "/a-propos" },
+};
 import PageHero from "@/components/declarerdae/PageHero";
 import CTABanner from "@/components/declarerdae/CTABanner";
 import ScrollReveal from "@/components/declarerdae/ScrollReveal";

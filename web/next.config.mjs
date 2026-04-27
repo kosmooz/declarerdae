@@ -4,8 +4,8 @@ const nextConfig = {
   images: {
     remotePatterns: [
       { protocol: "http", hostname: "localhost", port: "3021" },
+      { protocol: "https", hostname: "d2xsxph8kpxj0f.cloudfront.net" },
     ],
-    unoptimized: true,
   },
   async rewrites() {
     if (process.env.NODE_ENV === "production") return [];

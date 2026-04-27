@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -59,80 +60,7 @@ import DeclarationPreview from "@/components/declarerdae/declaration/Declaration
 
 /* ─── Types ──────────────────────────────────────────────────── */
 
-interface DaeDevice {
-  id: string;
-  position: number;
-  nom: string | null;
-  acc: string | null;
-  accLib: string | null;
-  accEtg: string | null;
-  accComplt: string | null;
-  daeMobile: string | null;
-  dispJ: string | null;
-  dispH: string | null;
-  dispComplt: string | null;
-  etatFonct: string | null;
-  fabRais: string | null;
-  modele: string | null;
-  numSerie: string | null;
-  typeDAE: string | null;
-  dateInstal: string | null;
-  dermnt: string | null;
-  dispSurv: string | null;
-  lcPed: string | null;
-  dtprLcped: string | null;
-  dtprLcad: string | null;
-  photo1: string | null;
-  photo2: string | null;
-  daeLat: number | null;
-  daeLng: number | null;
-  geodaeGid: number | null;
-  geodaeStatus: string | null;
-  geodaeLastSync: string | null;
-  geodaeLastError: string | null;
-}
-
-interface Declaration {
-  id: string;
-  exptNom: string | null;
-  exptPrenom: string | null;
-  exptRais: string | null;
-  exptSiren: string | null;
-  exptSiret: string | null;
-  exptTel1: string | null;
-  exptTel1Prefix: string | null;
-  exptEmail: string | null;
-  exptNum: string | null;
-  exptVoie: string | null;
-  exptCp: string | null;
-  exptCom: string | null;
-  exptType: string | null;
-  exptInsee: string | null;
-  nomEtablissement: string | null;
-  typeERP: string | null;
-  categorieERP: string | null;
-  adrNum: string | null;
-  adrVoie: string | null;
-  adrComplement: string | null;
-  codePostal: string | null;
-  codeInsee: string | null;
-  ville: string | null;
-  latCoor1: number | null;
-  longCoor1: number | null;
-  xyPrecis: number | null;
-  tel1: string | null;
-  tel1Prefix: string | null;
-  tel2: string | null;
-  tel2Prefix: string | null;
-  siteEmail: string | null;
-  status: string;
-  step: number;
-  notes: string | null;
-  createdAt: string;
-  updatedAt: string;
-  daeDevices: DaeDevice[];
-}
-
+import type { DaeDevice, Declaration } from "@/types/declarations";
 /* ─── Constants ──────────────────────────────────────────────── */
 
 const STATUS_LABELS: Record<string, string> = {
@@ -668,7 +596,6 @@ function EditView({
                     <RecapField label="Fabricant" value={device.fabRais} />
                     <RecapField label="Modèle" value={device.modele} />
                     <RecapField label="N° série" value={device.numSerie} />
-                    <RecapField label="Type" value={device.typeDAE === "automatique" ? "DEA" : "DSA"} />
                     <RecapField label="Etat" value={device.etatFonct} />
                     <RecapField
                       label="Accès"
@@ -864,16 +791,6 @@ function ReadonlyView({ decl }: { decl: Declaration }) {
             <InfoRow label="Modèle" value={device.modele} />
             <InfoRow label="N° série" value={device.numSerie} />
             <InfoRow
-              label="Type DAE"
-              value={
-                device.typeDAE === "automatique"
-                  ? "DEA (automatique)"
-                  : device.typeDAE === "semi-automatique"
-                    ? "DSA (semi-auto)"
-                    : device.typeDAE
-              }
-            />
-            <InfoRow
               label="Environnement"
               value={
                 device.acc === "interieur"
@@ -905,16 +822,20 @@ function ReadonlyView({ decl }: { decl: Declaration }) {
             {(device.photo1 || device.photo2) && (
               <div className="py-3 flex gap-3">
                 {device.photo1 && (
-                  <img
+                  <Image
                     src={device.photo1}
                     alt="Photo 1"
+                    width={96}
+                    height={96}
                     className="w-24 h-24 object-cover rounded-sm border border-[#E5E5E5]"
                   />
                 )}
                 {device.photo2 && (
-                  <img
+                  <Image
                     src={device.photo2}
                     alt="Photo 2"
+                    width={96}
+                    height={96}
                     className="w-24 h-24 object-cover rounded-sm border border-[#E5E5E5]"
                   />
                 )}

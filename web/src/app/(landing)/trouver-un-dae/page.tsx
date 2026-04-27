@@ -1,16 +1,24 @@
+import { notFound } from "next/navigation";
+
+// Page désactivée — code conservé mais inaccessible (404)
+export default function TrouverUnDaePage() {
+  notFound();
+}
+
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import type { Metadata } from "next";
 import Breadcrumb from "@/components/declarerdae/Breadcrumb";
 import PageHero from "@/components/declarerdae/PageHero";
 import CTABanner from "@/components/declarerdae/CTABanner";
 import FindDaeClient from "@/components/declarerdae/FindDaeClient";
 
-export const metadata: Metadata = {
+const _metadata: Metadata = {
   title: "Trouver un défibrillateur (DAE) près de chez vous | DéclarerDéfibrillateur.fr",
   description:
     "Localisez les défibrillateurs automatisés externes (DAE) les plus proches grâce à la base nationale Géo'DAE. Recherche par géolocalisation ou adresse.",
 };
 
-export default function TrouverUnDaePage() {
+function _TrouverUnDaePage() {
   return (
     <>
       <Breadcrumb items={[{ label: "Trouver un DAE" }]} />

@@ -79,14 +79,14 @@ export default function AdminDeclarationsPage() {
   const [dateTo, setDateTo] = useState("");
   const [loading, setLoading] = useState(true);
 
-  const fetchStats = useCallback(async () => {
-    const res = await apiFetch("/api/admin/declarations/stats");
+  const fetchStats = useCallback(async (signal?: AbortSignal) => {
+    const res = await apiFetch("/api/admin/declarations/stats", { signal });
     if (res.ok) {
       setStats(await res.json());
     }
   }, []);
 
-  const fetchDeclarations = useCallback(async () => {
+  const fetchDeclarations = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     const params = new URLSearchParams({
       page: String(page),
@@ -98,21 +98,25 @@ export default function AdminDeclarationsPage() {
     if (dateFrom) params.set("dateFrom", dateFrom);
     if (dateTo) params.set("dateTo", dateTo);
 
-    const res = await apiFetch(`/api/admin/declarations?${params}`);
+    const res = await apiFetch(`/api/admin/declarations?${params}`, { signal });
     if (res.ok) {
       const data = await res.json();
       setDeclarations(data.declarations);
       setTotal(data.total);
     }
-    setLoading(false);
+    if (!signal?.aborted) setLoading(false);
   }, [page, search, statusFilter, stepFilter, dateFrom, dateTo]);
 
   useEffect(() => {
-    fetchStats();
+    const ctrl = new AbortController();
+    fetchStats(ctrl.signal).catch((err: unknown) => { if ((err as Error).name !== "AbortError") console.error("[decl-stats]", err); });
+    return () => ctrl.abort();
   }, [fetchStats]);
 
   useEffect(() => {
-    fetchDeclarations();
+    const ctrl = new AbortController();
+    fetchDeclarations(ctrl.signal).catch((err: unknown) => { if ((err as Error).name !== "AbortError") console.error("[admin-declarations]", err); });
+    return () => ctrl.abort();
   }, [fetchDeclarations]);
 
   const totalPages = Math.ceil(total / 20);

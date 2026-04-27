@@ -33,6 +33,8 @@ import Step4Recapitulatif from "./steps/Step4Recapitulatif";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import AuthDialog from "@/components/AuthDialog";
+import { isPhoneValid, isPrefixValid, formatDeviceErrors } from "@/lib/validation";
+import { logError } from "@/lib/log";
 
 const LS_KEY_ID = "declaration_draft_id";
 const LS_KEY_DATA = "declaration_draft_data";
@@ -90,7 +92,7 @@ export default function DeclarationForm() {
           setExistingDecls(data.declarations);
         }
       })
-      .catch(() => {});
+      .catch((err) => logError("fetch-existing-declarations", err));
   }, [user, authLoading]);
 
   // Refs to avoid stale closures in callbacks
@@ -185,8 +187,8 @@ export default function DeclarationForm() {
             daeDevices: devices.length > 0 ? devices : [createEmptyDevice(0)],
           });
         })
-        .catch(() => {
-          // Network error — clear stale state
+        .catch((err) => {
+          logError("restore-draft", err);
           setDraftId(null);
           setStep(1);
           localStorage.removeItem(LS_KEY_ID);
@@ -246,7 +248,7 @@ export default function DeclarationForm() {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(parentPayload),
-        }).catch(() => {}),
+        }).catch((err) => logError("flush-parent-save", err)),
         ...data.daeDevices.map((device) => {
           const serverId = deviceIdsRef.current[device.localId];
           if (!serverId) return Promise.resolve();
@@ -257,7 +259,7 @@ export default function DeclarationForm() {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(serializeDevice(device)),
             },
-          ).catch(() => {});
+          ).catch((err) => logError("flush-device-save", err));
         }),
       ];
 
@@ -485,11 +487,6 @@ export default function DeclarationForm() {
   // ─── Step validation ─────────────────────────────────────
   const validateStep = (s: number): string[] => {
     const errors: string[] = [];
-    const GEODAE_PREFIXES = new Set(["fr","re","gp","gf","mq","yt","nc","pf","pm","wf","bl","mf"]);
-    const checkPhone = (phone: string) => {
-      const cleaned = phone.replace(/[\s\-\.()]/g, "").replace(/^0/, "");
-      return /^\d{9}$/.test(cleaned);
-    };
 
     if (s === 1) {
       if (!formData.exptRais?.trim()) errors.push("Raison sociale requise");
@@ -499,9 +496,9 @@ export default function DeclarationForm() {
       if (!formData.exptEmail?.trim()) errors.push("Email requis");
       if (!formData.exptTel1?.trim()) {
         errors.push("Téléphone requis");
-      } else if (!checkPhone(formData.exptTel1)) {
+      } else if (!isPhoneValid(formData.exptTel1)) {
         errors.push("Téléphone exploitant : 9 chiffres requis (hors indicatif)");
-      } else if (!formData.exptTel1Prefix || !GEODAE_PREFIXES.has(formData.exptTel1Prefix)) {
+      } else if (!isPrefixValid(formData.exptTel1Prefix)) {
         errors.push("Indicatif téléphonique exploitant : France ou DOM-TOM requis");
       }
     } else if (s === 2) {
@@ -510,32 +507,16 @@ export default function DeclarationForm() {
       if (!formData.ville?.trim()) errors.push("Ville requise");
       if (!formData.tel1?.trim()) {
         errors.push("Téléphone sur site requis");
-      } else if (!checkPhone(formData.tel1)) {
+      } else if (!isPhoneValid(formData.tel1)) {
         errors.push("Téléphone sur site : 9 chiffres requis (hors indicatif)");
-      } else if (!formData.tel1Prefix || !GEODAE_PREFIXES.has(formData.tel1Prefix)) {
+      } else if (!isPrefixValid(formData.tel1Prefix)) {
         errors.push("Indicatif téléphonique du site : France ou DOM-TOM requis");
       }
       if (!formData.latCoor1 || !formData.longCoor1) {
         errors.push("Coordonnées GPS manquantes — sélectionnez une adresse sur la carte");
       }
     } else if (s === 3) {
-      formData.daeDevices.forEach((d, i) => {
-        const missing: string[] = [];
-        if (!d.nom?.trim()) missing.push("nom");
-        if (!d.fabRais?.trim()) missing.push("fabricant");
-        if (!d.modele?.trim()) missing.push("modèle");
-        if (!d.numSerie?.trim()) missing.push("n° série");
-        if (!d.etatFonct?.trim()) missing.push("état de fonctionnement");
-        if (!d.acc?.trim()) missing.push("environnement");
-        if (!d.accLib?.trim()) missing.push("accès libre");
-        if (!d.daeMobile?.trim()) missing.push("DAE itinérant");
-        if (!d.dermnt?.trim()) missing.push("date dernière maintenance");
-        if (!d.dispJ || d.dispJ.length === 0) missing.push("jours de disponibilité");
-        if (!d.dispH || d.dispH.length === 0) missing.push("heures de disponibilité");
-        if (missing.length > 0) {
-          errors.push(`DAE ${i + 1} (${d.nom?.trim() || "sans nom"}) : ${missing.join(", ")}`);
-        }
-      });
+      errors.push(...formatDeviceErrors(formData.daeDevices));
     }
     return errors;
   };

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo } from "react";
 import { ChevronDown, Search } from "lucide-react";
+import FlagImage from "next/image";
 import PHONE_PREFIXES, { PRIORITY_CODES } from "@/data/phone-prefixes";
 import type { PhonePrefix } from "@/data/phone-prefixes";
 
@@ -104,10 +105,13 @@ export default function PhonePrefixSelect({
       >
         {selected ? (
           <>
-            <img
+            <FlagImage
               src={`/flags/${selected.code}.svg`}
               alt={selected.name}
+              width={24}
+              height={16}
               className="h-4 w-6 shrink-0 rounded-[2px] object-cover"
+              unoptimized
             />
             <span className="text-[#3A3A3A] whitespace-nowrap">+{selected.dial}</span>
           </>
@@ -154,10 +158,13 @@ export default function PhonePrefixSelect({
                       isSelected ? "bg-[#F6F6F6] font-medium text-[#000091]" : "text-[#3A3A3A]"
                     }`}
                   >
-                    <img
+                    <FlagImage
                       src={`/flags/${item.code}.svg`}
                       alt=""
+                      width={24}
+                      height={16}
                       className="h-4 w-6 shrink-0 rounded-[2px] object-cover"
+                      unoptimized
                     />
                     <span className="truncate">{item.name}</span>
                     <span className="ml-auto shrink-0 text-[#929292]">+{item.dial}</span>

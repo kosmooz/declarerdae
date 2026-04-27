@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Upload, X } from "lucide-react";
+import NextImage from "next/image";
 import { apiFetch } from "@/lib/api";
 import { ArticleForm, BlogCategory, ContentBlock, slugify } from "./types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -170,10 +171,13 @@ export default function EditorSidebar({
         <CardContent>
           {form.featuredImage ? (
             <div className="relative group">
-              <img
+              <NextImage
                 src={form.featuredImage}
                 alt="Featured"
+                width={400}
+                height={128}
                 className="w-full h-32 object-cover rounded-md border"
+                unoptimized
               />
               <button
                 type="button"

@@ -236,21 +236,24 @@ export default function AdminSettingsPage() {
   const [runningRetention, setRunningRetention] = useState(false);
 
   useEffect(() => {
-    apiFetch("/api/admin/shop-settings").then(async (res) => {
+    const ctrl = new AbortController();
+    apiFetch("/api/admin/shop-settings", { signal: ctrl.signal }).then(async (res) => {
       if (res.ok) {
         const data = await res.json();
         setForm(data);
       }
-      setLoading(false);
-    });
+      if (!ctrl.signal.aborted) setLoading(false);
+    }).catch((err: unknown) => { if ((err as Error).name !== "AbortError") console.error("[shop-settings]", err); });
+    return () => ctrl.abort();
   }, []);
 
   useEffect(() => {
-    if (tab === "rgpd") {
-      apiFetch("/api/gdpr/compliance-stats").then(async (res) => {
-        if (res.ok) setComplianceStats(await res.json());
-      });
-    }
+    if (tab !== "rgpd") return;
+    const ctrl = new AbortController();
+    apiFetch("/api/gdpr/compliance-stats", { signal: ctrl.signal }).then(async (res) => {
+      if (res.ok) setComplianceStats(await res.json());
+    }).catch((err: unknown) => { if ((err as Error).name !== "AbortError") console.error("[compliance-stats]", err); });
+    return () => ctrl.abort();
   }, [tab]);
 
   const handleSave = async () => {

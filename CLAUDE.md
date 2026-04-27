@@ -25,8 +25,10 @@ nginx/        # Reverse proxy configuration
 - **Modules**: Auth, Users, Admin, Mail, Upload, Yousign, Subscriptions, Declarations, Health, Blog, GéoDAE
 - **Port**: 3021 (local dev), 3001 (Docker internal)
 - **Global prefix**: `/api`
-- **Validation**: class-validator with whitelist + forbidNonWhitelisted
+- **Validation**: class-validator with whitelist + forbidNonWhitelisted + `@MaxLength()` sur tous les champs string des DTOs
 - **Throttling**: 120 requêtes/minute par IP (ThrottlerModule). Augmenté de 30 à 120 pour supporter les déclarations avec beaucoup de DAE (saveAll = 1 PATCH parent + N PATCH devices)
+- **Pagination**: max 100 résultats par requête (cap `Math.min(limit, 100)` côté admin)
+- **Transactions**: `addDevice`, `updateDevice`, `removeDevice` dans `prisma.$transaction()`
 - **Swagger**: available at `/api/docs` in dev mode
 
 ### Web (Next.js 16)
@@ -36,8 +38,13 @@ nginx/        # Reverse proxy configuration
 - **Styling**: Tailwind CSS v4, OKLCH CSS variables, theme in `globals.css`
 - **Animations**: ScrollReveal (IntersectionObserver), StatCounter
 - **Forms**: react-hook-form + zod (souscrire), native forms (declaration, contact)
+- **Images**: optimisation Next.js activée, CDN CloudFront dans `remotePatterns`. Utiliser `<Image>` de `next/image` (pas `<img>`). Exceptions : `unoptimized` pour les images admin-uploadées (URLs dynamiques), SVG flags (`/flags/*.svg`), images blog. Pour les logos et images statiques CloudFront : `width` + `height` + className CSS. Pour fond hero : `fill priority`. Alias `FlagImage`/`NextImage` si conflit de nom avec lucide-react
+- **Accessibility (WCAG 2.1)** : tous les Label+Input/Select ont des paires `htmlFor`/`id`. Pour `SelectTrigger` Radix : `id` sur `<SelectTrigger>` (pas `<Select>`). Plusieurs instances → préfixe unique (`dae-${index}-nom`). Champs obligatoires : `aria-required="true"`
+- **AbortController** : tous les `useEffect` avec `fetch`/`apiFetch` ont un `AbortController` et `return () => ctrl.abort()`. Pour les `useCallback` fetcheurs : paramètre `signal?: AbortSignal` optionnel. Catch : filtrer `err.name !== "AbortError"`. Guard `!signal?.aborted` avant `setLoading(false)`
+- **SEO**: metadata OpenGraph/Twitter dans root layout, metadata par page (via template `%s | DéclarerDéfibrillateur.fr`), `sitemap.ts`, `robots.ts`
+- **Tests**: Vitest + React Testing Library. `npm test` dans `web/`. Tests couvrent serialization, validation, manufacturers
 - **Port**: 3020 (local dev), 3000 (Docker internal)
-- **API Proxy** : `next.config.mjs` rewrites `/api/*` → `http://localhost:3021/api/*` en dev — utiliser des URLs relatives (`/api/...`) pour les fetch et les `<img>` src
+- **API Proxy** : `next.config.mjs` rewrites `/api/*` → `http://localhost:3021/api/*` en dev — utiliser des URLs relatives (`/api/...`) pour les fetch
 - **Turbopack** : ne PAS utiliser de caractères Unicode (─, ═, etc.) dans les commentaires JSX `{/* ... */}` — provoque un crash du code frame renderer
 
 ### Path Aliases
@@ -52,17 +59,19 @@ nginx/        # Reverse proxy configuration
 web/src/app/
 ├── (landing)/                    # Route group: pages publiques
 │   ├── layout.tsx               # Layout avec Header + Footer declarerdae
-│   ├── page.tsx                 # Page d'accueil (landing complète)
+│   ├── page.tsx + HomeClient.tsx                # Page d'accueil (server + client)
 │   ├── obligations/page.tsx     # Obligations légales DAE
 │   ├── guide-erp/page.tsx       # Guide ERP et catégories
 │   ├── tarifs/page.tsx          # Plans tarifaires
 │   ├── a-propos/page.tsx        # Notre mission
-│   ├── contact/page.tsx         # Formulaire de contact
+│   ├── contact/page.tsx + ContactClient.tsx
 │   ├── mentions-legales/page.tsx
-│   ├── politique-de-confidentialite/page.tsx
-│   ├── declaration/page.tsx      # Formulaire de déclaration DAE public
-│   ├── blog/                    # Blog public
-│   └── defibrillateur/          # Page produit 3D (legacy STAR aid)
+│   ├── politique-de-confidentialite/page.tsx + PolitiqueClient.tsx
+│   ├── declaration/page.tsx + DeclarationPageClient.tsx
+│   ├── trouver-un-dae/page.tsx  # Désactivé (notFound(), code conservé)
+│   ├── blog/page.tsx + BlogListClient.tsx
+│   ├── blog/[slug]/page.tsx + BlogArticleClient.tsx
+│   └── defibrillateur/page.tsx + DefibrillatorClient.tsx
 ├── admin/                        # Dashboard admin (protégé)
 │   ├── declarations/            # Gestion déclarations DAE (liste + détail)
 │   ├── blog/                    # Gestion blog (CRUD + éditeur blocs)
@@ -128,7 +137,7 @@ Composants partagés entre le dashboard utilisateur et l'administration pour la 
 |---------|-------------|
 | `types.ts` | Interfaces partagées : `GeodaeDaeDevice`, `GeodaeDeclaration`, `DeviceSyncStatus`, `GeodaeSyncApi` |
 | `geodae-fields.ts` | `GEODAE_FIELDS` (mapping champs GéoDAE ↔ local), `computeDiffCount()`, `formatGeodaeValue()`, helpers comparaison (téléphones E.164, coordonnées tolérance, nom sans "test") |
-| `GeodaeSyncManager.tsx` | Popup de gestion GéoDAE : charge live chaque DAE (batch 3), compare, affiche état (vert/orange/bleu/gris), actions sync/delete individuelles et globales. API abstraction via prop `api: GeodaeSyncApi` (callbacks). Header/footer fixes, liste scrollable. Labels adaptatifs premier envoi vs mise à jour. Popups confirmation suppression irréversible |
+| `GeodaeSyncManager.tsx` | Popup de gestion GéoDAE : charge live chaque DAE (batch 3, via `fetchKey` pour re-fetch), compare, affiche état (vert/orange/bleu/rouge erreur/gris supprimé). Cascade icônes : loading → erreur → diffs → non envoyé → supprimé → à jour. Sync individuel : succès → `onDone()` + re-fetch, échec → état erreur + bouton "Réessayer". Sync all inclut devices en erreur. `onDone(allSucceeded?)` retourne Promise. Description mentionne erreurs. API abstraction via prop `api: GeodaeSyncApi` (callbacks). Header/footer fixes, liste scrollable. Labels adaptatifs premier envoi vs mise à jour. Popups confirmation suppression irréversible |
 | `GeodaeDetailContent.tsx` | Tableau comparatif champ par champ GéoDAE vs local, détection diffs, card mainteneur declarerdefibrillateur.re, option changement mainteneur |
 | `index.ts` | Barrel exports |
 
@@ -138,6 +147,21 @@ Composants partagés entre le dashboard utilisateur et l'administration pour la 
 |---------|-------------|
 | `phone-prefixes.ts` | 249 indicatifs téléphoniques (drapeaux, codes ISO, France+DOM-TOM prioritaires) |
 | `dae-manufacturers.ts` | 15 fabricants DAE et 34 modèles avec durées de garantie. Fonctions `getModelsForManufacturer()`, constante `OTHER_VALUE` pour l'option "Autre" |
+
+### Shared Types & Validation (`types/`, `lib/`)
+
+| Fichier | Description |
+|---------|-------------|
+| `types/declarations.ts` | Types partagés `DaeDevice`, `Declaration`, `STATUS_LABELS`, `FIELD_LABELS` — source unique pour admin, dashboard et formulaire public |
+| `lib/validation.ts` | `isPhoneValid()`, `isPrefixValid()`, `GEODAE_PREFIXES`, `validateDevice()`, `formatDeviceErrors()`, `validateStepFields()` — validation centralisée utilisée par useDeclarationEdit, DeclarationForm et admin |
+| `lib/log.ts` | `logError(context, error)` — logging centralisé (console.error en dev, extensible vers Sentry) |
+
+### Shared Hooks (`hooks/`)
+
+| Hook | Description |
+|------|-------------|
+| `useDaeDeviceForm.ts` | Logique partagée fabricant/modèle "Autre" + maintenance OUI/NON — utilisé par DaeDeviceForm (public) et DeviceEditForm (admin) |
+| `useDeclarationEdit.ts` | Hook d'édition dashboard — state, dirty tracking, save all, validation via `validateStepFields` |
 
 ### UI Components (`components/ui/`)
 
@@ -190,6 +214,8 @@ cd web
 npm install
 npm run dev                # Dev server on port 3020
 npm run build              # Production build
+npm test                   # Run Vitest test suite
+npm run test:watch         # Watch mode
 ```
 
 ### Docker
@@ -267,31 +293,26 @@ L'admin utilise la **même palette gouv.fr** que le front-end (pas de slate/indi
 ## Key Patterns
 
 ### Page Structure (landing pages)
-```tsx
-// Server component (no "use client" unless hooks needed)
-import Breadcrumb from "@/components/declarerdae/Breadcrumb";
-import PageHero from "@/components/declarerdae/PageHero";
-import CTABanner from "@/components/declarerdae/CTABanner";
-import ScrollReveal from "@/components/declarerdae/ScrollReveal";
 
-export default function MyPage() {
-  return (
-    <>
-      <Breadcrumb items={[{ label: "Ma page" }]} />
-      <PageHero tag="Catégorie" title="Titre" description="Description" />
-      {/* sections */}
-      <CTABanner title="CTA" buttonText="Action" href="/#formulaire" variant="primary" />
-    </>
-  );
-}
+**Pages serveur** (obligations, guide-erp, tarifs, a-propos, mentions-legales) : metadata directe + JSX.
+
+**Pages client** (home, declaration, contact, blog, politique, defibrillateur) : pattern server/client split :
+```tsx
+// page.tsx — server component avec metadata
+import type { Metadata } from "next";
+import MyPageClient from "./MyPageClient";
+export const metadata: Metadata = { title: "...", description: "...", alternates: { canonical: "/..." } };
+export default function MyPage() { return <MyPageClient />; }
+
+// MyPageClient.tsx — "use client" avec hooks, state, interactivité
 ```
 
 ### Dashboard utilisateur (`/dashboard`)
 - **DashboardShell** : guard redirige vers `/` si `user === null`. Si `emailVerified === false` → gate "Plus qu'une étape !" avec bouton "Renvoyer l'email de vérification" (cooldown 60s persisté dans localStorage). Onglets navigation (Mes déclarations, Profil, Modifier, Mot de passe, Mes données)
 - **Mes déclarations** (`mes-declarations/page.tsx`) : liste des déclarations, filtres par statut (dont "En attente d'envoi" pour COMPLETE), highlight animé d'un brouillon lié après login (param `?linked={id}`, bordure bleue + pulse 3s + scroll auto). Badges GéoDAE : "Envoi GéoDAE requis" (amber, COMPLETE non envoyé), "Partiellement synchronisé" (bleu), "GéoDAE synchronisé" (vert, VALIDATED)
 - **Détail déclaration** (`mes-declarations/[id]/page.tsx`) : mode édition multi-étapes pour DRAFT, COMPLETE et VALIDATED via `useDeclarationEdit` hook. Vue ReadonlyView uniquement pour CANCELLED. Validation par étape avec erreurs détaillées par DAE + scroll auto vers le bloc d'erreurs + scroll auto vers le stepper à chaque changement d'étape. Utilise les mêmes composants Step1/Step2/Step3 que le formulaire public
-- **Panneau GéoDAE utilisateur** : affiché quand statut COMPLETE ou VALIDATED. Bandeau "Dernière étape" (bleu, visible si COMPLETE + rien envoyé) avec CTA "Envoyer vers GéoDAE". Panneau technique avec badges par device (cliquables → popup détail), bouton "Envoyer" / "Mettre à jour". Auto-transition COMPLETE → VALIDATED après sync complète réussie. État `needsResync` (simple useState, pas d'auto-détection timestamp) : passe à true quand l'utilisateur sauvegarde des modifications ou quand le sync manager détecte des diffs → panneau orange + badges devices orange + warning dans l'aperçu latéral (cliquable, scrolle vers le panneau). Repasse à false après sync réussie
-- **Gestion GéoDAE** (`GeodaeSyncManager`) : popup avec header/footer fixes et liste scrollable, ouverte depuis "Mettre à jour" / "Envoyer vers GéoDAE". Charge les données live de chaque DAE depuis l'API GéoDAE (par batch de 3 pour éviter le rate-limiting), compare avec les données locales (`computeDiffCount`), affiche l'état par device (vert = à jour, orange = différences, bleu = non envoyé, gris = supprimé). Labels adaptatifs : premier envoi → "Envoyer" / "Envoyer vers GéoDAE (N)", mise à jour → "Synchroniser" / "Tout mettre à jour (N)". Actions : envoyer/synchroniser un DAE individuellement, envoyer/mettre à jour tous ceux qui nécessitent une action, supprimer un DAE (popup irréversible avec suivi), "Tout supprimer de GéoDAE" (popup irréversible → annule la déclaration → redirige vers la liste). Remonte les diffs trouvées au parent via `onDiffsFound`
+- **Panneau GéoDAE utilisateur** : affiché quand statut COMPLETE ou VALIDATED. Bandeau "Dernière étape" (bleu, visible si COMPLETE + rien envoyé) avec CTA "Envoyer vers GéoDAE". Panneau technique avec badges par device (cliquables → popup détail), bouton "Envoyer" / "Mettre à jour" / "Réessayer l'envoi". Auto-transition COMPLETE → VALIDATED après sync complète réussie. État `needsResync` dérivé des timestamps (`computeNeedsResync` : compare `decl.updatedAt` vs `max(geodaeLastSync)`) → persiste au rechargement de page. Passe aussi à true quand l'utilisateur sauvegarde des modifications ou quand le sync manager détecte des diffs (additif via `onDiffsFound`). Ne repasse à false qu'après sync réussie de TOUS les devices (`onDone(allSucceeded)`). Panneau orange + badges devices orange + warning dans l'aperçu latéral (cliquable, scrolle vers le panneau). Bandeau warning interne "Les informations ont été modifiées..." quand `needsResync`. Badges : "Synchronisé" (vert), "Partiellement synchronisé" (bleu), "Échec" (rouge), "Non envoyé" (amber), "Mise à jour requise" (amber pulsant). Compteurs détaillés (N en échec, N non envoyés) dans le texte de résumé. `loadDecl` ne provoque pas de spinner au reload (évite le démontage de la popup ouverte)
+- **Gestion GéoDAE** (`GeodaeSyncManager`) : popup avec header/footer fixes et liste scrollable, ouverte depuis "Mettre à jour" / "Envoyer vers GéoDAE". Charge les données live de chaque DAE depuis l'API GéoDAE (par batch de 3 pour éviter le rate-limiting), compare avec les données locales (`computeDiffCount`), affiche l'état par device (vert = à jour, orange = différences, bleu = non envoyé, rouge = erreur, gris = supprimé). Cascade d'icônes : loading → erreur → diffs → non envoyé → supprimé → à jour. Labels adaptatifs : premier envoi → "Envoyer" / "Envoyer vers GéoDAE (N)", mise à jour → "Synchroniser" / "Tout mettre à jour (N)", erreur → "Réessayer". Actions : envoyer/synchroniser un DAE individuellement (succès → `onDone()` + re-fetch via `setFetchKey`, échec → état erreur sur le device avec message), envoyer/mettre à jour tous ceux qui nécessitent une action (y compris devices en erreur), supprimer un DAE (popup irréversible, succès → `onDone()` + re-fetch), "Tout supprimer de GéoDAE" (popup irréversible → annule la déclaration → redirige vers la liste). Description popup mentionne les erreurs. `onDone(allSucceeded?)` : le parent ne reset `needsResync` que si `allSucceeded !== false`. Remonte les diffs trouvées au parent via `onDiffsFound` (additif : ne met jamais `needsResync` à false)
 - **Popup détail GéoDAE** : clic sur un badge DAE synchronisé → popup avec données live récupérées depuis l'API GéoDAE. Tableau comparatif GéoDAE vs local (uniquement les champs du formulaire) avec détection des différences (coordonnées avec tolérance 0.00001, téléphones normalisés E.164 avec préfixes, nom sans préfixe "test", précision GPS avec tolérance 0.0001). Card mainteneur en bas (declarerdefibrillateur.re) avec option "Changer de mainteneur" (suppression définitive de la fiche GéoDAE, le nouveau mainteneur doit redéclarer)
 - **Suppression DAE synchronisés** : le bouton corbeille reste visible dans le formulaire d'édition (Step 3) avec badge "GéoDAE" à côté. Le clic ouvre une popup de confirmation irréversible qui supprime le DAE de GéoDAE (`deleteSingleDevice`), puis le device apparaît grisé, barré, en dernière position dans le formulaire, non éditable. Backend `removeMyDevice` bloque aussi la suppression directe (sans passage par GéoDAE) avec erreur 400
 - **Annulation utilisateur** : endpoint `POST /api/declarations/my/:id/cancel` — change le statut en CANCELLED avec audit log. Déclenché automatiquement quand tous les DAE sont supprimés de GéoDAE
@@ -311,12 +332,12 @@ export default function MyPage() {
 ### Declarations
 - **Modèle** : `Declaration` avec champ `number Int @unique @default(autoincrement())` pour numéro de demande
 - **Liste** (`admin/declarations/page.tsx`) : colonnes N°, Date, Exploitant, Compte (email + badge vérifié/non vérifié), Ville, DAE (count), GéoDAE (synced/total avec badge couleur), Statut. KPI en haut, filtres rapides, recherche avancée
-- **Détail** (`admin/declarations/[id]/page.tsx`) :
+- **Détail** (`admin/declarations/[id]/page.tsx` + sous-composants) :
   - **Header 4 colonnes** (pleine largeur) : Exploitant + Site + DAE cards + Notes éditables
   - Badge statut, titre "Demande #N", lien compte utilisateur avec badge emailVerified (checkmark vert / "Non vérifié" amber), date
   - **Navigation par boutons pill** (pas de tabs shadcn) : Exploitant / Site / DAE / Historique
   - **Sous-navigation DAE** : cards cliquables par device (numéro, nom, fabricant-modèle, badge état, S/N)
-  - **Onglet Historique** : timeline verticale des modifications avec avant/après, admin, pastilles colorées par type
+  - **Composants extraits** : `AdminDeclHistory.tsx` (timeline audit), `AdminDeclGeodae.tsx` (card sync GéoDAE + badges), `AdminCancelDialog.tsx` (popup annulation 5 raisons + email)
 - **Statuts** : DRAFT → COMPLETE → VALIDATED → CANCELLED (+ CANCELLED → COMPLETE pour réactivation). Labels utilisateur : COMPLETE = "Finaliser l'envoi", VALIDATED = "Validée"
 - **Annulation** : popup avec 5 raisons prédéfinies, email pré-rempli éditable, envoi automatique au déclarant (en dev → adminEmail des réglages)
 - **Formulaires d'édition admin** : `ExploitantEditForm` (recherche entreprise + contact), `SiteEditForm` (carte + géocodage + contact), `DeviceEditForm` (tous champs DAE) — tous avec `PhonePrefixSelect` pour les téléphones
@@ -335,18 +356,20 @@ export default function MyPage() {
 - **Recherche entité** : autocomplete via API `recherche-entreprises.api.gouv.fr` (debounce 200ms)
 - **Géocodage** : adresse via Base Adresse Nationale (`api-adresse.data.gouv.fr`), carte Leaflet + Mapbox satellite. Le score de précision BAN est stocké dans `xyPrecis` et envoyé à GéoDAE comme `xy_precis`
 - **Upload photos** : endpoint public `POST /api/upload` (fichier unique, 5MB max), URLs relatives via proxy Next.js
-- **Fabricant / Modèle** : selects cascadés depuis `@/data/dae-manufacturers.ts` (15 fabricants, 34 modèles). Quand on choisit un fabricant, les modèles se filtrent. Option "Autre" affiche un champ libre (valeur custom envoyée à l'API, non ajoutée à la liste). Même composant dans `DaeDeviceForm` (public) et `DeviceEditForm` (admin)
+- **Fabricant / Modèle** : selects cascadés depuis `@/data/dae-manufacturers.ts` (15 fabricants, 34 modèles). Quand on choisit un fabricant, les modèles se filtrent. Option "Autre" affiche un champ libre. Logique partagée via `useDaeDeviceForm` hook (`onFabChange`, `onModelChange`, `fabAutre`, `modelAutre`). Utilisé par `DaeDeviceForm` (public) et `DeviceEditForm` (admin)
 - **Type d'établissement** : select simple (`typeERP`), pas de catégorie ERP (champ `categorieERP` supprimé des UI, colonne DB conservée)
-- **Maintenance / Installation** : questionnaire "Le DAE a-t-il déjà subi une maintenance ?" (OuiNonSwitch). Si OUI → date dernière maintenance (obligatoire) + date installation (facultatif). Si NON → date installation (obligatoire), `dermnt` copie automatiquement `dateInstal` à l'enregistrement. Même logique dans `DaeDeviceForm` (public), `DeviceEditForm` (admin). Restauration depuis le serveur : `dermnt === dateInstal` → "NON", sinon → "OUI"
-- **Validation frontend alignée backend** : 11 champs obligatoires par DAE (nom, fabRais, modele, numSerie, etatFonct, acc, accLib, daeMobile, dermnt, dispJ, dispH). Erreurs détaillées par DAE : "DAE 1 (nom) : fabricant, n° série" (dashboard via `useDeclarationEdit`, formulaire public via `DeclarationForm`)
+- **Maintenance / Installation** : questionnaire "Le DAE a-t-il déjà subi une maintenance ?" (OuiNonSwitch, défaut "NON"). Si OUI → date dernière maintenance (obligatoire) + date installation (facultatif). Si NON → date installation (obligatoire), `dermnt` copie automatiquement `dateInstal`. Champ `hadMaintenance` stocké dans le state device (UI only, pas envoyé au backend via whitelist `DEVICE_API_FIELDS`). Logique partagée via `useDaeDeviceForm` hook (handlers `onMaintenanceToggle`, `onFabChange`, `onModelChange`). Restauration depuis le serveur : `dermnt === dateInstal` → "NON", sinon → "OUI"
+- **Validation frontend centralisée** (`lib/validation.ts`) : 11 champs obligatoires par DAE. Erreurs détaillées par DAE : "DAE 1 (nom) : fabricant, n° série". Message maintenance contextuel : "date de maintenance" (OUI) ou "date d'installation" (NON) selon `hadMaintenance`. **Téléphones** : `exptTel1` et `tel1` obligatoires (9 chiffres + indicatif FR/DOM-TOM), `tel2` facultatif mais validé si rempli. Fonctions partagées `isPhoneValid()`, `isPrefixValid()`, `validateDevice()`, `validateStepFields()` utilisées par useDeclarationEdit, DeclarationForm et admin
 - **Sérialisation device** : `serializeDevice()` utilise un whitelist de champs (pas de spread) pour éviter d'envoyer `id`, `declarationId` etc. au backend (forbidNonWhitelisted)
-- **Champs supprimés** : dtprBat, fabSiren, mntRais, mntSiren, freqMnt, idEuro, accPcsec, accAcc — retirés des types, DTOs, formulaires, vues admin/dashboard et mapper GéoDAE (colonnes DB conservées)
+- **Champs supprimés** : typeDAE, dtprBat, fabSiren, mntRais, mntSiren, freqMnt, idEuro, accPcsec, accAcc — retirés des types, formulaires, vues admin/dashboard (colonnes DB et DTOs backend conservés). `typeDAE` encore accepté par le backend (optionnel) mais plus envoyé par le frontend
 - **Labels péremption électrodes** : "Date de péremption des électrodes adultes" (`dtprLcad`) et "Date de péremption des électrodes pédiatriques" (`dtprLcped`)
 - **Prefixes téléphone** : stockés en base (exptTel1Prefix, tel1Prefix, tel2Prefix) — codes ISO pays via `@/data/phone-prefixes.ts`. Composant `PhonePrefixSelect` utilisé à la fois dans le formulaire public et dans les formulaires d'édition admin (ExploitantEditForm, SiteEditForm)
 
 ### GéoDAE Integration (`api/src/geodae/`)
 - **API cible** : `catalogue.atlasante.fr` (ressource `8777a504-6c3e-4abe-8100-60bb58767faa`). Documentation API v1.6 dans `tmp/GEODAE_API_DOCUMENTATION_V1.6.pdf`
-- **Auth** : Basic auth → PHPSESSID cookie, avec retry automatique sur 401/403
+- **Auth** : Basic auth → PHPSESSID cookie, avec retry automatique sur 401/403. Session TTL 25 min avec invalidation automatique
+- **Timeout** : 10s sur tous les appels axios (instance partagée)
+- **Erreurs** : messages sanitisés côté client, détail complet dans les logs serveur
 - **Mapper** (`geodae-mapper.ts`) : transforme Declaration + DaeDevice en GeoJSON FeatureCollection pour l'API GéoDAE. `mnt_siren`/`mnt_rais` proviennent uniquement de ShopSettings (options), plus des champs device
 - **Téléphones** : convertis en E.164 via `geodae-phone.ts` (utilise les préfixes ISO stockés en base)
 - **Photos** : converties en base64 data URI depuis le dossier `uploads/`
@@ -355,7 +378,7 @@ export default function MyPage() {
 - **CRUD** : POST (create) / PATCH (update via `geodaeGid`) / GET (fetch fiche live par GID) — résultats stockés sur DaeDevice (`geodaeGid`, `geodaeStatus`, `geodaeLastSync`, `geodaeLastError`)
 - **Suppression** : `deleteSingleDevice()` PATCH `etat_fonct: "Supprimé définitivement"` — l'API GéoDAE ne supporte pas DELETE, pas de transfert de mainteneur possible. Le nouveau mainteneur doit redéclarer le DAE. Backend `removeMyDevice` bloque la suppression de devices synchronisés (geodaeGid + status != DELETED)
 - **Throttling** : 500ms de délai entre chaque appel API GéoDAE dans `sendDeclarationToGeodae` et `deleteFromGeodae`. Frontend fetch live par batch de 3
-- **Envoi admin** : déclarations COMPLETE et VALIDATED, endpoints sous `/api/admin/geodae/` (send/:declarationId, delete/:declarationId, fetch/:deviceId, delete-device/:deviceId, retry/:deviceId, status/:declarationId, test-connection). Utilise le `GeodaeSyncManager` partagé avec callbacks admin
+- **Envoi admin** : déclarations COMPLETE et VALIDATED, endpoints sous `/api/admin/geodae/` (send/:declarationId, delete/:declarationId, fetch/:deviceId, delete-device/:deviceId, retry/:deviceId, status/:declarationId, test-connection). Utilise le `GeodaeSyncManager` partagé avec callbacks admin. Card GéoDAE admin alignée avec dashboard : bandeau warning `needsResync`, badges (Synchronisé/Partiellement synchronisé/Échec/Non envoyé/Mise à jour requise), compteurs détaillés, bouton "Réessayer l'envoi", `computeNeedsResync` au chargement et après `reloadDeclAndLogs`
 - **Envoi utilisateur** : déclarations COMPLETE ou VALIDATED, endpoints sous `/api/declarations/my/:id/geodae/` (send, retry, status, fetch/:deviceId, delete/:deviceId, cancel). Ownership check via `getUserDeclaration()`. Auto-transition COMPLETE → VALIDATED après sync complète réussie (audit log `STATUS_CHANGE` avec metadata `reason: "Auto-validated after successful GéoDAE sync"`). Paramètre `allowedStatuses` dans `sendDeclarationToGeodae()` et `retryDevice()` (default `["VALIDATED"]` pour admin, `["COMPLETE", "VALIDATED"]` pour users). Annulation automatique de la déclaration (→ CANCELLED) quand tous les DAE sont supprimés de GéoDAE
 
 ### Authentication

@@ -31,7 +31,8 @@ export default function AdminEditUserPage() {
   });
 
   useEffect(() => {
-    apiFetch(`/api/admin/users/${params.id}`).then(async (res) => {
+    const ctrl = new AbortController();
+    apiFetch(`/api/admin/users/${params.id}`, { signal: ctrl.signal }).then(async (res) => {
       if (res.ok) {
         const user = await res.json();
         setForm({
@@ -46,8 +47,9 @@ export default function AdminEditUserPage() {
           tvaNumber: user.tvaNumber || "",
         });
       }
-      setLoading(false);
-    });
+      if (!ctrl.signal.aborted) setLoading(false);
+    }).catch((err: unknown) => { if ((err as Error).name !== "AbortError") console.error("[admin-user]", err); });
+    return () => ctrl.abort();
   }, [params.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {

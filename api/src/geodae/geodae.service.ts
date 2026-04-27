@@ -5,7 +5,9 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
-import axios from "axios";
+import Axios from "axios";
+
+const axios = Axios.create({ timeout: 10_000 });
 import { existsSync, readFileSync } from "fs";
 import { join, extname } from "path";
 import { mapDeviceToGeoJson } from "./geodae-mapper";
@@ -29,6 +31,8 @@ export interface DeviceSendResult {
 export class GeodaeService {
   private readonly logger = new Logger(GeodaeService.name);
   private sessionCookie: string | null = null;
+  private sessionCookieTime: number = 0;
+  private static readonly SESSION_TTL = 25 * 60 * 1000; // 25 min
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -97,6 +101,7 @@ export class GeodaeService {
           const match = cookie.match(/PHPSESSID=([^;]+)/);
           if (match) {
             this.sessionCookie = match[1];
+            this.sessionCookieTime = Date.now();
             this.logger.log("GéoDAE session established");
             return;
           }
@@ -119,7 +124,8 @@ export class GeodaeService {
    * Execute a function with a valid session, retrying once on auth failure.
    */
   private async withSession<T>(fn: (cookie: string) => Promise<T>): Promise<T> {
-    if (!this.sessionCookie) {
+    if (!this.sessionCookie || Date.now() - this.sessionCookieTime > GeodaeService.SESSION_TTL) {
+      this.sessionCookie = null;
       await this.authenticate();
     }
     try {
@@ -359,17 +365,23 @@ export class GeodaeService {
           `GéoDAE ${updated ? "updated" : "created"} device "${device.nom}" → GID ${gid}`,
         );
       } catch (error) {
-        const errorMsg =
+        // Full detail for server logs
+        const internalError =
           error?.response?.data
             ? JSON.stringify(error.response.data)
             : error?.message || "Erreur inconnue";
+
+        // Sanitized message for client — no raw API response
+        const clientError = error?.message?.startsWith("Données incomplètes")
+          ? error.message
+          : "Échec de la synchronisation GéoDAE. Veuillez réessayer.";
 
         // Update device with error
         await this.prisma.daeDevice.update({
           where: { id: device.id },
           data: {
             geodaeStatus: "FAILED",
-            geodaeLastError: errorMsg.slice(0, 500),
+            geodaeLastError: internalError.slice(0, 500),
           },
         });
 
@@ -383,7 +395,7 @@ export class GeodaeService {
             deviceName: device.nom,
             metadata: JSON.stringify({
               status: "FAILED",
-              error: errorMsg.slice(0, 500),
+              error: internalError.slice(0, 500),
               timestamp: new Date().toISOString(),
             }),
           },
@@ -393,11 +405,11 @@ export class GeodaeService {
           deviceId: device.id,
           deviceName: device.nom || "Sans nom",
           success: false,
-          error: errorMsg,
+          error: clientError,
         });
 
         this.logger.error(
-          `GéoDAE failed for device "${device.nom}": ${errorMsg}`,
+          `GéoDAE failed for device "${device.nom}": ${internalError}`,
         );
       }
     }

@@ -1,4 +1,11 @@
+import type { Metadata } from "next";
 import Breadcrumb from "@/components/declarerdae/Breadcrumb";
+
+export const metadata: Metadata = {
+  title: "Tarifs — Déclaration DAE gratuite",
+  description: "Déclarez vos défibrillateurs gratuitement sur DéclarerDéfibrillateur.fr. Service conforme à la réglementation française, enregistrement Géo'DAE inclus.",
+  alternates: { canonical: "/tarifs" },
+};
 import PageHero from "@/components/declarerdae/PageHero";
 import CTABanner from "@/components/declarerdae/CTABanner";
 import ScrollReveal from "@/components/declarerdae/ScrollReveal";

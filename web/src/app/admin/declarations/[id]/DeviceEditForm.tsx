@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -10,12 +9,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ACC_OPTIONS, TYPE_DAE_OPTIONS } from "@/lib/declaration-types";
-import {
-  DAE_MANUFACTURERS,
-  OTHER_VALUE,
-  getModelsForManufacturer,
-} from "@/data/dae-manufacturers";
+import { ACC_OPTIONS } from "@/lib/declaration-types";
+import { DAE_MANUFACTURERS, OTHER_VALUE } from "@/data/dae-manufacturers";
+import { useDaeDeviceForm } from "@/hooks/useDaeDeviceForm";
 import OuiNonSwitch from "@/components/declarerdae/declaration/shared/OuiNonSwitch";
 import EtatFonctSelect from "@/components/declarerdae/declaration/shared/EtatFonctSelect";
 import DispJourSelector from "@/components/declarerdae/declaration/shared/DispJourSelector";
@@ -35,44 +31,22 @@ export default function DeviceEditForm({
   siteLng,
   onChange,
 }: DeviceEditFormProps) {
-  // Maintenance mode: derive from existing data
-  const dermnt = data.dermnt || "";
-  const dateInstal = data.dateInstal || "";
-  const [hadMaintenance, setHadMaintenance] = useState(() => {
-    if (dermnt && dateInstal && dermnt === dateInstal) return "NON";
-    if (dermnt) return "OUI";
-    return "";
-  });
-
   const fabRais = data.fabRais || "";
   const modele = data.modele || "";
 
-  // Track "Autre" mode locally
-  const knownFabNames = DAE_MANUFACTURERS.map((m) => m.name);
-  const [fabAutre, setFabAutre] = useState(
-    () => fabRais !== "" && !knownFabNames.includes(fabRais),
-  );
-  const isKnownFab = !fabAutre && knownFabNames.includes(fabRais);
-  const modelsForSelected = isKnownFab
-    ? getModelsForManufacturer(fabRais)
-    : [];
-
-  const [modelAutre, setModelAutre] = useState(() => {
-    if (!knownFabNames.includes(fabRais)) return false;
-    const models = getModelsForManufacturer(fabRais);
-    return modele !== "" && !models.some((m) => m.name === modele);
+  const {
+    fabAutre, isKnownFab, modelsForSelected, modelAutre,
+    selectFabValue, selectModelValue,
+    onFabChange, onModelChange,
+    hadMaintenance, onMaintenanceToggle,
+  } = useDaeDeviceForm({
+    fabRais,
+    modele,
+    dermnt: data.dermnt || "",
+    dateInstal: data.dateInstal || "",
+    hadMaintenance: data.hadMaintenance || "",
+    set: onChange,
   });
-
-  const selectFabValue = fabAutre
-    ? OTHER_VALUE
-    : isKnownFab
-      ? fabRais
-      : "";
-  const selectModelValue = modelAutre
-    ? OTHER_VALUE
-    : modelsForSelected.some((m) => m.name === modele)
-      ? modele
-      : "";
 
   return (
     <div className="space-y-5">
@@ -85,10 +59,12 @@ export default function DeviceEditForm({
         <div className="space-y-3">
           {/* Nom du DAE */}
           <div>
-            <Label className="text-xs text-[#666] mb-1 block">
+            <Label htmlFor="admin-dev-nom" className="text-xs text-[#666] mb-1 block">
               Nom du DAE <span className="text-[#E1000F]">*</span>
             </Label>
             <Input
+              id="admin-dev-nom"
+              aria-required="true"
               value={data.nom || ""}
               onChange={(e) => onChange("nom", e.target.value)}
               placeholder="DAE-Accueil-RDC"
@@ -99,26 +75,14 @@ export default function DeviceEditForm({
           {/* Fabricant + Modele */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs text-[#666] mb-1 block">
+              <Label htmlFor="admin-dev-fab" className="text-xs text-[#666] mb-1 block">
                 Fabricant <span className="text-[#E1000F]">*</span>
               </Label>
               <Select
                 value={selectFabValue}
-                onValueChange={(v) => {
-                  if (v === OTHER_VALUE) {
-                    setFabAutre(true);
-                    setModelAutre(false);
-                    onChange("fabRais", "");
-                    onChange("modele", "");
-                  } else {
-                    setFabAutre(false);
-                    setModelAutre(false);
-                    onChange("fabRais", v);
-                    onChange("modele", "");
-                  }
-                }}
+                onValueChange={onFabChange}
               >
-                <SelectTrigger className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]">
+                <SelectTrigger id="admin-dev-fab" aria-required="true" className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]">
                   <SelectValue placeholder="Choisir un fabricant" />
                 </SelectTrigger>
                 <SelectContent position="popper" sideOffset={4}>
@@ -141,7 +105,7 @@ export default function DeviceEditForm({
               )}
             </div>
             <div>
-              <Label className="text-xs text-[#666] mb-1 block">
+              <Label htmlFor="admin-dev-modele" className="text-xs text-[#666] mb-1 block">
                 Modèle <span className="text-[#E1000F]">*</span>
               </Label>
               {fabAutre ? (
@@ -155,15 +119,7 @@ export default function DeviceEditForm({
                 <>
                   <Select
                     value={selectModelValue}
-                    onValueChange={(v) => {
-                      if (v === OTHER_VALUE) {
-                        setModelAutre(true);
-                        onChange("modele", "");
-                      } else {
-                        setModelAutre(false);
-                        onChange("modele", v);
-                      }
-                    }}
+                    onValueChange={onModelChange}
                   >
                     <SelectTrigger className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]">
                       <SelectValue placeholder="Choisir un modèle" />
@@ -198,46 +154,26 @@ export default function DeviceEditForm({
             </div>
           </div>
 
-          {/* N° de serie + Type de DAE */}
+          {/* N° de serie + Etat fonctionnel */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs text-[#666] mb-1 block">
+              <Label htmlFor="admin-dev-numSerie" className="text-xs text-[#666] mb-1 block">
                 N° de serie <span className="text-[#E1000F]">*</span>
               </Label>
               <Input
+                id="admin-dev-numSerie"
+                aria-required="true"
                 value={data.numSerie || ""}
                 onChange={(e) => onChange("numSerie", e.target.value)}
                 placeholder="X09E409930"
                 className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]"
               />
             </div>
-            <div>
-              <Label className="text-xs text-[#666] mb-1 block">
-                Type de DAE
-              </Label>
-              <Select
-                value={data.typeDAE || ""}
-                onValueChange={(v) => onChange("typeDAE", v)}
-              >
-                <SelectTrigger className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent position="popper" sideOffset={4}>
-                  {TYPE_DAE_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <EtatFonctSelect
+              value={data.etatFonct || ""}
+              onChange={(v) => onChange("etatFonct", v)}
+            />
           </div>
-
-          {/* Etat fonctionnel */}
-          <EtatFonctSelect
-            value={data.etatFonct || ""}
-            onChange={(v) => onChange("etatFonct", v)}
-          />
 
           {/* Carte de position du DAE */}
           <DaeMarkerMap
@@ -263,14 +199,14 @@ export default function DeviceEditForm({
           {/* Environnement + Acces libre + DAE itinerant */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <Label className="text-xs text-[#666] mb-1 block">
+              <Label htmlFor="admin-dev-acc" className="text-xs text-[#666] mb-1 block">
                 Environnement <span className="text-[#E1000F]">*</span>
               </Label>
               <Select
                 value={data.acc || ""}
                 onValueChange={(v) => onChange("acc", v)}
               >
-                <SelectTrigger className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]">
+                <SelectTrigger id="admin-dev-acc" aria-required="true" className="border-[#CECECE] focus:border-[#000091] focus:ring-1 focus:ring-[#000091]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent position="popper" sideOffset={4}>
@@ -299,11 +235,12 @@ export default function DeviceEditForm({
           {/* Etage + Complement d'acces */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs text-[#666] mb-1 block">
+              <Label htmlFor="admin-dev-accEtg" className="text-xs text-[#666] mb-1 block">
                 Etage{" "}
                 <span className="text-[#929292]">(facultatif)</span>
               </Label>
               <Input
+                id="admin-dev-accEtg"
                 value={data.accEtg || ""}
                 onChange={(e) => onChange("accEtg", e.target.value)}
                 placeholder="0 = RDC, -1 = sous-sol, 1 = 1er..."
@@ -311,11 +248,12 @@ export default function DeviceEditForm({
               />
             </div>
             <div>
-              <Label className="text-xs text-[#666] mb-1 block">
+              <Label htmlFor="admin-dev-accComplt" className="text-xs text-[#666] mb-1 block">
                 Complement d&apos;acces{" "}
                 <span className="text-[#929292]">(facultatif)</span>
               </Label>
               <Input
+                id="admin-dev-accComplt"
                 value={data.accComplt || ""}
                 onChange={(e) => onChange("accComplt", e.target.value)}
                 placeholder="Au bout du couloir gauche..."
@@ -352,25 +290,20 @@ export default function DeviceEditForm({
           <OuiNonSwitch
             label="Le DAE a-t-il déjà subi une maintenance ?"
             value={hadMaintenance}
-            onChange={(v) => {
-              setHadMaintenance(v);
-              if (v === "NON") {
-                onChange("dermnt", data.dateInstal || "");
-              } else {
-                if ((data.dermnt || "") === (data.dateInstal || "")) onChange("dermnt", "");
-              }
-            }}
+            onChange={onMaintenanceToggle}
             required
           />
 
           {hadMaintenance === "OUI" && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs text-[#666] mb-1 block">
+                <Label htmlFor="admin-dev-dermnt" className="text-xs text-[#666] mb-1 block">
                   Date dernière maintenance{" "}
                   <span className="text-[#E1000F]">*</span>
                 </Label>
                 <Input
+                  id="admin-dev-dermnt"
+                  aria-required="true"
                   type="date"
                   value={data.dermnt || ""}
                   onChange={(e) => onChange("dermnt", e.target.value)}
@@ -378,11 +311,12 @@ export default function DeviceEditForm({
                 />
               </div>
               <div>
-                <Label className="text-xs text-[#666] mb-1 block">
+                <Label htmlFor="admin-dev-dateInstal-opt" className="text-xs text-[#666] mb-1 block">
                   Date d&apos;installation{" "}
                   <span className="text-[#929292]">(facultatif)</span>
                 </Label>
                 <Input
+                  id="admin-dev-dateInstal-opt"
                   type="date"
                   value={data.dateInstal || ""}
                   onChange={(e) => onChange("dateInstal", e.target.value)}
@@ -394,11 +328,13 @@ export default function DeviceEditForm({
 
           {hadMaintenance === "NON" && (
             <div className="max-w-xs">
-              <Label className="text-xs text-[#666] mb-1 block">
+              <Label htmlFor="admin-dev-dateInstal" className="text-xs text-[#666] mb-1 block">
                 Date d&apos;installation{" "}
                 <span className="text-[#E1000F]">*</span>
               </Label>
               <Input
+                id="admin-dev-dateInstal"
+                aria-required="true"
                 type="date"
                 value={data.dateInstal || ""}
                 onChange={(e) => {
@@ -427,10 +363,11 @@ export default function DeviceEditForm({
           {/* Date peremption electrodes */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs text-[#666] mb-1 block">
+              <Label htmlFor="admin-dev-dtprLcad" className="text-xs text-[#666] mb-1 block">
                 Date de péremption des électrodes adultes
               </Label>
               <Input
+                id="admin-dev-dtprLcad"
                 type="date"
                 value={data.dtprLcad || ""}
                 onChange={(e) => onChange("dtprLcad", e.target.value)}
@@ -438,10 +375,11 @@ export default function DeviceEditForm({
               />
             </div>
             <div>
-              <Label className="text-xs text-[#666] mb-1 block">
+              <Label htmlFor="admin-dev-dtprLcped" className="text-xs text-[#666] mb-1 block">
                 Date de péremption des électrodes pédiatriques
               </Label>
               <Input
+                id="admin-dev-dtprLcped"
                 type="date"
                 value={data.dtprLcped || ""}
                 onChange={(e) => onChange("dtprLcped", e.target.value)}

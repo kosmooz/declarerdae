@@ -1,4 +1,11 @@
+import type { Metadata } from "next";
 import Breadcrumb from "@/components/declarerdae/Breadcrumb";
+
+export const metadata: Metadata = {
+  title: "Obligations légales — Déclaration DAE obligatoire",
+  description: "Cadre réglementaire complet de la déclaration des défibrillateurs automatisés externes (DAE). Loi 2018-527, décrets, arrêtés et sanctions applicables.",
+  alternates: { canonical: "/obligations" },
+};
 import PageHero from "@/components/declarerdae/PageHero";
 import CTABanner from "@/components/declarerdae/CTABanner";
 import ScrollReveal from "@/components/declarerdae/ScrollReveal";
@@ -69,7 +76,6 @@ export default function ObligationsPage() {
                         "Coordonnées géographiques (latitude/longitude)",
                         "Marque et modèle du DAE",
                         "Numéro de série de l'appareil",
-                        "Type de DAE (automatique ou semi-automatique)",
                         "Date d'installation",
                         "Conditions d'accessibilité (24h/24, horaires...)",
                         "Localisation précise (intérieur/extérieur)",

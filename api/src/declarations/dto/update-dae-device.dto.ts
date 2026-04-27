@@ -1,47 +1,47 @@
-import { IsString, IsOptional, IsInt, IsNumber } from "class-validator";
+import { IsString, IsOptional, IsInt, IsNumber, MaxLength } from "class-validator";
 
 export class UpdateDaeDeviceDto {
   @IsOptional() @IsInt() position?: number;
 
   // ── Identification ──
-  @IsOptional() @IsString() nom?: string;
+  @IsOptional() @IsString() @MaxLength(255) nom?: string;
 
   // ── Accès ──
-  @IsOptional() @IsString() acc?: string;
-  @IsOptional() @IsString() accLib?: string;
-  @IsOptional() @IsString() accEtg?: string;
-  @IsOptional() @IsString() accComplt?: string;
-  @IsOptional() @IsString() daeMobile?: string;
+  @IsOptional() @IsString() @MaxLength(50) acc?: string;
+  @IsOptional() @IsString() @MaxLength(10) accLib?: string;
+  @IsOptional() @IsString() @MaxLength(50) accEtg?: string;
+  @IsOptional() @IsString() @MaxLength(500) accComplt?: string;
+  @IsOptional() @IsString() @MaxLength(10) daeMobile?: string;
 
   // ── Disponibilité ──
-  @IsOptional() @IsString() dispJ?: string;
-  @IsOptional() @IsString() dispH?: string;
-  @IsOptional() @IsString() dispComplt?: string;
+  @IsOptional() @IsString() @MaxLength(255) dispJ?: string;
+  @IsOptional() @IsString() @MaxLength(255) dispH?: string;
+  @IsOptional() @IsString() @MaxLength(500) dispComplt?: string;
 
   // ── État ──
-  @IsOptional() @IsString() etatFonct?: string;
+  @IsOptional() @IsString() @MaxLength(100) etatFonct?: string;
 
   // ── Fabricant ──
-  @IsOptional() @IsString() fabRais?: string;
-  @IsOptional() @IsString() modele?: string;
-  @IsOptional() @IsString() numSerie?: string;
-  @IsOptional() @IsString() typeDAE?: string;
+  @IsOptional() @IsString() @MaxLength(255) fabRais?: string;
+  @IsOptional() @IsString() @MaxLength(255) modele?: string;
+  @IsOptional() @IsString() @MaxLength(100) numSerie?: string;
+  @IsOptional() @IsString() @MaxLength(50) typeDAE?: string;
 
   // ── Maintenance ──
-  @IsOptional() @IsString() dateInstal?: string;
-  @IsOptional() @IsString() dermnt?: string;
-  @IsOptional() @IsString() dispSurv?: string;
+  @IsOptional() @IsString() @MaxLength(20) dateInstal?: string;
+  @IsOptional() @IsString() @MaxLength(20) dermnt?: string;
+  @IsOptional() @IsString() @MaxLength(10) dispSurv?: string;
 
   // ── Électrodes & batterie ──
-  @IsOptional() @IsString() lcPed?: string;
-  @IsOptional() @IsString() dtprLcped?: string;
-  @IsOptional() @IsString() dtprLcad?: string;
+  @IsOptional() @IsString() @MaxLength(10) lcPed?: string;
+  @IsOptional() @IsString() @MaxLength(20) dtprLcped?: string;
+  @IsOptional() @IsString() @MaxLength(20) dtprLcad?: string;
 
   // ── Localisation DAE ──
   @IsOptional() @IsNumber() daeLat?: number;
   @IsOptional() @IsNumber() daeLng?: number;
 
   // ── Photos ──
-  @IsOptional() @IsString() photo1?: string;
-  @IsOptional() @IsString() photo2?: string;
+  @IsOptional() @IsString() @MaxLength(500) photo1?: string;
+  @IsOptional() @IsString() @MaxLength(500) photo2?: string;
 }

@@ -30,6 +30,7 @@ export class AdminService {
     includeDeleted = false,
     includeAddresses = false,
   ) {
+    limit = Math.min(limit, 100);
     const where: any = {};
 
     if (!includeDeleted) {
@@ -429,6 +430,7 @@ export class AdminService {
     sortBy = "createdAt",
     sortOrder: "asc" | "desc" = "desc",
   ) {
+    limit = Math.min(limit, 100);
     const where: any = {};
 
     if (status) {
@@ -559,6 +561,7 @@ export class AdminService {
     sortBy = "createdAt",
     sortOrder: "asc" | "desc" = "desc",
   ) {
+    limit = Math.min(limit, 100);
     const where: any = {};
 
     if (status) {

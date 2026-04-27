@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,10 @@ import SiteEditForm from "./SiteEditForm";
 import DeviceEditForm from "./DeviceEditForm";
 import UserAttachmentDialog from "./UserAttachmentDialog";
 import { GeodaeSyncManager, GeodaeDetailContent } from "@/components/declarerdae/geodae";
+import AdminDeclHistory from "./AdminDeclHistory";
+import type { AuditLog } from "./AdminDeclHistory";
+import AdminCancelDialog from "./AdminCancelDialog";
+import AdminDeclGeodae from "./AdminDeclGeodae";
 
 import PHONE_PREFIXES from "@/data/phone-prefixes";
 
@@ -68,81 +73,15 @@ function phoneHref(number: string | null, prefixCode: string | null): string | u
 
 /* ─── Types ───────────────────────────────────────────────────────────── */
 
-interface DaeDevice {
-  id: string;
-  position: number;
-  nom: string | null;
-  acc: string | null;
-  accLib: string | null;
-  accEtg: string | null;
-  accComplt: string | null;
-  daeMobile: string | null;
-  dispJ: string | null;
-  dispH: string | null;
-  dispComplt: string | null;
-  etatFonct: string | null;
-  fabRais: string | null;
-  modele: string | null;
-  numSerie: string | null;
-  typeDAE: string | null;
-  dateInstal: string | null;
-  dermnt: string | null;
-  dispSurv: string | null;
-  lcPed: string | null;
-  dtprLcped: string | null;
-  dtprLcad: string | null;
-  photo1: string | null;
-  photo2: string | null;
-  daeLat: number | null;
-  daeLng: number | null;
-  geodaeGid: number | null;
-  geodaeStatus: string | null;
-  geodaeLastSync: string | null;
-  geodaeLastError: string | null;
-}
+import type { DaeDevice, Declaration as BaseDeclaration } from "@/types/declarations";
+import { FIELD_LABELS } from "@/types/declarations";
+import { isPhoneValid, isPrefixValid, GEODAE_PREFIXES } from "@/lib/validation";
 
-interface Declaration {
-  id: string;
+interface Declaration extends BaseDeclaration {
   number: number;
-  exptNom: string | null;
-  exptPrenom: string | null;
-  exptRais: string | null;
-  exptSiren: string | null;
-  exptSiret: string | null;
-  exptTel1: string | null;
-  exptTel1Prefix: string | null;
-  exptEmail: string | null;
-  exptNum: string | null;
-  exptVoie: string | null;
-  exptCp: string | null;
-  exptCom: string | null;
-  exptType: string | null;
-  exptInsee: string | null;
-  nomEtablissement: string | null;
-  typeERP: string | null;
-  categorieERP: string | null;
-  adrNum: string | null;
-  adrVoie: string | null;
-  codePostal: string | null;
-  codeInsee: string | null;
-  ville: string | null;
-  latCoor1: number | null;
-  longCoor1: number | null;
-  xyPrecis: number | null;
-  tel1: string | null;
-  tel1Prefix: string | null;
-  tel2: string | null;
-  tel2Prefix: string | null;
-  siteEmail: string | null;
   ip: string | null;
-  status: string;
-  step: number;
-  notes: string | null;
   userId: string | null;
   user: { id: string; email: string; emailVerified: boolean; firstName: string | null; lastName: string | null } | null;
-  createdAt: string;
-  updatedAt: string;
-  daeDevices: DaeDevice[];
 }
 
 /* ─── Constants ───────────────────────────────────────────────────────── */
@@ -170,80 +109,9 @@ const TYPE_ERP_LABELS: Record<string, string> = {
 };
 
 
-const CANCEL_REASONS = [
-  {
-    label: "Informations incomplètes",
-    reason: "Informations incomplètes ou incorrectes",
-    body: (n: number, rais: string) =>
-      `Bonjour,\n\nNous avons bien reçu votre demande de déclaration #${n}${rais ? ` pour ${rais}` : ""}.\n\nAprès examen de votre dossier, nous ne sommes pas en mesure de poursuivre le traitement car certaines informations obligatoires sont manquantes ou incorrectes.\n\nNous vous invitons à soumettre une nouvelle déclaration en veillant à renseigner l'ensemble des champs requis.\n\nCordialement,\nL'équipe DéclarerDéfibrillateur`,
-  },
-  {
-    label: "Doublon de déclaration",
-    reason: "Doublon de déclaration",
-    body: (n: number, rais: string) =>
-      `Bonjour,\n\nVotre demande de déclaration #${n}${rais ? ` pour ${rais}` : ""} a été identifiée comme un doublon d'une déclaration déjà existante dans notre système.\n\nAfin d'éviter les doublons dans la base nationale Géo'DAE, cette demande a été annulée. Si vous pensez qu'il s'agit d'une erreur, n'hésitez pas à nous contacter.\n\nCordialement,\nL'équipe DéclarerDéfibrillateur`,
-  },
-  {
-    label: "Demande du déclarant",
-    reason: "Annulation à la demande du déclarant",
-    body: (n: number, rais: string) =>
-      `Bonjour,\n\nConformément à votre demande, nous avons procédé à l'annulation de la déclaration #${n}${rais ? ` pour ${rais}` : ""}.\n\nSi vous souhaitez déclarer vos défibrillateurs ultérieurement, vous pouvez à tout moment soumettre une nouvelle demande sur notre plateforme.\n\nCordialement,\nL'équipe DéclarerDéfibrillateur`,
-  },
-  {
-    label: "DAE non éligible",
-    reason: "Défibrillateur non éligible à la déclaration",
-    body: (n: number, rais: string) =>
-      `Bonjour,\n\nAprès vérification, le(s) défibrillateur(s) déclaré(s) dans votre demande #${n}${rais ? ` pour ${rais}` : ""} ne répondent pas aux critères d'éligibilité pour l'enregistrement dans la base nationale Géo'DAE.\n\nCela peut être dû au type d'appareil, à son état ou à des informations techniques non conformes. Nous vous invitons à vérifier ces éléments et à soumettre une nouvelle déclaration si nécessaire.\n\nCordialement,\nL'équipe DéclarerDéfibrillateur`,
-  },
-  {
-    label: "Autre raison",
-    reason: "",
-    body: (n: number, rais: string) =>
-      `Bonjour,\n\nVotre demande de déclaration #${n}${rais ? ` pour ${rais}` : ""} a été annulée.\n\n\n\nCordialement,\nL'équipe DéclarerDéfibrillateur`,
-  },
-];
+// CANCEL_REASONS moved to AdminCancelDialog
 
-interface AuditLog {
-  id: string;
-  action: string;
-  fieldName: string | null;
-  oldValue: string | null;
-  newValue: string | null;
-  deviceId: string | null;
-  deviceName: string | null;
-  metadata: string | null;
-  createdAt: string;
-  admin: { id: string; email: string; firstName: string | null; lastName: string | null } | null;
-}
-
-const FIELD_LABELS: Record<string, string> = {
-  exptRais: "Raison sociale", exptSiren: "SIREN", exptSiret: "SIRET",
-  exptNom: "Nom contact", exptPrenom: "Prenom contact",
-  exptEmail: "Email exploitant", exptTel1: "Tel. exploitant", exptTel1Prefix: "Indicatif exploitant",
-  exptNum: "N. voie exploitant", exptVoie: "Voie exploitant", exptCp: "CP exploitant", exptCom: "Commune exploitant",
-  nomEtablissement: "Etablissement", typeERP: "Type ERP",
-  adrNum: "N. voie site", adrVoie: "Adresse site", adrComplement: "Complement adresse",
-  codePostal: "Code postal", codeInsee: "Code INSEE", ville: "Ville",
-  latCoor1: "Latitude", longCoor1: "Longitude",
-  tel1: "Tel. site", tel1Prefix: "Indicatif site", tel2: "Tel. 2 site", tel2Prefix: "Indicatif tel. 2",
-  siteEmail: "Email site", notes: "Notes", status: "Statut",
-  nom: "Nom DAE", acc: "Environnement", accLib: "Acces libre",
-  accEtg: "Etage", accComplt: "Complement acces",
-  daeMobile: "DAE itinerant", dispJ: "Jours dispo.", dispH: "Heures dispo.",
-  etatFonct: "Etat fonctionnement", fabRais: "Fabricant", modele: "Modele",
-  numSerie: "N. serie", typeDAE: "Type DAE",
-  dateInstal: "Date installation", dermnt: "Dern. maintenance",
-  photo1: "Photo 1", photo2: "Photo 2",
-};
-
-const ACTION_LABELS: Record<string, { label: string; color: string }> = {
-  CREATED: { label: "Creation", color: "bg-[#18753C]" },
-  FIELD_UPDATE: { label: "Modification", color: "bg-[#000091]" },
-  STATUS_CHANGE: { label: "Changement de statut", color: "bg-amber-500" },
-  DEVICE_UPDATE: { label: "Modification DAE", color: "bg-[#000091]" },
-  USER_ATTACHED: { label: "Utilisateur rattache", color: "bg-purple-500" },
-  GEODAE_SYNC: { label: "Envoi GéoDAE", color: "bg-sky-500" },
-};
+// AuditLog type imported from AdminDeclHistory
 
 function parseJsonArray(val: string | null): string[] {
   if (!val) return [];
@@ -317,8 +185,7 @@ export default function AdminDeclarationDetailPage() {
   const [transitioning, setTransitioning] = useState(false);
 
   // Cancel dialog state
-  const [cancelReason, setCancelReason] = useState("");
-  const [cancelEmailBody, setCancelEmailBody] = useState("");
+  // cancelReason/cancelEmailBody moved to AdminCancelDialog
 
   // Active detail section
   const [activeTab, setActiveTab] = useState("exploitant");
@@ -339,11 +206,12 @@ export default function AdminDeclarationDetailPage() {
   /* ─── Load ─────────────────────────────────────────────────────────── */
 
   useEffect(() => {
+    const ctrl = new AbortController();
     async function load() {
       setLoading(true);
       const [declRes, logsRes] = await Promise.all([
-        apiFetch(`/api/admin/declarations/${id}`),
-        apiFetch(`/api/admin/declarations/${id}/audit-logs`),
+        apiFetch(`/api/admin/declarations/${id}`, { signal: ctrl.signal }),
+        apiFetch(`/api/admin/declarations/${id}/audit-logs`, { signal: ctrl.signal }),
       ]);
       if (declRes.ok) {
         const data = await declRes.json();
@@ -357,9 +225,10 @@ export default function AdminDeclarationDetailPage() {
       if (logsRes.ok) {
         setAuditLogs(await logsRes.json());
       }
-      setLoading(false);
+      if (!ctrl.signal.aborted) setLoading(false);
     }
-    load();
+    load().catch((err: unknown) => { if ((err as Error).name !== "AbortError") console.error("[admin-decl-load]", err); });
+    return () => ctrl.abort();
   }, [id, router]);
 
   /* ─── Edit helpers ─────────────────────────────────────────────────── */
@@ -398,12 +267,7 @@ export default function AdminDeclarationDetailPage() {
     "accPcsec", "accAcc", "fabSiren", "idEuro", "mntRais", "mntSiren", "freqMnt", "dtprBat",
   ]);
 
-  const GEODAE_PREFIXES = new Set(["fr","re","gp","gf","mq","yt","nc","pf","pm","wf","bl","mf"]);
-  const checkAdminPhone = (phone: string | null | undefined) => {
-    if (!phone?.trim()) return false;
-    const cleaned = phone.replace(/[\s\-\.()]/g, "").replace(/^0/, "");
-    return /^\d{9}$/.test(cleaned);
-  };
+  // GEODAE_PREFIXES, isPhoneValid, isPrefixValid imported from @/lib/validation
 
   const handleSectionSave = useCallback(
     async (section: string) => {
@@ -415,11 +279,11 @@ export default function AdminDeclarationDetailPage() {
           toast.error("Téléphone exploitant obligatoire");
           return;
         }
-        if (!checkAdminPhone(editData.exptTel1)) {
+        if (!isPhoneValid(editData.exptTel1)) {
           toast.error("Téléphone exploitant : 9 chiffres requis (hors indicatif)");
           return;
         }
-        if (!editData.exptTel1Prefix || !GEODAE_PREFIXES.has(editData.exptTel1Prefix)) {
+        if (!isPrefixValid(editData.exptTel1Prefix)) {
           toast.error("Indicatif exploitant : France ou DOM-TOM requis");
           return;
         }
@@ -429,18 +293,28 @@ export default function AdminDeclarationDetailPage() {
           toast.error("Téléphone du site obligatoire");
           return;
         }
-        if (!checkAdminPhone(editData.tel1)) {
+        if (!isPhoneValid(editData.tel1)) {
           toast.error("Téléphone du site : 9 chiffres requis (hors indicatif)");
           return;
         }
-        if (!editData.tel1Prefix || !GEODAE_PREFIXES.has(editData.tel1Prefix)) {
+        if (!isPrefixValid(editData.tel1Prefix)) {
           toast.error("Indicatif du site : France ou DOM-TOM requis");
           return;
+        }
+        if (editData.tel2?.trim()) {
+          if (!isPhoneValid(editData.tel2)) {
+            toast.error("Téléphone secondaire : 9 chiffres requis (hors indicatif)");
+            return;
+          }
+          if (!isPrefixValid(editData.tel2Prefix)) {
+            toast.error("Indicatif tél. secondaire : France ou DOM-TOM requis");
+            return;
+          }
         }
       }
       if (section.startsWith("device-")) {
         if (!editData.dermnt?.trim()) {
-          toast.error("Date dernière maintenance obligatoire");
+          toast.error(editData.hadMaintenance === "OUI" ? "Date de maintenance obligatoire" : "Date d'installation obligatoire");
           return;
         }
       }
@@ -618,19 +492,6 @@ export default function AdminDeclarationDetailPage() {
 
   const exploitantName = [decl.exptPrenom, decl.exptNom].filter(Boolean).join(" ");
   const fullAddress = [decl.adrNum, decl.adrVoie, decl.codePostal, decl.ville].filter(Boolean).join(" ");
-
-  // GéoDAE sync status
-  const geodaeSent = decl.daeDevices.filter(d => d.geodaeStatus === "SENT" || d.geodaeStatus === "UPDATED");
-  const geodaeFailed = decl.daeDevices.filter(d => d.geodaeStatus === "FAILED");
-  const geodaeDeleted = decl.daeDevices.filter(d => d.geodaeStatus === "DELETED");
-  const geodaeNotSent = decl.daeDevices.filter(d => !d.geodaeStatus || d.geodaeStatus === "NOT_SENT");
-  const geodaeAllSynced = geodaeSent.length === decl.daeDevices.length && decl.daeDevices.length > 0;
-  const geodaeNoneSynced = geodaeSent.length === 0 && geodaeFailed.length === 0 && geodaeDeleted.length === 0;
-  const geodaeIsUpdate = geodaeSent.length > 0;
-  const geodaeLastSync = geodaeSent.reduce((latest: string | null, d) => {
-    if (!d.geodaeLastSync) return latest;
-    return !latest || new Date(d.geodaeLastSync) > new Date(latest) ? d.geodaeLastSync : latest;
-  }, null);
 
   return (
     <div className="p-4 md:p-6 lg:p-8">
@@ -840,11 +701,6 @@ export default function AdminDeclarationDetailPage() {
                           {device.accLib === "OUI" && " · Libre"}
                         </span>
                       )}
-                      {device.typeDAE && (
-                        <span className="text-[10px] text-[#929292]">
-                          {device.typeDAE === "automatique" ? "DEA" : "DSA"}
-                        </span>
-                      )}
                     </div>
                   </div>
                 ))}
@@ -976,162 +832,12 @@ export default function AdminDeclarationDetailPage() {
 
       {/* GéoDAE sync card */}
       {(decl.status === "VALIDATED" || decl.status === "COMPLETE") && (
-        <div className={`rounded-lg border mb-6 overflow-hidden ${
-          needsResync
-            ? "border-amber-300 ring-2 ring-amber-200"
-            : geodaeAllSynced
-              ? "border-green-200"
-              : geodaeFailed.length > 0
-                ? "border-red-200"
-                : geodaeNoneSynced
-                  ? "border-amber-200"
-                  : "border-[#000091]/20"
-        }`}>
-          <div className={`h-1 ${
-            needsResync ? "bg-amber-500"
-              : geodaeAllSynced ? "bg-[#18753C]"
-              : geodaeFailed.length > 0 ? "bg-red-500"
-              : geodaeNoneSynced ? "bg-amber-400"
-              : "bg-[#000091]"
-          }`} />
-
-          <div className="bg-white p-5">
-            {/* Resync needed banner */}
-            {needsResync && (
-              <div className="alert-warning rounded text-sm mb-4">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-[#92400E] shrink-0" />
-                  <span className="text-[#92400E]">
-                    Les informations ont été modifiées. Mettez à jour les DAE sur GéoDAE pour synchroniser les changements.
-                  </span>
-                </div>
-              </div>
-            )}
-
-            <div className="flex items-start gap-4">
-              <div className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 ${
-                needsResync ? "bg-amber-100"
-                  : geodaeAllSynced ? "bg-green-100"
-                  : geodaeFailed.length > 0 ? "bg-red-100"
-                  : geodaeNoneSynced ? "bg-amber-100"
-                  : "bg-[#F5F5FE]"
-              }`}>
-                {needsResync ? (
-                  <AlertTriangle className="h-5 w-5 text-amber-600" />
-                ) : geodaeAllSynced ? (
-                  <CheckCircle className="h-5 w-5 text-[#18753C]" />
-                ) : geodaeFailed.length > 0 ? (
-                  <AlertTriangle className="h-5 w-5 text-red-600" />
-                ) : (
-                  <Globe className="h-5 w-5 text-[#000091]" />
-                )}
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="text-sm font-bold text-[#3A3A3A]">Base nationale GéoDAE</h3>
-                  {needsResync && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 animate-pulse">
-                      <AlertTriangle className="h-2.5 w-2.5" />
-                      Mise à jour requise
-                    </span>
-                  )}
-                  {geodaeAllSynced && !needsResync && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-[#18753C]">
-                      <CheckCircle className="h-2.5 w-2.5" />
-                      Synchronisé
-                    </span>
-                  )}
-                  {geodaeFailed.length > 0 && geodaeSent.length === 0 && !needsResync && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-100 text-red-700">
-                      Échec
-                    </span>
-                  )}
-                  {!geodaeAllSynced && geodaeSent.length > 0 && !needsResync && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#F5F5FE] text-[#000091]">
-                      Partiellement synchronisé
-                    </span>
-                  )}
-                  {geodaeNoneSynced && !needsResync && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700">
-                      Non envoyé
-                    </span>
-                  )}
-                </div>
-
-                <p className="text-xs text-[#929292] mb-3">
-                  {geodaeAllSynced
-                    ? `${geodaeSent.length} DAE enregistré${geodaeSent.length > 1 ? "s" : ""} dans la base nationale`
-                    : geodaeNoneSynced
-                      ? `${decl.daeDevices.length} DAE en attente d'envoi`
-                      : `${geodaeSent.length}/${decl.daeDevices.length} DAE synchronisé${geodaeSent.length > 1 ? "s" : ""}${geodaeFailed.length > 0 ? `, ${geodaeFailed.length} en échec` : ""}${geodaeNotSent.length > 0 ? `, ${geodaeNotSent.length} non envoyé${geodaeNotSent.length > 1 ? "s" : ""}` : ""}`}
-                  {geodaeLastSync && (
-                    <> · Dernière sync : {new Date(geodaeLastSync).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}</>
-                  )}
-                </p>
-
-                {/* Device badges — clickable for synced devices */}
-                <div className="flex flex-wrap gap-1.5">
-                  {decl.daeDevices.map((device, i) => {
-                    const isSent = device.geodaeStatus === "SENT" || device.geodaeStatus === "UPDATED";
-                    const isDeleted = device.geodaeStatus === "DELETED";
-                    const isFailed = device.geodaeStatus === "FAILED";
-                    return (
-                      <div key={device.id} className="inline-flex items-center">
-                        {isSent ? (
-                          <button
-                            type="button"
-                            onClick={() => handleShowGeodaeDetail(device)}
-                            className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border transition-colors cursor-pointer ${
-                              needsResync
-                                ? "bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100"
-                                : "bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
-                            }`}
-                            title="Voir la fiche GéoDAE"
-                          >
-                            {needsResync ? <AlertTriangle className="h-3 w-3" /> : <CheckCircle className="h-3 w-3" />}
-                            {device.nom || `DAE ${i + 1}`}
-                            <span className="text-[10px] opacity-75">#{device.geodaeGid}</span>
-                          </button>
-                        ) : isDeleted ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border bg-[#F6F6F6] border-[#E5E5E5] text-[#929292] line-through opacity-60">
-                            <Trash2 className="h-3 w-3" />
-                            {device.nom || `DAE ${i + 1}`}
-                          </span>
-                        ) : (
-                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border ${
-                            isFailed ? "bg-red-50 border-red-200 text-red-700" : "bg-[#F6F6F6] border-[#E5E5E5] text-[#929292]"
-                          }`}>
-                            {isFailed ? <XCircle className="h-3 w-3" /> : <Globe className="h-3 w-3" />}
-                            {device.nom || `DAE ${i + 1}`}
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="shrink-0">
-                <Button
-                  size="sm"
-                  onClick={() => setShowGeodaeSyncManager(true)}
-                  className={geodaeIsUpdate && geodaeFailed.length === 0 && !needsResync
-                    ? "bg-white text-[#000091] border border-[#000091] hover:bg-[#F5F5FE] shadow-none"
-                    : "bg-gradient-to-r from-[#000091] via-[#1a0f91] to-[#4a00e0] hover:from-[#000078] hover:via-[#15087a] hover:to-[#3d00c0] text-white shadow-md hover:shadow-lg transition-all duration-200"
-                  }
-                >
-                  {geodaeIsUpdate ? <RotateCw className="h-3.5 w-3.5 mr-1.5" /> : <Upload className="h-3.5 w-3.5 mr-1.5" />}
-                  {geodaeFailed.length > 0 && geodaeSent.length === 0
-                    ? "Réessayer l'envoi"
-                    : geodaeIsUpdate
-                      ? "Mettre à jour"
-                      : "Envoyer vers GéoDAE"}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <AdminDeclGeodae
+          devices={decl.daeDevices}
+          needsResync={needsResync}
+          onShowDetail={handleShowGeodaeDetail}
+          onOpenSyncManager={() => setShowGeodaeSyncManager(true)}
+        />
       )}
 
       {/* Detail sections */}
@@ -1398,16 +1104,6 @@ export default function AdminDeclarationDetailPage() {
                     <InfoRow label="Modele" value={device.modele} />
                     <InfoRow label="N. serie" value={device.numSerie} />
                     <InfoRow
-                      label="Type DAE"
-                      value={
-                        device.typeDAE === "automatique"
-                          ? "DEA (automatique)"
-                          : device.typeDAE === "semi-automatique"
-                            ? "DSA (semi-auto)"
-                            : device.typeDAE
-                      }
-                    />
-                    <InfoRow
                       label="Environnement"
                       value={
                         device.acc === "interieur"
@@ -1455,16 +1151,20 @@ export default function AdminDeclarationDetailPage() {
                     {(device.photo1 || device.photo2) && (
                       <div className="py-2 flex gap-3">
                         {device.photo1 && (
-                          <img
+                          <Image
                             src={device.photo1}
                             alt="Photo 1"
+                            width={96}
+                            height={96}
                             className="w-24 h-24 object-cover rounded border"
                           />
                         )}
                         {device.photo2 && (
-                          <img
+                          <Image
                             src={device.photo2}
                             alt="Photo 2"
+                            width={96}
+                            height={96}
                             className="w-24 h-24 object-cover rounded border"
                           />
                         )}
@@ -1479,107 +1179,12 @@ export default function AdminDeclarationDetailPage() {
 
         {/* Section : Historique */}
         {activeTab === "history" && (
-          <div className="space-y-4">
-            {/* Meta header */}
-            <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-[#929292] bg-[#F6F6F6] rounded-lg px-4 py-3 border border-[#E5E5E5]">
-              <span>Creee le <strong className="text-[#3A3A3A]">{new Date(decl.createdAt).toLocaleString("fr-FR")}</strong></span>
-              <span>Mise a jour le <strong className="text-[#3A3A3A]">{new Date(decl.updatedAt).toLocaleString("fr-FR")}</strong></span>
-              {decl.ip && <span>IP <strong className="text-[#3A3A3A]">{decl.ip}</strong></span>}
-            </div>
-
-            {/* Timeline */}
-            {auditLogs.length === 0 ? (
-              <div className="text-center py-10 text-sm text-[#929292]">
-                Aucune modification enregistree pour cette declaration.
-              </div>
-            ) : (
-              <div className="relative">
-                {/* Vertical line */}
-                <div className="absolute left-[19px] top-2 bottom-2 w-px bg-[#E5E5E5]" />
-
-                <div className="space-y-0">
-                  {auditLogs.map((log) => {
-                    const actionInfo = ACTION_LABELS[log.action] || { label: log.action, color: "bg-[#929292]" };
-                    const fieldLabel = log.fieldName ? (FIELD_LABELS[log.fieldName] || log.fieldName) : null;
-                    const adminName = log.admin
-                      ? (log.admin.firstName || log.admin.lastName
-                        ? [log.admin.firstName, log.admin.lastName].filter(Boolean).join(" ")
-                        : log.admin.email)
-                      : "Systeme";
-                    let meta: Record<string, any> = {};
-                    try { if (log.metadata) meta = JSON.parse(log.metadata); } catch {}
-
-                    return (
-                      <div key={log.id} className="relative flex gap-3 py-3 pl-1">
-                        {/* Dot */}
-                        <div className={`relative z-10 mt-1 w-[10px] h-[10px] rounded-full shrink-0 ring-2 ring-white ${actionInfo.color}`} />
-
-                        {/* Content */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xs font-medium text-[#3A3A3A]">
-                              {actionInfo.label}
-                            </span>
-                            {log.deviceName && (
-                              <span className="text-[10px] bg-[#F6F6F6] border border-[#E5E5E5] rounded px-1.5 py-0.5 text-[#929292]">
-                                {log.deviceName}
-                              </span>
-                            )}
-                            <span className="text-[10px] text-[#929292] ml-auto shrink-0">
-                              {new Date(log.createdAt).toLocaleString("fr-FR")} - {adminName}
-                            </span>
-                          </div>
-
-                          {/* Field change detail */}
-                          {log.action === "STATUS_CHANGE" ? (
-                            <div className="mt-1 flex items-center gap-2">
-                              <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${STATUS_COLORS[log.oldValue || ""] || "bg-[#F6F6F6] text-[#3A3A3A]"}`}>
-                                {STATUS_LABELS[log.oldValue || ""] || log.oldValue}
-                              </span>
-                              <span className="text-xs text-[#929292]">&rarr;</span>
-                              <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${STATUS_COLORS[log.newValue || ""] || "bg-[#F6F6F6] text-[#3A3A3A]"}`}>
-                                {STATUS_LABELS[log.newValue || ""] || log.newValue}
-                              </span>
-                              {meta.cancelReason && (
-                                <span className="text-[10px] text-[#929292] italic ml-1">({meta.cancelReason})</span>
-                              )}
-                            </div>
-                          ) : log.action === "USER_ATTACHED" ? (
-                            <p className="mt-1 text-xs text-[#929292]">
-                              Utilisateur rattache : <span className="text-[#3A3A3A]">{log.newValue}</span>
-                            </p>
-                          ) : log.action === "GEODAE_SYNC" ? (
-                            <div className="mt-1 text-xs">
-                              {meta.status === "SENT" || meta.status === "UPDATED" ? (
-                                <span className="text-[#18753C] bg-green-50 rounded px-1">
-                                  {meta.status === "UPDATED" ? "Mis à jour" : "Envoyé"} — GID {meta.gid}
-                                </span>
-                              ) : (
-                                <span className="text-red-600 bg-red-50 rounded px-1">
-                                  Échec : {meta.error ? (meta.error.length > 100 ? meta.error.slice(0, 100) + "..." : meta.error) : "erreur inconnue"}
-                                </span>
-                              )}
-                            </div>
-                          ) : fieldLabel ? (
-                            <div className="mt-1 text-xs">
-                              <span className="text-[#929292]">{fieldLabel} : </span>
-                              {log.oldValue ? (
-                                <>
-                                  <span className="line-through text-red-400 bg-red-50 rounded px-1">{log.oldValue.length > 80 ? log.oldValue.slice(0, 80) + "..." : log.oldValue}</span>
-                                  <span className="text-[#929292] mx-1">&rarr;</span>
-                                </>
-                              ) : null}
-                              <span className="text-[#18753C] bg-green-50 rounded px-1">{(log.newValue || "").length > 80 ? (log.newValue || "").slice(0, 80) + "..." : (log.newValue || "(vide)")}</span>
-                            </div>
-                          ) : null}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
+          <AdminDeclHistory
+            createdAt={decl.createdAt}
+            updatedAt={decl.updatedAt}
+            ip={decl.ip}
+            auditLogs={auditLogs}
+          />
         )}
       </div>
 
@@ -1596,92 +1201,17 @@ export default function AdminDeclarationDetailPage() {
         }}
       />
 
-      <Dialog open={showCancelConfirm} onOpenChange={(open) => {
-        setShowCancelConfirm(open);
-        if (!open) { setCancelReason(""); setCancelEmailBody(""); }
-      }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Annuler la déclaration #{decl.number}</DialogTitle>
-            <DialogDescription>
-              Sélectionnez un motif d'annulation. Un email sera envoyé au déclarant.
-            </DialogDescription>
-          </DialogHeader>
-
-          {/* Predefined reasons */}
-          <div className="space-y-2 my-2">
-            <label className="text-sm font-medium text-[#3A3A3A]">Motif d'annulation</label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {CANCEL_REASONS.map((r) => (
-                <button
-                  key={r.label}
-                  type="button"
-                  onClick={() => {
-                    setCancelReason(r.reason);
-                    setCancelEmailBody(r.body(decl.number, decl.exptRais || ""));
-                  }}
-                  className={`text-left px-3 py-2 rounded-md border text-sm transition-colors ${
-                    cancelReason === r.reason && r.reason
-                      ? "border-[#000091] bg-[#F5F5FE] text-[#000091] font-medium"
-                      : "border-[#E5E5E5] hover:border-[#000091]/40 text-[#3A3A3A]"
-                  }`}
-                >
-                  {r.label}
-                </button>
-              ))}
-            </div>
-            {cancelReason === "" && cancelEmailBody && (
-              <input
-                type="text"
-                value={cancelReason}
-                onChange={(e) => setCancelReason(e.target.value)}
-                placeholder="Saisissez le motif..."
-                className="w-full mt-2 px-3 py-2 rounded-md border border-[#E5E5E5] text-sm focus:outline-none focus:border-[#000091] focus:ring-1 focus:ring-[#000091]"
-              />
-            )}
-          </div>
-
-          {/* Email preview */}
-          {cancelEmailBody && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-[#3A3A3A]">Email de notification</label>
-                <span className="text-xs text-[#929292]">
-                  Destinataire : {decl.user?.email || decl.exptEmail || "—"}
-                </span>
-              </div>
-              <textarea
-                value={cancelEmailBody}
-                onChange={(e) => setCancelEmailBody(e.target.value)}
-                rows={10}
-                className="w-full px-3 py-2 rounded-md border border-[#E5E5E5] text-sm resize-none focus:outline-none focus:border-[#000091] focus:ring-1 focus:ring-[#000091] font-mono leading-relaxed"
-              />
-            </div>
-          )}
-
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              variant="ghost"
-              onClick={() => setShowCancelConfirm(false)}
-              disabled={transitioning}
-            >
-              Retour
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() =>
-                handleStatusTransition("CANCELLED", {
-                  cancelReason: cancelReason || "Annulée sans motif",
-                  cancelEmailBody,
-                })
-              }
-              disabled={transitioning || !cancelEmailBody}
-            >
-              {transitioning ? "Annulation..." : "Annuler et envoyer l'email"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AdminCancelDialog
+        open={showCancelConfirm}
+        onOpenChange={setShowCancelConfirm}
+        declNumber={decl.number}
+        declExptRais={decl.exptRais}
+        recipientEmail={decl.user?.email || decl.exptEmail || ""}
+        transitioning={transitioning}
+        onConfirm={(reason, body) =>
+          handleStatusTransition("CANCELLED", { cancelReason: reason, cancelEmailBody: body })
+        }
+      />
 
       <Dialog open={showValidateConfirm} onOpenChange={setShowValidateConfirm}>
         <DialogContent>

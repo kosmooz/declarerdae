@@ -25,7 +25,6 @@ const navLinks: NavItem[] = [
       { label: "FAQ", href: "/#faq", desc: "Questions fréquentes" },
     ],
   },
-  { label: "Trouver un DAE", href: "/trouver-un-dae", isPage: true },
   { label: "Notre service", href: "/#service" },
   { label: "Tarifs", href: "/tarifs", isPage: true, badge: "Gratuit" },
   { label: "À propos", href: "/a-propos", isPage: true },

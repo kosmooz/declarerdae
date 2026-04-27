@@ -41,18 +41,22 @@ export default function AdminBlogCategoriesPage() {
   const [editColor, setEditColor] = useState("");
   const [editDescription, setEditDescription] = useState("");
 
-  const fetchCategories = async () => {
+  const fetchCategories = async (signal?: AbortSignal) => {
     setLoading(true);
     try {
-      const res = await apiFetch("/api/blog/admin/categories");
+      const res = await apiFetch("/api/blog/admin/categories", { signal });
       if (res.ok) setCategories(await res.json());
+    } catch (err: unknown) {
+      if ((err as Error).name !== "AbortError") console.error("[admin-blog-cats]", err);
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchCategories();
+    const ctrl = new AbortController();
+    fetchCategories(ctrl.signal);
+    return () => ctrl.abort();
   }, []);
 
   const handleCreate = async () => {

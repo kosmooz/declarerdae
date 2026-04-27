@@ -82,22 +82,24 @@ export default function MesDeclarationsPage() {
     }
   }, [highlightId, loading]);
 
-  const fetchDeclarations = useCallback(async () => {
+  const fetchDeclarations = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     const params = new URLSearchParams({ page: String(page), limit: "20" });
     if (statusFilter) params.set("status", statusFilter);
 
-    const res = await apiFetch(`/api/declarations/my?${params}`);
+    const res = await apiFetch(`/api/declarations/my?${params}`, { signal });
     if (res.ok) {
       const data = await res.json();
       setDeclarations(data.declarations);
       setTotal(data.total);
     }
-    setLoading(false);
+    if (!signal?.aborted) setLoading(false);
   }, [page, statusFilter]);
 
   useEffect(() => {
-    fetchDeclarations();
+    const ctrl = new AbortController();
+    fetchDeclarations(ctrl.signal).catch((err: unknown) => { if ((err as Error).name !== "AbortError") console.error("[my-declarations]", err); });
+    return () => ctrl.abort();
   }, [fetchDeclarations]);
 
   const totalPages = Math.ceil(total / 20);

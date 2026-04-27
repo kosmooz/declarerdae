@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import NextImage from "next/image";
 import { Upload, X, Image as ImageIcon } from "lucide-react";
 
 interface PhotoUploadProps {
@@ -56,9 +57,11 @@ export default function PhotoUpload({
       <span className="text-xs text-[#666] mb-1 block">{label}</span>
       {value ? (
         <div className="relative inline-block">
-          <img
+          <NextImage
             src={value}
             alt={label}
+            width={96}
+            height={96}
             className="w-24 h-24 object-cover rounded border border-[#CECECE]"
           />
           <button

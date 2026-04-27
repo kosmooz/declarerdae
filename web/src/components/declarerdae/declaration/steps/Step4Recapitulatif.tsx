@@ -70,7 +70,6 @@ function DeviceRecap({
       <Field label="Fabricant" value={device.fabRais} />
       <Field label="Modèle" value={device.modele} />
       <Field label="N° série" value={device.numSerie} />
-      <Field label="Type" value={device.typeDAE === "automatique" ? "DEA" : "DSA"} />
       <Field label="État" value={device.etatFonct} />
       <Field
         label="Accès"
@@ -147,10 +146,12 @@ function AccountSection({
       </p>
 
       <div>
-        <Label className="text-xs text-[#666] mb-1 block">
+        <Label htmlFor="step4-email" className="text-xs text-[#666] mb-1 block">
           Email <span className="text-[#E1000F]">*</span>
         </Label>
         <Input
+          id="step4-email"
+          aria-required="true"
           type="email"
           value={email}
           onChange={(e) => onEmailChange(e.target.value)}
@@ -160,11 +161,13 @@ function AccountSection({
       </div>
 
       <div>
-        <Label className="text-xs text-[#666] mb-1 block">
+        <Label htmlFor="step4-password" className="text-xs text-[#666] mb-1 block">
           Définir un mot de passe <span className="text-[#E1000F]">*</span>
         </Label>
         <div className="relative">
           <Input
+            id="step4-password"
+            aria-required="true"
             type={showPassword ? "text" : "password"}
             value={password}
             onChange={(e) => onPasswordChange(e.target.value)}

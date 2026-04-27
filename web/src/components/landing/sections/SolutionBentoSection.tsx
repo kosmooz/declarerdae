@@ -7,6 +7,7 @@ import {
   Activity, ShieldCheck, Award, Truck, Zap, Building2, Eye,
   FileCheck, Timer, Heart, PhoneCall
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { IMAGES, INCLUDED_FEATURES, PRODUCT_SPECS } from "@/data/landing-content";
@@ -102,7 +103,7 @@ export default function SolutionBentoSection() {
           <ScrollReveal delay={0.1}>
             <div id="produit" className="bg-white rounded-2xl border border-gray-200 overflow-hidden h-full flex flex-col">
               <div className="relative p-4 bg-gray-50 flex items-center justify-center">
-                <img src={IMAGES.defibArmoire} alt="Défibrillateur ZOLL AED" className="h-36 w-auto object-contain" loading="lazy" />
+                <Image src={IMAGES.defibArmoire} alt="Défibrillateur ZOLL AED" width={160} height={144} className="h-36 w-auto object-contain" />
                 <div className="absolute top-3 left-3 bg-[#d92d20] text-white rounded-full px-3 py-1 text-xs font-bold font-sans">
                   N°1 mondial
                 </div>
@@ -145,7 +146,7 @@ export default function SolutionBentoSection() {
                   </div>
                 ))}
               </div>
-              <img src={IMAGES.maintenanceTech} alt="Maintenance" className="rounded-xl w-full h-28 object-cover" loading="lazy" />
+              <Image src={IMAGES.maintenanceTech} alt="Maintenance" width={400} height={112} className="rounded-xl w-full h-28 object-cover" />
             </div>
           </ScrollReveal>
 
@@ -165,7 +166,7 @@ export default function SolutionBentoSection() {
                   </div>
                 ))}
               </div>
-              <img src={IMAGES.teamFormation} alt="Formation" className="rounded-xl w-full h-28 object-cover" loading="lazy" />
+              <Image src={IMAGES.teamFormation} alt="Formation" width={400} height={112} className="rounded-xl w-full h-28 object-cover" />
             </div>
           </ScrollReveal>
         </div>
