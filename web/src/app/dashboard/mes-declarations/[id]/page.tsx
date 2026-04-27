@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import Image from "next/image";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { serverToFormState } from "@/lib/declaration-convert";
@@ -213,6 +213,7 @@ function EditStepper({ currentStep, onStepClick }: { currentStep: number; onStep
 
 function EditView({
   decl,
+  initialStep,
   onSubmitted,
   onNeedsResync,
   needsResync,
@@ -221,6 +222,7 @@ function EditView({
   onDeleteSyncedDevice,
 }: {
   decl: Declaration;
+  initialStep?: number;
   onSubmitted: () => void;
   onNeedsResync: (needs: boolean) => void;
   needsResync: boolean;
@@ -241,11 +243,16 @@ function EditView({
     saveAll,
   } = useDeclarationEdit(decl.id, initialFormData);
 
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(initialStep ?? 1);
   const [submitting, setSubmitting] = useState(false);
   const [stepErrors, setStepErrors] = useState<StepErrors>({});
   const errorsRef = useRef<HTMLDivElement>(null);
   const stepperRef = useRef<HTMLDivElement>(null);
+
+  // React to initialStep changes from URL params (client-side navigation)
+  useEffect(() => {
+    if (initialStep !== undefined) setCurrentStep(initialStep);
+  }, [initialStep]);
 
   const hasSyncedDevices = decl.daeDevices.some(
     (d) => d.geodaeStatus === "SENT" || d.geodaeStatus === "UPDATED",
@@ -470,6 +477,7 @@ function EditView({
                 .filter((d) => d.geodaeStatus === "SENT" || d.geodaeStatus === "UPDATED")
                 .map((d) => d.id),
             )}
+            {...(initialStep === 3 ? { initialOpenDeviceId: null } : {})}
           />
         )}
         {currentStep === 4 && (
@@ -1753,7 +1761,23 @@ function computeNeedsResync(decl: Declaration): boolean {
 export default function DeclarationDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const id = params.id as string;
+
+  // URL-driven actions: ?tab=dae and ?action=geodae
+  const tabParam = searchParams.get("tab");
+  const actionParam = searchParams.get("action");
+  const [pendingTab, setPendingTab] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
+
+  // Capture params and clean URL
+  useEffect(() => {
+    if (tabParam || actionParam) {
+      if (tabParam) setPendingTab(tabParam);
+      if (actionParam) setPendingAction(actionParam);
+      window.history.replaceState(null, "", `/dashboard/mes-declarations/${id}`);
+    }
+  }, [tabParam, actionParam, id]);
 
   const [decl, setDecl] = useState<Declaration | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1787,6 +1811,14 @@ export default function DeclarationDetailPage() {
   useEffect(() => {
     loadDecl();
   }, [loadDecl]);
+
+  // Auto-open GéoDAE popup when navigated with ?action=geodae
+  useEffect(() => {
+    if (pendingAction === "geodae" && decl && !loading) {
+      setShowGeodaeConfirm(true);
+      setPendingAction(null);
+    }
+  }, [pendingAction, decl, loading]);
 
   /* ─── GéoDAE detail fetch ────────────────────────────────────── */
 
@@ -2166,6 +2198,7 @@ export default function DeclarationDetailPage() {
       {isEditable ? (
         <EditView
           decl={decl}
+          initialStep={pendingTab === "dae" ? 3 : undefined}
           onSubmitted={loadDecl}
           onNeedsResync={setNeedsResync}
           needsResync={needsResync}

@@ -17,6 +17,7 @@ interface Step3Props {
   onDeleteSyncedDevice?: (localId: string) => void;
   deletedDeviceIds?: Set<string>;
   syncedDeviceIds?: Set<string>;
+  initialOpenDeviceId?: string | null;
 }
 
 export default function Step3Defibrillateurs({
@@ -29,9 +30,10 @@ export default function Step3Defibrillateurs({
   onDeleteSyncedDevice,
   deletedDeviceIds,
   syncedDeviceIds,
+  initialOpenDeviceId,
 }: Step3Props) {
   const [openDeviceId, setOpenDeviceId] = useState<string | null>(
-    devices[0]?.localId || null,
+    initialOpenDeviceId !== undefined ? initialOpenDeviceId : (devices[0]?.localId || null),
   );
   const [scrollToDeviceId, setScrollToDeviceId] = useState<string | null>(null);
   const deviceRefs = useRef<Record<string, HTMLDivElement | null>>({});

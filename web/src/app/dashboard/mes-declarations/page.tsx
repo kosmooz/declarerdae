@@ -14,6 +14,7 @@ import {
   Globe,
   CheckCircle,
 } from "lucide-react";
+import DaeListView from "./DaeListView";
 
 interface DeclarationItem {
   id: string;
@@ -46,6 +47,7 @@ const STATUS_CONFIG: Record<string, { bg: string; text: string; dot: string }> =
 
 const QUICK_FILTERS = [
   { key: "", label: "Toutes" },
+  { key: "DRAFT", label: "Brouillon" },
   { key: "COMPLETE", label: "En attente d'envoi" },
   { key: "VALIDATED", label: "Validées" },
   { key: "CANCELLED", label: "Annulées" },
@@ -60,8 +62,19 @@ export default function MesDeclarationsPage() {
   const [declarations, setDeclarations] = useState<DeclarationItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState("");
+  const [viewMode, setViewMode] = useState<"declarations" | "dae">(() => {
+    if (typeof window === "undefined") return "declarations";
+    return (sessionStorage.getItem("decl-viewMode") as "declarations" | "dae") || "declarations";
+  });
+  const [statusFilter, setStatusFilter] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return sessionStorage.getItem("decl-statusFilter") || "";
+  });
   const [loading, setLoading] = useState(true);
+
+  // Persist viewMode and statusFilter in sessionStorage
+  useEffect(() => { sessionStorage.setItem("decl-viewMode", viewMode); }, [viewMode]);
+  useEffect(() => { sessionStorage.setItem("decl-statusFilter", statusFilter); }, [statusFilter]);
 
   // Highlight linked draft after login redirect
   useEffect(() => {
@@ -110,10 +123,12 @@ export default function MesDeclarationsPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-bold text-[#161616] font-heading">
-            Mes déclarations
+            {viewMode === "declarations" ? "Mes déclarations" : "Mes défibrillateurs"}
           </h1>
           <p className="text-sm text-[#666] mt-1">
-            Suivez l'avancement de vos déclarations de défibrillateurs
+            {viewMode === "declarations"
+              ? "Suivez l'avancement de vos déclarations de défibrillateurs"
+              : "Vue individuelle de tous vos DAE et leur statut GéoDAE"}
           </p>
         </div>
         <a
@@ -125,7 +140,33 @@ export default function MesDeclarationsPage() {
         </a>
       </div>
 
-      {/* Filters */}
+      {/* View toggle */}
+      <div className="flex items-center gap-1 p-1 bg-[#F6F6F6] rounded-lg w-fit mb-5">
+        <button
+          onClick={() => { setViewMode("declarations"); setPage(1); }}
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            viewMode === "declarations"
+              ? "bg-white text-[#000091] shadow-sm"
+              : "text-[#666] hover:text-[#3A3A3A]"
+          }`}
+        >
+          <ClipboardList className="w-4 h-4" />
+          Déclarations
+        </button>
+        <button
+          onClick={() => { setViewMode("dae"); setPage(1); }}
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            viewMode === "dae"
+              ? "bg-white text-[#000091] shadow-sm"
+              : "text-[#666] hover:text-[#3A3A3A]"
+          }`}
+        >
+          <Cpu className="w-4 h-4" />
+          Défibrillateurs
+        </button>
+      </div>
+
+      {/* Status filters */}
       <div className="flex flex-wrap gap-2 mb-5">
         {QUICK_FILTERS.map((f) => (
           <button
@@ -146,7 +187,9 @@ export default function MesDeclarationsPage() {
       </div>
 
       {/* Content */}
-      {loading ? (
+      {viewMode === "dae" ? (
+        <DaeListView statusFilter={statusFilter} />
+      ) : loading ? (
         <div className="flex justify-center py-16">
           <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-[#000091]" />
         </div>

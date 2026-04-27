@@ -328,6 +328,74 @@ export class DeclarationsService {
     };
   }
 
+  async listUserDevices(
+    userId: string,
+    page: number,
+    limit: number,
+    status?: string,
+    geodae?: string,
+  ) {
+    const safeLimit = Math.min(limit, 100);
+    const declWhere: Record<string, any> = { userId };
+    if (status) declWhere.status = status;
+
+    const where: Record<string, any> = { declaration: declWhere };
+
+    const deviceSelect = {
+      id: true, nom: true, fabRais: true, modele: true,
+      numSerie: true, etatFonct: true,
+      geodaeGid: true, geodaeStatus: true,
+      geodaeLastSync: true, geodaeLastError: true,
+      declaration: {
+        select: { id: true, exptRais: true, ville: true, status: true, updatedAt: true },
+      },
+    };
+
+    // synced and needs_update require post-filtering on updatedAt vs geodaeLastSync
+    if (geodae === "synced" || geodae === "needs_update") {
+      where.geodaeStatus = { in: ["SENT", "UPDATED"] };
+      where.geodaeLastSync = { not: null };
+
+      const allDevices = await this.prisma.daeDevice.findMany({
+        where,
+        select: deviceSelect,
+        orderBy: { declaration: { updatedAt: "desc" } },
+      });
+
+      const isSynced = geodae === "synced";
+      const filtered = allDevices.filter((d) => {
+        const declTime = new Date(d.declaration.updatedAt).getTime();
+        const syncTime = new Date(d.geodaeLastSync!).getTime();
+        return isSynced ? declTime <= syncTime : declTime > syncTime;
+      });
+
+      return {
+        devices: filtered.slice((page - 1) * safeLimit, page * safeLimit),
+        total: filtered.length,
+      };
+    }
+
+    // Simple filters — direct Prisma query with pagination
+    if (geodae === "not_sent") {
+      where.geodaeStatus = null;
+    } else if (geodae === "failed") {
+      where.geodaeStatus = "FAILED";
+    }
+
+    const [devices, total] = await Promise.all([
+      this.prisma.daeDevice.findMany({
+        where,
+        select: deviceSelect,
+        orderBy: { declaration: { updatedAt: "desc" } },
+        skip: (page - 1) * safeLimit,
+        take: safeLimit,
+      }),
+      this.prisma.daeDevice.count({ where }),
+    ]);
+
+    return { devices, total };
+  }
+
   async getUserDeclaration(userId: string, declarationId: string) {
     const declaration = await this.prisma.declaration.findUnique({
       where: { id: declarationId },

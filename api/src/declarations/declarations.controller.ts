@@ -103,6 +103,24 @@ export class DeclarationsController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get("my/devices")
+  async listMyDevices(
+    @Req() req: any,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
+    @Query("status") status?: string,
+    @Query("geodae") geodae?: string,
+  ) {
+    return this.declarationsService.listUserDevices(
+      req.user.sub,
+      parseInt(page || "1", 10),
+      parseInt(limit || "20", 10),
+      status || undefined,
+      geodae || undefined,
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get("my/:id")
   async getMyDeclaration(@Req() req: any, @Param("id") id: string) {
     return this.declarationsService.getUserDeclaration(req.user.sub, id);
