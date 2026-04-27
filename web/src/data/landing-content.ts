@@ -1,6 +1,6 @@
 export const IMAGES = {
   logo: "/images/logo-staraid.png",
-  heroBg: "/images/hero-bg.webp",
+  heroBg: "/images/hero-bg.png",
   cardiacStats: "/images/cardiac-stats.webp",
   teamFormation: "/images/team-formation.webp",
   maintenanceTech: "/images/maintenance-tech.webp",

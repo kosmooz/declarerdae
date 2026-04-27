@@ -319,7 +319,7 @@ export default function HomeClient() {
         {/* ===== IMAGE URGENCE + CITATION ===== */}
         <section className="relative h-64 sm:h-80 overflow-hidden">
           <Image
-            src="/images/urgence-samu.jpg"
+            src="/images/urgence-samu.png"
             alt="Intervention d'urgence avec un défibrillateur automatisé externe"
             className="object-cover"
             fill
