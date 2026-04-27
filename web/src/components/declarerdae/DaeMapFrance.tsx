@@ -1,73 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import ScrollReveal from "@/components/declarerdae/ScrollReveal";
 import MapConsentGate from "@/components/declarerdae/MapConsentGate";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, MapPin, Building2, Heart, Loader2 } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 import { searchDae, type DaeResult } from "@/lib/geodae-search";
 
 const DaeMapFranceMapInner = dynamic(
   () => import("@/components/declarerdae/DaeMapFranceMapInner"),
   { ssr: false, loading: () => <div className="w-full rounded-lg bg-white/10 animate-pulse" style={{ height: 420 }} /> },
 );
-
-/* ------------------------------------------------------------------ */
-/*  Animated counter                                                   */
-/* ------------------------------------------------------------------ */
-
-function AnimCounter({
-  end,
-  label,
-  icon,
-  prefix,
-}: {
-  end: number;
-  label: string;
-  icon: React.ReactNode;
-  prefix?: string;
-}) {
-  const [count, setCount] = useState(0);
-  const [hasAnimated, setHasAnimated] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !hasAnimated) {
-          setHasAnimated(true);
-          const startTime = performance.now();
-          const animate = (now: number) => {
-            const progress = Math.min((now - startTime) / 1200, 1);
-            const eased = 1 - Math.pow(1 - progress, 3);
-            setCount(Math.floor(eased * end));
-            if (progress < 1) requestAnimationFrame(animate);
-          };
-          requestAnimationFrame(animate);
-        }
-      },
-      { threshold: 0.3 },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [end, hasAnimated]);
-
-  return (
-    <div ref={ref} className="flex flex-col items-center gap-2">
-      <div className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center">
-        {icon}
-      </div>
-      <div className="font-heading font-black text-3xl sm:text-4xl text-white leading-none">
-        {prefix}{count.toLocaleString("fr-FR")}
-      </div>
-      <div className="text-white/70 text-sm font-medium">{label}</div>
-    </div>
-  );
-}
 
 /* ------------------------------------------------------------------ */
 /*  Main section component                                             */
@@ -95,43 +40,18 @@ export default function DaeMapFrance() {
         {/* Header */}
         <ScrollReveal>
           <div className="max-w-3xl mx-auto text-center mb-8 sm:mb-10">
-            <span className="inline-block text-xs font-semibold uppercase tracking-widest text-white/60 mb-3">
-              En chiffres
-            </span>
             <h2 className="font-heading font-bold text-2xl sm:text-3xl text-white mb-4">
               Ils déclarent, partout en France
             </h2>
             <p className="text-white/70 text-base leading-relaxed">
-              Des milliers d'établissements utilisent notre plateforme pour déclarer leurs DAE sur la base nationale Géo'DAE et se mettre en conformité avec la réglementation.
+              Avec plus de 170 000 DAE déclarés, des milliers d'établissements utilisent notre plateforme pour déclarer leurs DAE sur la base nationale Géo'DAE et se mettre en conformité avec la réglementation.
             </p>
-          </div>
-        </ScrollReveal>
-
-        {/* Stats counters */}
-        <ScrollReveal>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 sm:gap-4 max-w-2xl mx-auto">
-            <AnimCounter
-              end={2500}
-              prefix="+"
-              label="DAE déclarés"
-              icon={<Heart className="w-5 h-5 text-[#E1000F]" />}
-            />
-            <AnimCounter
-              end={120}
-              label="Villes couvertes"
-              icon={<MapPin className="w-5 h-5 text-white/80" />}
-            />
-            <AnimCounter
-              end={1800}
-              label="Établissements"
-              icon={<Building2 className="w-5 h-5 text-white/80" />}
-            />
           </div>
         </ScrollReveal>
 
         {/* Map */}
         <ScrollReveal>
-          <div className="mt-8 sm:mt-10 relative">
+          <div className="mt-8 sm:mt-10 relative max-w-4xl mx-auto">
             <MapConsentGate height={420}>
               <DaeMapFranceMapInner results={results} onMapMove={handleMapMove} />
             </MapConsentGate>

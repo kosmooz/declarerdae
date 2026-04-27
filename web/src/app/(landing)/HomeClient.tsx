@@ -41,7 +41,7 @@ import {
 } from "lucide-react";
 
 const CDN = {
-  hero: "https://d2xsxph8kpxj0f.cloudfront.net/89927487/HhS2ac9a5pDpWwn8oRN4Bv/hero-defibrillateur_79d8ac24.jpg",
+  hero: "/images/hero/hero1.png",
   formulaire: "https://d2xsxph8kpxj0f.cloudfront.net/89927487/HhS2ac9a5pDpWwn8oRN4Bv/formulaire-simple_6a66d6cf.jpg",
   conformite: "https://d2xsxph8kpxj0f.cloudfront.net/89927487/HhS2ac9a5pDpWwn8oRN4Bv/conformite-legale_e6b7eb3f.jpg",
   urgence: "https://d2xsxph8kpxj0f.cloudfront.net/89927487/HhS2ac9a5pDpWwn8oRN4Bv/urgence-cardiaque_75488058.jpg",

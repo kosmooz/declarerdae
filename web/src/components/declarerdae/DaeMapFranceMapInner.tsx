@@ -23,7 +23,7 @@ export default function DaeMapFranceMapInner({ results, onMapMove }: Props) {
     const map = L.map(containerRef.current, {
       center: [46.603354, 1.888334],
       zoom: 6,
-      scrollWheelZoom: true,
+      scrollWheelZoom: false,
       attributionControl: false,
       zoomControl: true,
       dragging: true,
