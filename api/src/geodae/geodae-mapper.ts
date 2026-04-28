@@ -107,13 +107,12 @@ export function mapDeviceToGeoJson(
     mntRais: string | null;
   },
 ) {
-  // Device name with optional test prefix
+  // Device name with optional test prefix.
+  // Always prefix unconditionally in test mode so the comparator's strip is symmetric
+  // (the comparator only handles a single leading "test " — adding only when absent
+  // would create false-positive diffs for names already containing "test").
   let nom = device.nom || "";
-  if (
-    options.testMode &&
-    nom &&
-    !nom.toLowerCase().includes("test")
-  ) {
+  if (options.testMode && nom) {
     nom = `test ${nom}`;
   }
 
