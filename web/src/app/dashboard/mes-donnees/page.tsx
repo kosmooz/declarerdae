@@ -29,10 +29,10 @@ export default function MesDonneesPage() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `mes-donnees-${new Date().toISOString().split("T")[0]}.json`;
+        a.download = `mes-données-${new Date().toISOString().split("T")[0]}.json`;
         a.click();
         URL.revokeObjectURL(url);
-        toast.success("Vos donnees ont ete exportees.");
+        toast.success("Vos données ont été exportées.");
       } else {
         toast.error("Erreur lors de l'export.");
       }
@@ -51,7 +51,7 @@ export default function MesDonneesPage() {
         method: "DELETE",
       });
       if (res.ok) {
-        toast.success("Votre compte a ete supprime.");
+        toast.success("Votre compte a été supprimé.");
         logout();
         router.push("/");
       } else {
@@ -69,11 +69,11 @@ export default function MesDonneesPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-bold text-[#3A3A3A]">
-          Mes donnees personnelles
+          Mes données personnelles
         </h1>
         <p className="text-sm text-[#929292] mt-1">
-          Conformement au RGPD, vous disposez d&apos;un droit d&apos;acces, de
-          portabilite et de suppression de vos donnees.
+          Conformément au RGPD, vous disposez d&apos;un droit d&apos;accès, de
+          portabilité et de suppression de vos données.
         </p>
       </div>
 
@@ -82,13 +82,13 @@ export default function MesDonneesPage() {
         <div className="flex items-center gap-2">
           <Download className="w-5 h-5 text-[#000091]" />
           <h2 className="font-semibold text-[#161616]">
-            Exporter mes donnees
+            Exporter mes données
           </h2>
         </div>
         <p className="text-sm text-[#666]">
-          Telechargez l&apos;ensemble de vos donnees personnelles dans un
+          Téléchargez l&apos;ensemble de vos données personnelles dans un
           format lisible (JSON). Cela inclut votre profil, vos adresses, vos
-          declarations, vos consentements et vos logs de connexion.
+          déclarations, vos consentements et vos logs de connexion.
         </p>
         <Button
           onClick={handleExport}
@@ -100,7 +100,7 @@ export default function MesDonneesPage() {
           ) : (
             <Download className="h-4 w-4" />
           )}
-          Telecharger mes donnees
+          Télécharger mes données
         </Button>
       </div>
 
@@ -114,7 +114,7 @@ export default function MesDonneesPage() {
         </div>
         <ul className="text-sm text-[#3A3A3A] space-y-1 list-disc list-inside">
           <li>
-            <strong>Droit d&apos;acces :</strong> consultez toutes vos donnees
+            <strong>Droit d&apos;accès :</strong> consultez toutes vos données
             via l&apos;export ci-dessus
           </li>
           <li>
@@ -128,15 +128,15 @@ export default function MesDonneesPage() {
             </Link>
           </li>
           <li>
-            <strong>Droit a la portabilite :</strong> telechargez vos donnees
+            <strong>Droit à la portabilité :</strong> téléchargez vos données
             au format JSON
           </li>
           <li>
-            <strong>Droit a l&apos;effacement :</strong> supprimez votre compte
+            <strong>Droit à l&apos;effacement :</strong> supprimez votre compte
             ci-dessous
           </li>
           <li>
-            <strong>Reclamation :</strong> vous pouvez contacter la{" "}
+            <strong>Réclamation :</strong> vous pouvez contacter la{" "}
             <a
               href="https://www.cnil.fr"
               target="_blank"
@@ -158,10 +158,10 @@ export default function MesDonneesPage() {
           </h2>
         </div>
         <p className="text-sm text-[#666]">
-          La suppression de votre compte entraine l&apos;anonymisation de vos
-          donnees personnelles. Vos declarations seront conservees (obligation
-          legale) mais vos informations personnelles seront supprimees. Cette
-          action est irreversible.
+          La suppression de votre compte entraîne l&apos;anonymisation de vos
+          données personnelles. Vos déclarations seront conservées (obligation
+          légale) mais vos informations personnelles seront supprimées. Cette
+          action est irréversible.
         </p>
 
         {!showDeleteConfirm ? (
@@ -183,7 +183,7 @@ export default function MesDonneesPage() {
                 </p>
                 <p className="text-xs text-[#666] mt-1">
                   Tapez <strong>SUPPRIMER</strong> pour confirmer la suppression
-                  definitive de votre compte.
+                  définitive de votre compte.
                 </p>
               </div>
             </div>
