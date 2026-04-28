@@ -267,6 +267,11 @@ model Declaration {
   notes            String?
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
+  // Bumpé uniquement sur de vraies modifications de données utilisateur
+  // (champs envoyés à GéoDAE). Ne bouge pas pour des changements purement
+  // structurels (recompute step, transition de status, ajout/retrait device).
+  // Sert au calcul `needsResync` côté frontend.
+  dataUpdatedAt    DateTime          @default(now())
 
   daeDevices       DaeDevice[]
   auditLogs        DeclarationAuditLog[]

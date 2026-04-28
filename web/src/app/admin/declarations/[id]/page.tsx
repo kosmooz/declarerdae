@@ -157,8 +157,13 @@ function computeNeedsResync(decl: Declaration): boolean {
     (d) => (d.geodaeStatus === "SENT" || d.geodaeStatus === "UPDATED") && d.geodaeLastSync,
   );
   if (synced.length === 0) return false;
-  const declUpdated = new Date(decl.updatedAt).getTime();
-  return synced.some((d) => declUpdated > new Date(d.geodaeLastSync!).getTime());
+  // Per-device staleness (cf. dashboard/mes-declarations/[id]/page.tsx pour le détail).
+  const declData = new Date(decl.dataUpdatedAt ?? decl.updatedAt).getTime();
+  return synced.some((d) => {
+    const sync = new Date(d.geodaeLastSync!).getTime();
+    const dev = d.updatedAt ? new Date(d.updatedAt).getTime() : 0;
+    return dev > sync || declData > sync;
+  });
 }
 
 export default function AdminDeclarationDetailPage() {

@@ -878,6 +878,13 @@ export class AdminService {
       });
     }
 
+    // Bumper dataUpdatedAt si une vraie modification de champ data a eu lieu
+    // (les FIELD_UPDATE concernent les champs envoyés à GéoDAE — exclut status, notes, step).
+    const hasDataFieldChange = auditEntries.some(
+      (e) => e.action === "FIELD_UPDATE" && !e.deviceId,
+    );
+    if (hasDataFieldChange) declUpdate.dataUpdatedAt = new Date();
+
     return this.prisma.declaration.update({
       where: { id },
       data: declUpdate,

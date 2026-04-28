@@ -30,6 +30,7 @@ export interface DaeDevice {
   geodaeStatus: string | null;
   geodaeLastSync: string | null;
   geodaeLastError: string | null;
+  updatedAt?: string;
 }
 
 export interface Declaration {
@@ -74,6 +75,7 @@ export interface Declaration {
   user?: { id: string; email: string; emailVerified: boolean; firstName?: string | null; lastName?: string | null } | null;
   createdAt: string;
   updatedAt: string;
+  dataUpdatedAt?: string;
   daeDevices: DaeDevice[];
 }
 

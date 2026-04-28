@@ -613,6 +613,8 @@ export class DeclarationsService {
 
     const merged = { ...declaration, ...updateData, daeDevices: declaration.daeDevices };
     updateData.step = computeDeclarationStep(merged);
+    // Vraie modification de données utilisateur (champs envoyés à GéoDAE).
+    updateData.dataUpdatedAt = new Date();
 
     await this.prisma.declaration.update({
       where: { id },
