@@ -142,14 +142,10 @@ export default function AdminDeclGeodae({
                       <button
                         type="button"
                         onClick={() => onShowDetail(device)}
-                        className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border transition-colors cursor-pointer ${
-                          needsResync
-                            ? "bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100"
-                            : "bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
-                        }`}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border transition-colors cursor-pointer bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
                         title="Voir la fiche GéoDAE"
                       >
-                        {needsResync ? <AlertTriangle className="h-3 w-3" /> : <CheckCircle className="h-3 w-3" />}
+                        <CheckCircle className="h-3 w-3" />
                         {device.nom || `DAE ${i + 1}`}
                         <span className="text-[10px] opacity-75">#{device.geodaeGid}</span>
                       </button>

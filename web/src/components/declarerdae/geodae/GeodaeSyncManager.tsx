@@ -122,10 +122,11 @@ export default function GeodaeSyncManager({
         );
       }
       if (cancelled) return;
-      const notSentCount = currentDecl.daeDevices.filter(
-        (d) => !d.geodaeGid && d.geodaeStatus !== "DELETED",
-      ).length;
-      onDiffsFoundRef.current(totalDiffs > 0 || notSentCount > 0);
+      // Only signal "data drift" when synced devices actually differ from GéoDAE.
+      // Non-sent / failed devices are a separate state already visible via geodaeStatus
+      // and should not turn the global "Mise à jour requise" badge on (and would otherwise
+      // make every synced DAE appear orange in the side panel).
+      onDiffsFoundRef.current(totalDiffs > 0);
     })();
 
     return () => { cancelled = true; };
