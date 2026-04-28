@@ -1,4 +1,27 @@
-import { IsString, IsNumber, IsOptional, IsArray, IsEmail, IsBoolean, IsIn } from "class-validator";
+import { IsString, IsNumber, IsOptional, IsArray, IsEmail, IsBoolean, IsIn, registerDecorator, ValidationOptions, isEmail } from "class-validator";
+
+export function IsEmailList(validationOptions?: ValidationOptions) {
+  return function (object: object, propertyName: string) {
+    registerDecorator({
+      name: "isEmailList",
+      target: object.constructor,
+      propertyName,
+      options: validationOptions,
+      validator: {
+        validate(value: any) {
+          if (value === null || value === undefined || value === "") return true;
+          if (typeof value !== "string") return false;
+          const parts = value.split(",").map((s) => s.trim()).filter(Boolean);
+          if (parts.length === 0) return true;
+          return parts.every((e) => isEmail(e));
+        },
+        defaultMessage() {
+          return "$property doit être un email ou une liste d'emails séparés par des virgules";
+        },
+      },
+    });
+  };
+}
 
 export class UpdateShopSettingsDto {
   @IsString()
@@ -74,7 +97,7 @@ export class UpdateShopSettingsDto {
   @IsOptional()
   siteIcon?: string;
 
-  @IsEmail()
+  @IsEmailList()
   @IsOptional()
   adminEmail?: string;
 

@@ -409,8 +409,14 @@ export default function AdminSettingsPage() {
                 <Input value={form.timezone || ""} onChange={(e) => set("timezone", e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label>Email admin (notifications)</Label>
-                <Input type="email" value={form.adminEmail || ""} onChange={(e) => set("adminEmail", e.target.value)} />
+                <Label>Emails admin (notifications)</Label>
+                <Input
+                  type="text"
+                  value={form.adminEmail || ""}
+                  onChange={(e) => set("adminEmail", e.target.value)}
+                  placeholder="admin1@example.com, admin2@example.com"
+                />
+                <p className="text-xs text-[#929292]">Plusieurs adresses possibles, séparées par des virgules.</p>
               </div>
 
               <div className="border-t border-[#E5E5E5] pt-4 mt-4">
