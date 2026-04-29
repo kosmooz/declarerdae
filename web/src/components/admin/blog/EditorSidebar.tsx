@@ -46,9 +46,10 @@ export default function EditorSidebar({
         body: formData,
       });
       if (res.ok) {
-        const urls = await res.json();
-        if (urls?.[0]) {
-          onChange({ featuredImage: urls[0] });
+        const data = await res.json();
+        const url = Array.isArray(data) ? data[0] : data?.urls?.[0];
+        if (url) {
+          onChange({ featuredImage: url });
         }
       }
     } finally {
@@ -154,10 +155,15 @@ export default function EditorSidebar({
               </button>
             </div>
           ) : (
-            <label className="flex flex-col items-center justify-center h-24 border-2 border-dashed border-[#E5E5E5] rounded-lg cursor-pointer hover:border-[#929292] transition-colors">
+            <label className="flex flex-col items-center justify-center px-3 py-3 h-28 border-2 border-dashed border-[#E5E5E5] rounded-lg cursor-pointer hover:border-[#929292] transition-colors">
               <Upload className="h-5 w-5 text-[#929292] mb-1" />
               <span className="text-xs text-[#929292]">
                 {uploadingFeatured ? "Envoi..." : "Uploader une image"}
+              </span>
+              <span className="mt-1 text-[10px] text-center leading-tight text-[#929292]">
+                Format idéal : 1920×800px
+                <br />
+                JPG/PNG/WEBP — 5 Mo max
               </span>
               <input
                 type="file"

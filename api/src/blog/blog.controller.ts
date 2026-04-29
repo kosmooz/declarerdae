@@ -17,6 +17,7 @@ import { Roles } from "../auth/decorators/roles.decorator";
 import { Role } from "@prisma/client";
 import { CreateCategoryDto } from "./dto/create-category.dto";
 import { UpdateCategoryDto } from "./dto/update-category.dto";
+import { ReorderCategoriesDto } from "./dto/reorder-categories.dto";
 import { CreateArticleDto } from "./dto/create-article.dto";
 import { UpdateArticleDto } from "./dto/update-article.dto";
 import { ListArticlesQueryDto } from "./dto/list-articles-query.dto";
@@ -66,6 +67,13 @@ export class BlogController {
     return this.blogService.createCategory(dto);
   }
 
+  @Patch("admin/categories/reorder")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  reorderCategories(@Body() dto: ReorderCategoriesDto) {
+    return this.blogService.reorderCategories(dto.ids);
+  }
+
   @Patch("admin/categories/:id")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
@@ -107,7 +115,7 @@ export class BlogController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   createArticle(@Req() req: any, @Body() dto: CreateArticleDto) {
-    return this.blogService.createArticle(req.user.id, dto);
+    return this.blogService.createArticle(req.user.sub, dto);
   }
 
   @Patch("admin/articles/:id")

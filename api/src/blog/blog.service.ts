@@ -62,9 +62,34 @@ export class BlogService {
   // ─── Categories ─────────────────────────────────────────────────────
 
   async listCategories() {
-    return this.prisma.blogCategory.findMany({
+    const cats = await this.prisma.blogCategory.findMany({
       orderBy: { position: "asc" },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        color: true,
+        position: true,
+        _count: { select: { articles: true } },
+      },
     });
+    return cats.map(({ _count, ...rest }) => ({
+      ...rest,
+      articleCount: _count.articles,
+    }));
+  }
+
+  async reorderCategories(ids: string[]) {
+    await this.prisma.$transaction(
+      ids.map((id, index) =>
+        this.prisma.blogCategory.update({
+          where: { id },
+          data: { position: index },
+        }),
+      ),
+    );
+    return this.listCategories();
   }
 
   async createCategory(dto: CreateCategoryDto) {

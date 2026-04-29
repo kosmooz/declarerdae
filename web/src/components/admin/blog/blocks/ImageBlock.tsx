@@ -25,9 +25,10 @@ export default function ImageBlock({
         body: formData,
       });
       if (res.ok) {
-        const urls = await res.json();
-        if (urls?.[0]) {
-          onChange({ ...data, url: urls[0] });
+        const result = await res.json();
+        const url = Array.isArray(result) ? result[0] : result?.urls?.[0];
+        if (url) {
+          onChange({ ...data, url });
         }
       }
     } finally {
@@ -56,10 +57,13 @@ export default function ImageBlock({
           </button>
         </div>
       ) : (
-        <label className="flex flex-col items-center justify-center h-32 border-2 border-dashed border-[#E5E5E5] rounded-lg cursor-pointer hover:border-[#929292] transition-colors">
+        <label className="flex flex-col items-center justify-center h-36 border-2 border-dashed border-[#E5E5E5] rounded-lg cursor-pointer hover:border-[#929292] transition-colors">
           <Upload className="h-6 w-6 text-[#929292] mb-1" />
           <span className="text-xs text-[#929292]">
             {uploading ? "Envoi en cours..." : "Cliquez pour uploader"}
+          </span>
+          <span className="mt-1 text-[11px] text-[#929292]">
+            Largeur recommandée : 800px (hauteur libre) — JPG/PNG/WEBP, 5 Mo max
           </span>
           <input
             type="file"

@@ -26,7 +26,7 @@ function HeadingRenderer({ block }: { block: ContentBlock }) {
 function ParagraphRenderer({ block }: { block: ContentBlock }) {
   return (
     <div
-      className="text-sm md:text-base text-slate-700 leading-relaxed mb-4"
+      className="rich-content text-sm md:text-base text-slate-700 leading-relaxed mb-4"
       dangerouslySetInnerHTML={{ __html: block.data.html }}
     />
   );
