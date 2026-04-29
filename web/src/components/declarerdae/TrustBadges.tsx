@@ -1,11 +1,10 @@
-import { ShieldCheck, Award, Clock, Users, FileCheck, Lock } from "lucide-react";
+import { ShieldCheck, Award, Clock, FileCheck, Lock } from "lucide-react";
 import ScrollReveal from "@/components/declarerdae/ScrollReveal";
 
 const badges = [
   { icon: ShieldCheck, label: "Conforme décret 2018-1259", color: "text-[#000091]" },
   { icon: Award, label: "Attestation d'enregistrement", color: "text-[#18753C]" },
   { icon: Clock, label: "Déclaration en 5 min", color: "text-[#E1000F]" },
-  { icon: Users, label: "+1 000 DAE déclarés", color: "text-[#000091]" },
   { icon: FileCheck, label: "Enregistrement Géo'DAE", color: "text-[#18753C]" },
   { icon: Lock, label: "Données protégées RGPD", color: "text-[#92400E]" },
 ];

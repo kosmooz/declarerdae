@@ -304,7 +304,7 @@ export default function HomeClient() {
             {/* CTA après Pourquoi déclarer */}
             <ScrollReveal>
               <div className="max-w-2xl mx-auto mt-10 text-center">
-                <p className="text-sm text-[#666] mb-3">Vous possédez un DAE ? Vérifiez votre conformité en quelques clics.</p>
+                <p className="text-sm text-[#666] mb-3">Vous possédez un DAE ? Mettez-vous en conformité en quelques clics.</p>
                 <Link href="/declaration">
                   <Button className="bg-[#000091] hover:bg-[#000070] text-white font-semibold px-6">
                     Déclarer mon DAE maintenant
@@ -610,7 +610,7 @@ export default function HomeClient() {
                     Vous êtes dans l'une de ces catégories ?
                   </p>
                   <p className="text-sm text-[#666] mb-4">
-                    Vérifiez en 2 minutes si votre DAE est correctement déclaré et mettez-vous en conformité.
+                    Déclarez votre défibrillateur en 2 minutes et mettez-vous en conformité.
                   </p>
                   <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                     <Link href="/declaration">

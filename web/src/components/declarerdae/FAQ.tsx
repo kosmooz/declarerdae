@@ -15,15 +15,15 @@ const faqItems = [
     answer: "Le non-respect des obligations relatives aux DAE expose l'exploitant a trois niveaux de sanctions. Sanctions administratives : mise en demeure, fermeture administrative temporaire ou definitive de l'etablissement. Defaut de maintenance : jusqu'a 2 ans d'emprisonnement et 150 000 EUR d'amende (article L.5461-5 du Code de la sante publique). Sanctions penales en cas d'arret cardiaque mortel : la responsabilite penale du chef d'etablissement peut etre engagee pour homicide involontaire (jusqu'a 3 ans et 45 000 EUR, ou 5 ans et 75 000 EUR en cas de violation deliberee d'une obligation de securite). Deux propositions de loi en cours d'examen visent a durcir ces sanctions.",
   },
   {
-    question: "Combien de temps prend la déclaration en ligne sur votre plateforme ?",
+    question: "Combien de temps prend la déclaration d'un défibrillateur ?",
     answer: "Notre service a été conçu pour simplifier au maximum la procédure. En moyenne, une déclaration complète prend moins de 5 minutes grâce à notre formulaire guidé en 4 étapes. Vous recevez ensuite une attestation de déclaration par email sous 24 heures. Notre équipe vérifie la conformité de votre dossier et procède à l'enregistrement dans la base nationale.",
   },
   {
-    question: "Quelle est la différence entre un DEA et un DSA ?",
-    answer: "Un DEA (Défibrillateur Entièrement Automatique) délivre automatiquement le choc électrique s'il le juge nécessaire, sans intervention de l'utilisateur. Un DSA (Défibrillateur Semi-Automatique) nécessite que l'utilisateur appuie sur un bouton pour délivrer le choc, après indication de l'appareil. Les deux types sont des DAE (Défibrillateurs Automatisés Externes) et doivent être déclarés. Toute personne, même non-médecin, peut utiliser un DAE (décret n°2007-705 du 4 mai 2007).",
+    question: "Quelle est la différence entre un DAE, DEA et DSA ?",
+    answer: "Un DAE (Défibrillateur Automatisé Externe) est le terme générique qui désigne l'ensemble des défibrillateurs utilisables par le grand public. Il existe deux types de DAE : le DEA (Défibrillateur Entièrement Automatique), qui délivre automatiquement le choc électrique s'il le juge nécessaire sans intervention de l'utilisateur, et le DSA (Défibrillateur Semi-Automatique), qui nécessite que l'utilisateur appuie sur un bouton pour délivrer le choc après indication de l'appareil. Dans tous les cas, ces dispositifs sont conçus pour être utilisés par toute personne, même non-médecin, et doivent être déclarés dans la base nationale.",
   },
   {
-    question: "Mon établissement est-il obligé de s'équiper d'un DAE ?",
+    question: "Quels établissements ont l'obligation d'avoir un défibrillateur ?",
     answer: "L'obligation d'equipement s'est deployee progressivement : categories 1, 2 et 3 depuis le 1er janvier 2020, categorie 4 depuis le 1er janvier 2021, et certains ERP de categorie 5 depuis le 1er janvier 2022. Depuis le decret n 2025-1167 du 5 decembre 2025, de nouveaux ERP de categorie 5 sont concernes : salles de danse, salles de jeux et aeroports sous certaines conditions. En dehors de cette obligation d'equipement, tout exploitant de DAE doit le declarer dans Geo'DAE, meme s'il n'est pas soumis a l'obligation de s'equiper.",
   },
   {
@@ -31,7 +31,7 @@ const faqItems = [
     answer: "L'exploitant d'un DAE a l'obligation de maintenir son appareil opérationnel conformément aux préconisations du fabricant. Cela inclut la vérification régulière de l'état des électrodes, de la batterie, et du logiciel. La date de dernière maintenance doit être déclarée dans Géo'DAE.",
   },
   {
-    question: "Est-ce que votre service remplace la déclaration sur Géo'DAE ?",
+    question: "La déclaration sur declarerdefibrillateur.fr est-elle officielle et transmise à GéoDAE ?",
     answer: "Notre service simplifie et automatise le processus de déclaration. Nous collectons vos informations via notre formulaire optimisé, vérifions la conformité de votre dossier, puis procédons à l'enregistrement de vos données dans la base nationale Géo'DAE conformément au standard défini par l'arrêté du 29 octobre 2019. Vous bénéficiez d'un accompagnement complet et d'une attestation de déclaration.",
   },
   {
@@ -43,8 +43,20 @@ const faqItems = [
     answer: "Le DAE doit être installé dans un emplacement visible du public et en permanence facile d'accès. Les préconisations officielles recommandent de l'installer de préférence en extérieur pour qu'il soit accessible même pendant les heures de fermeture.",
   },
   {
-    question: "Combien coûte votre service de déclaration ?",
+    question: "La déclaration d'un défibrillateur est-elle gratuite ?",
     answer: "Notre service de base de déclaration en ligne est accessible gratuitement. Nous proposons également des prestations complémentaires pour les organisations ayant des besoins spécifiques : accompagnement personnalisé, déclaration groupée, suivi de maintenance, et mise en conformité complète.",
+  },
+  {
+    question: "Quel est le délai légal pour déclarer un défibrillateur après son installation ?",
+    answer: "La déclaration d'un défibrillateur doit être effectuée dès son installation, sans délai précis fixé par la loi. En pratique, il est recommandé de le faire immédiatement pour garantir sa prise en compte par les secours.",
+  },
+  {
+    question: "Comment trouver le numéro de série de mon défibrillateur ?",
+    answer: "Le numéro de série se trouve généralement derrière votre appareil.",
+  },
+  {
+    question: "Qu'est-ce que GéoDAE ?",
+    answer: "GéoDAE est la base de données nationale officielle qui recense l'ensemble des défibrillateurs en France. Elle permet aux services de secours de localiser rapidement les DAE disponibles en cas d'arrêt cardiaque.",
   },
 ];
 
