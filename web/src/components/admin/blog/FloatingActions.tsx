@@ -6,37 +6,33 @@ import { Button } from "@/components/ui/button";
 interface FloatingActionsProps {
   onSaveDraft: () => void;
   onPublish: () => void;
+  onPreview: () => void;
   saving: boolean;
   isPublished: boolean;
-  slug?: string;
+  canPreview: boolean;
 }
 
 export default function FloatingActions({
   onSaveDraft,
   onPublish,
+  onPreview,
   saving,
   isPublished,
-  slug,
+  canPreview,
 }: FloatingActionsProps) {
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 bg-white/90 backdrop-blur-sm border border-[#E5E5E5] rounded-xl shadow-lg p-2">
-      {slug && (
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-1.5"
-          asChild
-        >
-          <a
-            href={isPublished ? `/blog/${slug}` : `/blog/${slug}?preview=1`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <ExternalLink className="h-4 w-4" />
-            Voir
-          </a>
-        </Button>
-      )}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={onPreview}
+        disabled={saving || !canPreview}
+        className="gap-1.5"
+        title={!canPreview ? "Saisissez un titre pour activer l'aperçu" : "Enregistrer et ouvrir l'aperçu"}
+      >
+        <ExternalLink className="h-4 w-4" />
+        Voir
+      </Button>
       <Button
         variant="outline"
         size="sm"
@@ -62,7 +58,7 @@ export default function FloatingActions({
         ) : (
           <Send className="h-4 w-4" />
         )}
-        {isPublished ? "Mettre a jour" : "Publier"}
+        {isPublished ? "Mettre à jour" : "Publier"}
       </Button>
     </div>
   );

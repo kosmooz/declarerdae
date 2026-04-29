@@ -3,9 +3,11 @@
 import { DragDropProvider } from "@dnd-kit/react";
 import { useSortable } from "@dnd-kit/react/sortable";
 import { move } from "@dnd-kit/helpers";
+import { FilePlus } from "lucide-react";
 import { ContentBlock, BlockType, createDefaultBlock } from "./types";
 import BlockWrapper from "./BlockWrapper";
-import BlockToolbar from "./BlockToolbar";
+import BlockInsertSlot from "./BlockInsertSlot";
+import AddBlockCTA from "./AddBlockCTA";
 import HeadingBlock from "./blocks/HeadingBlock";
 import ParagraphBlock from "./blocks/ParagraphBlock";
 import ListBlock from "./blocks/ListBlock";
@@ -121,11 +123,19 @@ export default function EditorCanvas({ blocks, onChange }: EditorCanvasProps) {
   return (
     <div className="bg-white border border-[#E5E5E5] rounded-lg min-h-[400px]">
       {blocks.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-[#929292]">
-          <p className="text-sm mb-3">
-            Aucun bloc. Commencez a creer votre article.
+        <div className="flex flex-col items-center justify-center px-6 py-16">
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#F6F6F6]">
+            <FilePlus className="h-5 w-5 text-[#929292]" />
+          </div>
+          <h3 className="text-base font-semibold text-[#3A3A3A]">
+            Commencez votre article
+          </h3>
+          <p className="mb-6 mt-1 text-sm text-[#929292]">
+            Ajoutez votre premier bloc pour démarrer.
           </p>
-          <BlockToolbar onAdd={(type) => addBlock(0, type)} />
+          <div className="w-full max-w-md">
+            <AddBlockCTA onAdd={(t) => addBlock(0, t)} variant="empty" />
+          </div>
         </div>
       ) : (
         <DragDropProvider
@@ -135,9 +145,9 @@ export default function EditorCanvas({ blocks, onChange }: EditorCanvasProps) {
           }}
         >
           <div className="p-4 pl-8 space-y-1">
-            <BlockToolbar onAdd={(type) => addBlock(0, type)} />
             {blocks.map((block, index) => (
               <div key={block.id}>
+                <BlockInsertSlot onAdd={(t) => addBlock(index, t)} />
                 <SortableBlock
                   block={block}
                   index={index}
@@ -147,11 +157,11 @@ export default function EditorCanvas({ blocks, onChange }: EditorCanvasProps) {
                   onMoveDown={() => moveBlock(block.id, "down")}
                   onDelete={() => deleteBlock(block.id)}
                 />
-                <BlockToolbar
-                  onAdd={(type) => addBlock(index + 1, type)}
-                />
               </div>
             ))}
+            <div className="mt-4">
+              <AddBlockCTA onAdd={(t) => addBlock(blocks.length, t)} />
+            </div>
           </div>
         </DragDropProvider>
       )}

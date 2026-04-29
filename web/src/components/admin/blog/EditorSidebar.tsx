@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Upload, X } from "lucide-react";
 import NextImage from "next/image";
 import { apiFetch } from "@/lib/api";
-import { ArticleForm, BlogCategory, ContentBlock, slugify } from "./types";
+import { ArticleForm, BlogCategory, ContentBlock } from "./types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,8 +14,6 @@ interface EditorSidebarProps {
   form: ArticleForm;
   categories: BlogCategory[];
   onChange: (updates: Partial<ArticleForm>) => void;
-  slugManuallyEdited: boolean;
-  onSlugManualEdit: () => void;
 }
 
 function generateToc(blocks: ContentBlock[]) {
@@ -31,8 +29,6 @@ export default function EditorSidebar({
   form,
   categories,
   onChange,
-  slugManuallyEdited,
-  onSlugManualEdit,
 }: EditorSidebarProps) {
   const [uploadingFeatured, setUploadingFeatured] = useState(false);
 
@@ -69,42 +65,12 @@ export default function EditorSidebar({
 
   return (
     <div className="space-y-4">
-      {/* Article Settings */}
+      {/* Détails */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm">Article</CardTitle>
+          <CardTitle className="text-sm">Détails</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div>
-            <Label className="text-xs">Titre</Label>
-            <Input
-              value={form.title}
-              onChange={(e) => {
-                const title = e.target.value;
-                const updates: Partial<ArticleForm> = { title };
-                if (!slugManuallyEdited) {
-                  updates.slug = slugify(title);
-                }
-                onChange(updates);
-              }}
-              placeholder="Titre de l'article"
-            />
-          </div>
-          <div>
-            <Label className="text-xs">Slug</Label>
-            <div className="flex items-center gap-1">
-              <span className="text-xs text-[#929292]">/blog/</span>
-              <Input
-                value={form.slug}
-                onChange={(e) => {
-                  onSlugManualEdit();
-                  onChange({ slug: e.target.value });
-                }}
-                placeholder="mon-article"
-                className="flex-1"
-              />
-            </div>
-          </div>
           <div>
             <Label className="text-xs">Extrait</Label>
             <Textarea

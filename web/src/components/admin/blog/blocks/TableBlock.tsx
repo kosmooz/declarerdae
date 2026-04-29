@@ -51,6 +51,27 @@ export default function TableBlock({
       </label>
       <div className="overflow-x-auto border rounded-md">
         <table className="w-full text-sm">
+          <thead>
+            <tr>
+              {Array.from({ length: colCount }).map((_, ci) => (
+                <th key={ci} className="w-auto p-0 border-b border-r bg-white">
+                  <div className="flex justify-center">
+                    <button
+                      type="button"
+                      onClick={() => removeCol(ci)}
+                      disabled={colCount <= 1}
+                      title="Supprimer cette colonne"
+                      aria-label={`Supprimer la colonne ${ci + 1}`}
+                      className="p-1 text-[#E5E5E5] hover:text-red-500 disabled:opacity-30 disabled:hover:text-[#E5E5E5]"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                </th>
+              ))}
+              <th className="w-6 p-0 border-b bg-white" aria-hidden />
+            </tr>
+          </thead>
           <tbody>
             {rows.map((row, ri) => (
               <tr
@@ -78,7 +99,10 @@ export default function TableBlock({
                   <button
                     type="button"
                     onClick={() => removeRow(ri)}
-                    className="p-1 text-[#E5E5E5] hover:text-red-500"
+                    disabled={rows.length <= 1}
+                    title="Supprimer cette ligne"
+                    aria-label={`Supprimer la ligne ${ri + 1}`}
+                    className="p-1 text-[#E5E5E5] hover:text-red-500 disabled:opacity-30 disabled:hover:text-[#E5E5E5]"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -103,15 +127,6 @@ export default function TableBlock({
         >
           <Plus className="h-3 w-3" /> Colonne
         </button>
-        {colCount > 1 && (
-          <button
-            type="button"
-            onClick={() => removeCol(colCount - 1)}
-            className="flex items-center gap-1 text-xs text-[#929292] hover:text-red-500"
-          >
-            <X className="h-3 w-3" /> Dernière colonne
-          </button>
-        )}
       </div>
     </div>
   );
