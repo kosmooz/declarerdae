@@ -96,7 +96,7 @@ export default function BlogListClient() {
         <section className="bg-slate-900 pt-28 pb-16 text-center">
           <div className="max-w-3xl mx-auto px-4">
             <h1 className="text-3xl md:text-5xl font-bold text-white mb-3">
-              Blog <span className="text-red-500">STAR aid</span>
+              Les <span className="text-red-500">Articles</span>
             </h1>
             <p className="text-slate-400 text-lg">
               Actualités, conseils et réglementations en prévention des risques

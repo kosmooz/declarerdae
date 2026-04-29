@@ -28,6 +28,7 @@ const navLinks: NavItem[] = [
   { label: "Notre service", href: "/#service" },
   { label: "Tarifs", href: "/tarifs", isPage: true, badge: "Gratuit" },
   { label: "À propos", href: "/a-propos", isPage: true },
+  { label: "Blog", href: "/blog", isPage: true },
   { label: "Contact", href: "/contact", isPage: true },
 ];
 

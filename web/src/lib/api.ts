@@ -2,9 +2,11 @@ import { toast } from "sonner";
 
 let accessToken: string | null = null;
 let refreshPromise: Promise<string | null> | null = null;
+let sessionExpiredFired = false;
 
 export function setAccessToken(token: string | null) {
   accessToken = token;
+  if (token) sessionExpiredFired = false;
 }
 
 export function getAccessToken(): string | null {
@@ -78,10 +80,13 @@ export async function apiFetch(
       });
     } else {
       // Refresh failed — session fully expired
-      if (!silent) {
-        toast.error("Votre session a expiré. Veuillez vous reconnecter.");
+      if (!sessionExpiredFired) {
+        sessionExpiredFired = true;
+        if (!silent) {
+          toast.error("Votre session a expiré. Veuillez vous reconnecter.");
+        }
+        window.dispatchEvent(new Event("auth:session-expired"));
       }
-      window.dispatchEvent(new Event("auth:session-expired"));
     }
   }
 
