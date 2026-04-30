@@ -159,7 +159,7 @@ export default function DeclarationPreview({
           {data.daeDevices.map((d, i) => (
             <div
               key={d.localId}
-              className="flex items-center gap-1.5 py-0.5"
+              className="flex items-center gap-1.5 py-0.5 flex-wrap"
             >
               <div
                 className={`w-1.5 h-1.5 rounded-full ${
@@ -174,6 +174,14 @@ export default function DeclarationPreview({
               {d.fabRais?.trim() && (
                 <span className="text-[#929292]">
                   — {d.fabRais}
+                </span>
+              )}
+              {d.geodaeGid && (
+                <span
+                  className="ml-auto inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-green-50 border border-green-200 text-[#18753C]"
+                  title={`Numéro d'inscription dans la base nationale GéoDAE : ${d.geodaeGid}`}
+                >
+                  GéoDAE #{d.geodaeGid}
                 </span>
               )}
             </div>

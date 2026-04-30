@@ -13,6 +13,7 @@ import {
   Plus,
   Globe,
   CheckCircle,
+  AlertTriangle,
 } from "lucide-react";
 import DaeListView from "./DaeListView";
 
@@ -27,6 +28,7 @@ interface DeclarationItem {
   deviceCount: number;
   geodaeSyncedCount: number;
   geodaeTotalCount: number;
+  needsResync: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -290,7 +292,19 @@ export default function MesDeclarationsPage() {
                       )}
                       {d.status === "VALIDATED" &&
                         d.geodaeSyncedCount === d.geodaeTotalCount &&
-                        d.geodaeTotalCount > 0 && (
+                        d.geodaeTotalCount > 0 &&
+                        d.needsResync && (
+                        <div className="flex items-center gap-1.5 mt-1.5">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-800">
+                            <AlertTriangle className="w-3 h-3" />
+                            Mise à jour requise
+                          </span>
+                        </div>
+                      )}
+                      {d.status === "VALIDATED" &&
+                        d.geodaeSyncedCount === d.geodaeTotalCount &&
+                        d.geodaeTotalCount > 0 &&
+                        !d.needsResync && (
                         <div className="flex items-center gap-1.5 mt-1.5">
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-[#18753C]">
                             <CheckCircle className="w-3 h-3" />

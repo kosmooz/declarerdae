@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
+import { declarationNeedsResync, deviceNeedsResync } from "@/lib/needs-resync";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -152,19 +153,7 @@ function InfoRow({
 
 /* ─── Page component ──────────────────────────────────────────────────── */
 
-function computeNeedsResync(decl: Declaration): boolean {
-  const synced = decl.daeDevices.filter(
-    (d) => (d.geodaeStatus === "SENT" || d.geodaeStatus === "UPDATED") && d.geodaeLastSync,
-  );
-  if (synced.length === 0) return false;
-  // Per-device staleness (cf. dashboard/mes-declarations/[id]/page.tsx pour le détail).
-  const declData = new Date(decl.dataUpdatedAt ?? decl.updatedAt).getTime();
-  return synced.some((d) => {
-    const sync = new Date(d.geodaeLastSync!).getTime();
-    const dev = d.updatedAt ? new Date(d.updatedAt).getTime() : 0;
-    return dev > sync || declData > sync;
-  });
-}
+// computeNeedsResync est centralisé dans @/lib/needs-resync.
 
 export default function AdminDeclarationDetailPage() {
   const params = useParams();
@@ -222,7 +211,7 @@ export default function AdminDeclarationDetailPage() {
         const data = await declRes.json();
         setDecl(data);
         setNotesValue(data.notes || "");
-        setNeedsResync(computeNeedsResync(data));
+        setNeedsResync(declarationNeedsResync(data));
       } else {
         toast.error("Déclaration introuvable");
         router.push("/admin/declarations");
@@ -441,10 +430,17 @@ export default function AdminDeclarationDetailPage() {
       const data = await declRes.json();
       setDecl(data);
       setNotesValue(data.notes || "");
-      setNeedsResync(computeNeedsResync(data));
+      setNeedsResync(declarationNeedsResync(data));
     }
     if (logsRes.ok) setAuditLogs(await logsRes.json());
   }, [id]);
+
+  // Re-fetch la decl avant d'ouvrir la popup pour comparer contre les
+  // données serveur fraîches (post-sauvegarde admin), pas le snapshot stale.
+  const openGeodaeSync = useCallback(async () => {
+    await reloadDeclAndLogs();
+    setShowGeodaeSyncManager(true);
+  }, [reloadDeclAndLogs]);
 
   const handleShowGeodaeDetail = useCallback(async (device: DaeDevice) => {
     setGeodaeDetailDevice(device);
@@ -452,7 +448,12 @@ export default function AdminDeclarationDetailPage() {
     setGeodaeDetailError(null);
     setGeodaeDetailLoading(true);
     try {
-      const res = await apiFetch(`/api/admin/geodae/fetch/${device.id}`);
+      // Refresh decl in parallel pour que la comparaison popup utilise les
+      // données serveur fraîches (post-save admin), pas un snapshot stale.
+      const [res] = await Promise.all([
+        apiFetch(`/api/admin/geodae/fetch/${device.id}`),
+        reloadDeclAndLogs(),
+      ]);
       if (res.ok) {
         setGeodaeDetailData(await res.json());
       } else {
@@ -463,7 +464,7 @@ export default function AdminDeclarationDetailPage() {
       setGeodaeDetailError("Erreur réseau");
     }
     setGeodaeDetailLoading(false);
-  }, []);
+  }, [reloadDeclAndLogs]);
 
   const handleDeleteDevice = useCallback(async (deviceId: string) => {
     setDeletingDevice(true);
@@ -840,8 +841,9 @@ export default function AdminDeclarationDetailPage() {
         <AdminDeclGeodae
           devices={decl.daeDevices}
           needsResync={needsResync}
+          declDataUpdatedAt={decl.dataUpdatedAt}
           onShowDetail={handleShowGeodaeDetail}
-          onOpenSyncManager={() => setShowGeodaeSyncManager(true)}
+          onOpenSyncManager={openGeodaeSync}
         />
       )}
 
@@ -1255,7 +1257,7 @@ export default function AdminDeclarationDetailPage() {
           if (allSucceeded !== false) setNeedsResync(false);
           await reloadDeclAndLogs();
         }}
-        onDiffsFound={(hasDiffs) => { if (hasDiffs) setNeedsResync(true); }}
+        onDiffsFound={(hasDiffs) => setNeedsResync(hasDiffs)}
         onAllDeleted={async () => {
           reloadDeclAndLogs();
         }}
@@ -1310,7 +1312,7 @@ export default function AdminDeclarationDetailPage() {
               decl={decl}
               onResync={() => {
                 setGeodaeDetailDevice(null);
-                setShowGeodaeSyncManager(true);
+                openGeodaeSync();
               }}
               onDelete={() => handleDeleteDevice(geodaeDetailDevice.id)}
               deleting={deletingDevice}

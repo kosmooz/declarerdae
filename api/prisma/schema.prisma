@@ -343,6 +343,10 @@ model DaeDevice {
 
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
+  // Bumpé uniquement sur de vraies modifications de données utilisateur
+  // de ce device (champs envoyés à GéoDAE). Ne bouge pas pour les writes
+  // de sync GéoDAE eux-mêmes. Sert au calcul `needsResync` per-device.
+  dataUpdatedAt    DateTime    @default(now())
 
   @@index([declarationId])
 }

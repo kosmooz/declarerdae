@@ -25,6 +25,7 @@ interface DeclarationItem {
   user: { id: string; email: string; emailVerified: boolean } | null;
   geodaeSynced: number;
   geodaeTotal: number;
+  needsResync: boolean;
 }
 
 interface Stats {
@@ -345,12 +346,16 @@ export default function AdminDeclarationsPage() {
                         <td className="py-2.5 text-center">
                           {d.geodaeTotal > 0 ? (
                             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${
-                              d.geodaeSynced === d.geodaeTotal
-                                ? "bg-green-100 text-green-700"
-                                : d.geodaeSynced > 0
-                                  ? "bg-amber-100 text-amber-700"
-                                  : "bg-[#F6F6F6] text-[#929292]"
-                            }`}>
+                              d.needsResync
+                                ? "bg-amber-100 text-amber-800"
+                                : d.geodaeSynced === d.geodaeTotal
+                                  ? "bg-green-100 text-green-700"
+                                  : d.geodaeSynced > 0
+                                    ? "bg-amber-100 text-amber-700"
+                                    : "bg-[#F6F6F6] text-[#929292]"
+                            }`}
+                            title={d.needsResync ? "Mise à jour requise — données modifiées depuis le dernier sync" : undefined}
+                            >
                               <Globe className="w-3 h-3" />
                               {d.geodaeSynced}/{d.geodaeTotal}
                             </span>

@@ -54,6 +54,23 @@ export default function DaeDeviceForm({
 
   return (
     <div className="space-y-5">
+      {device.geodaeGid && (
+        <div className="rounded-md border border-green-200 bg-green-50 px-4 py-3 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-white border border-green-200 flex items-center justify-center shrink-0">
+            <span className="text-[#18753C] text-base font-bold">✓</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs text-[#3A3A3A]">
+              Inscrit dans la base nationale <span className="font-semibold">GéoDAE</span>
+              {" "}(Ministère de la Santé)
+            </div>
+            <div className="text-base font-mono font-semibold text-[#18753C] truncate">
+              N° GéoDAE : #{device.geodaeGid}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Identification ── */}
       <div>
         <h4 className="text-sm font-semibold text-[#000091] mb-3 flex items-center gap-2">

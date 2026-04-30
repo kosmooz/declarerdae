@@ -11,10 +11,12 @@ import {
   Trash2,
 } from "lucide-react";
 import type { DaeDevice } from "@/types/declarations";
+import { deviceNeedsResync } from "@/lib/needs-resync";
 
 interface AdminDeclGeodaeProps {
   devices: DaeDevice[];
   needsResync: boolean;
+  declDataUpdatedAt?: string | null;
   onShowDetail: (device: DaeDevice) => void;
   onOpenSyncManager: () => void;
 }
@@ -22,6 +24,7 @@ interface AdminDeclGeodaeProps {
 export default function AdminDeclGeodae({
   devices,
   needsResync,
+  declDataUpdatedAt,
   onShowDetail,
   onOpenSyncManager,
 }: AdminDeclGeodaeProps) {
@@ -139,16 +142,25 @@ export default function AdminDeclGeodae({
                 return (
                   <div key={device.id} className="inline-flex items-center">
                     {isSent ? (
-                      <button
-                        type="button"
-                        onClick={() => onShowDetail(device)}
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border transition-colors cursor-pointer bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
-                        title="Voir la fiche GéoDAE"
-                      >
-                        <CheckCircle className="h-3 w-3" />
-                        {device.nom || `DAE ${i + 1}`}
-                        <span className="text-[10px] opacity-75">#{device.geodaeGid}</span>
-                      </button>
+                      (() => {
+                        const showResyncBadge = deviceNeedsResync(device, declDataUpdatedAt);
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => onShowDetail(device)}
+                            className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border transition-colors cursor-pointer ${
+                              showResyncBadge
+                                ? "bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100"
+                                : "bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+                            }`}
+                            title={showResyncBadge ? "Mise à jour requise — voir la fiche GéoDAE" : "Voir la fiche GéoDAE"}
+                          >
+                            {showResyncBadge ? <AlertTriangle className="h-3 w-3" /> : <CheckCircle className="h-3 w-3" />}
+                            {device.nom || `DAE ${i + 1}`}
+                            <span className="text-[10px] opacity-75">#{device.geodaeGid}</span>
+                          </button>
+                        );
+                      })()
                     ) : isDeleted ? (
                       <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border bg-[#F6F6F6] border-[#E5E5E5] text-[#929292] line-through opacity-60">
                         <Trash2 className="h-3 w-3" />

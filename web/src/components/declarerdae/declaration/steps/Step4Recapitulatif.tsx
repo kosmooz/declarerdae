@@ -61,11 +61,19 @@ function DeviceRecap({
 }) {
   return (
     <div className="border border-[#E5E5E5] rounded-sm p-3 space-y-1">
-      <div className="flex items-center gap-2 mb-2">
+      <div className="flex items-center gap-2 mb-2 flex-wrap">
         <Cpu className="w-4 h-4 text-[#000091]" />
         <span className="text-sm font-semibold">
           {device.nom || `DAE ${index + 1}`}
         </span>
+        {device.geodaeGid && (
+          <span
+            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-green-50 border border-green-200 text-[#18753C]"
+            title={`Numéro d'inscription dans la base nationale GéoDAE : ${device.geodaeGid}`}
+          >
+            GéoDAE #{device.geodaeGid}
+          </span>
+        )}
       </div>
       <Field label="Fabricant" value={device.fabRais} />
       <Field label="Modèle" value={device.modele} />

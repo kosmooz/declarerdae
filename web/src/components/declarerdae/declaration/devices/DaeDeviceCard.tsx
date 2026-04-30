@@ -83,9 +83,13 @@ export default function DaeDeviceCard({
           {syncedToGeodae && (
             <span
               className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-medium bg-green-100 text-[#18753C]"
+              title={device.geodaeGid ? `Numéro d'inscription dans la base nationale GéoDAE : ${device.geodaeGid}` : "DAE inscrit dans la base nationale GéoDAE"}
             >
               <Globe className="w-2.5 h-2.5" />
               GéoDAE
+              {device.geodaeGid && (
+                <span className="font-mono">#{device.geodaeGid}</span>
+              )}
             </span>
           )}
           {(canDelete || syncedToGeodae) && (

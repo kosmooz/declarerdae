@@ -37,6 +37,11 @@ export interface DaeDeviceFormState {
   // Localisation DAE
   daeLat: number | null;
   daeLng: number | null;
+  // GéoDAE (lecture seule, jamais ré-envoyé via DEVICE_API_FIELDS — sert à
+  // afficher le numéro d'inscription nationale dans la preview, l'éditeur
+  // multi-DAE et le récapitulatif).
+  geodaeGid?: number | null;
+  geodaeStatus?: string | null;
 }
 
 export interface DeclarationFormState {
@@ -108,6 +113,8 @@ export function createEmptyDevice(position: number): DaeDeviceFormState {
     photo2: "",
     daeLat: null,
     daeLng: null,
+    geodaeGid: null,
+    geodaeStatus: null,
   };
 }
 
@@ -186,6 +193,9 @@ export function deserializeDevice(
   result.localId = fallbackLocalId || d.id || crypto.randomUUID();
   result.dispJ = safeParseArray(d.dispJ, defaults.dispJ);
   result.dispH = safeParseArray(d.dispH, defaults.dispH);
+  // Carry GéoDAE info pour affichage UX (ne sera pas réenvoyé au backend).
+  result.geodaeGid = d.geodaeGid ?? null;
+  result.geodaeStatus = d.geodaeStatus ?? null;
   return result as DaeDeviceFormState;
 }
 

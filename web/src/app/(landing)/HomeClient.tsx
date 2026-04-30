@@ -187,7 +187,7 @@ export default function HomeClient() {
               </div>
               <Link href="/declaration" className="shrink-0">
                 <Button size="sm" className="bg-[#E1000F] hover:bg-[#C00000] text-white font-semibold text-xs px-4">
-                  Vérifier ma conformité
+                  Se mettre en conformité
                   <ArrowRight className="w-3.5 h-3.5 ml-1" />
                 </Button>
               </Link>

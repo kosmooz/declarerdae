@@ -215,6 +215,14 @@ export default function DaeListView({ statusFilter }: DaeListViewProps) {
                           <BadgeIcon className="w-3 h-3" />
                           {badge.label}
                         </span>
+                        {d.geodaeGid && (
+                          <span
+                            className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-green-50 border border-green-200 text-[#18753C]"
+                            title={`Numéro d'inscription dans la base nationale GéoDAE : ${d.geodaeGid}`}
+                          >
+                            #{d.geodaeGid}
+                          </span>
+                        )}
                       </div>
 
                       {/* Line 2: fabricant - modele | serie */}

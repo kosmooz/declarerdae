@@ -31,6 +31,7 @@ export interface DaeDevice {
   geodaeLastSync: string | null;
   geodaeLastError: string | null;
   updatedAt?: string;
+  dataUpdatedAt?: string;
 }
 
 export interface Declaration {

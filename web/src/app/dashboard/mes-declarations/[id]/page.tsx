@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import Image from "next/image";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { apiFetch } from "@/lib/api";
+import { declarationNeedsResync, deviceNeedsResync } from "@/lib/needs-resync";
 import { Button } from "@/components/ui/button";
 import { serverToFormState } from "@/lib/declaration-convert";
 import { useDeclarationEdit, validateStep, type StepErrors } from "@/hooks/useDeclarationEdit";
@@ -21,6 +22,7 @@ import {
   ShieldCheck,
   XCircle,
   AlertTriangle,
+  Copy,
   Pencil,
   Loader2,
   Send,
@@ -1749,23 +1751,10 @@ interface DeviceSendResult {
   error?: string;
 }
 
-function computeNeedsResync(decl: Declaration): boolean {
-  const synced = decl.daeDevices.filter(
-    (d) => (d.geodaeStatus === "SENT" || d.geodaeStatus === "UPDATED") && d.geodaeLastSync,
-  );
-  if (synced.length === 0) return false;
-  // Per-device staleness :
-  //   - device.updatedAt > device.geodaeLastSync  → ce DAE a été modifié
-  //   - decl.dataUpdatedAt > device.geodaeLastSync → des champs decl-level (adresse,
-  //     exploitant…) envoyés à GéoDAE ont changé depuis le dernier sync
-  // Fallback sur decl.updatedAt si dataUpdatedAt absent (rétrocompatibilité types).
-  const declData = new Date(decl.dataUpdatedAt ?? decl.updatedAt).getTime();
-  return synced.some((d) => {
-    const sync = new Date(d.geodaeLastSync!).getTime();
-    const dev = d.updatedAt ? new Date(d.updatedAt).getTime() : 0;
-    return dev > sync || declData > sync;
-  });
-}
+// computeNeedsResync est désormais centralisé dans @/lib/needs-resync :
+// per-device staleness (device.dataUpdatedAt > geodaeLastSync) OU declaration-
+// level (decl.dataUpdatedAt > geodaeLastSync). Évite les faux positifs où le
+// sync write lui-même bumpait device.updatedAt via Prisma @updatedAt.
 
 export default function DeclarationDetailPage() {
   const params = useParams();
@@ -1810,12 +1799,20 @@ export default function DeclarationDetailPage() {
     if (res.ok) {
       const data = await res.json();
       setDecl(data);
-      setNeedsResync(computeNeedsResync(data));
+      setNeedsResync(declarationNeedsResync(data));
     } else {
       router.push("/dashboard/mes-declarations");
     }
     setLoading(false);
   }, [id, router]);
+
+  // Toujours re-fetch la decl avant d'ouvrir la popup pour que la
+  // comparaison live soit faite contre les données serveur fraîches
+  // (post-saveAll), pas contre le snapshot de mount.
+  const openGeodaeSync = useCallback(async () => {
+    await loadDecl();
+    setShowGeodaeConfirm(true);
+  }, [loadDecl]);
 
   useEffect(() => {
     loadDecl();
@@ -1838,7 +1835,13 @@ export default function DeclarationDetailPage() {
     setGeodaeDetailLoading(true);
 
     try {
-      const res = await apiFetch(`/api/declarations/my/${id}/geodae/fetch/${device.id}`);
+      // Rafraîchit decl en parallèle pour que la comparaison côté popup
+      // utilise les données serveur fraîches (post-saveAll), pas le snapshot
+      // de mount.
+      const [res] = await Promise.all([
+        apiFetch(`/api/declarations/my/${id}/geodae/fetch/${device.id}`),
+        loadDecl(),
+      ]);
       if (res.ok) {
         setGeodaeDetailData(await res.json());
       } else {
@@ -1849,7 +1852,7 @@ export default function DeclarationDetailPage() {
       setGeodaeDetailError("Erreur réseau");
     }
     setGeodaeDetailLoading(false);
-  }, [id]);
+  }, [id, loadDecl]);
 
   const handleDeleteDevice = useCallback(async (deviceId: string) => {
     if (!decl) return;
@@ -1984,7 +1987,7 @@ export default function DeclarationDetailPage() {
                 pour que vos appareils soient référencés sur la carte nationale des défibrillateurs.
               </p>
               <Button
-                onClick={() => setShowGeodaeConfirm(true)}
+                onClick={openGeodaeSync}
                 className="bg-[#000091] hover:bg-[#000091]/90 text-white"
               >
                 <Upload className="h-4 w-4 mr-2" />
@@ -2122,25 +2125,42 @@ export default function DeclarationDetailPage() {
                 </p>
 
                 {/* Device badges with individual retry */}
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap gap-3">
                   {decl.daeDevices.map((device, i) => {
                     const status = device.geodaeStatus;
                     const isSent = status === "SENT" || status === "UPDATED";
                     const isFailed = status === "FAILED";
+                    // Per-device staleness : seul un DAE dont les données ont
+                    // changé après son sync passe en orange. Évite que tous les
+                    // badges deviennent orange quand un seul DAE est modifié.
+                    const showResyncBadge =
+                      isSent && deviceNeedsResync(device, decl.dataUpdatedAt);
                     return (
-                      <div key={device.id} className="inline-flex items-center">
+                      <div key={device.id} className="inline-flex flex-col items-stretch">
                         {isSent ? (
                           <button
                             type="button"
                             onClick={() => handleShowGeodaeDetail(device)}
-                            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border transition-colors cursor-pointer bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
-                            title="Voir la fiche GéoDAE"
+                            className={`inline-flex items-center gap-1 px-2 py-1 rounded-t-md text-[11px] font-medium border transition-colors cursor-pointer ${
+                              device.geodaeGid ? "border-b-0" : "rounded-b-md"
+                            } ${
+                              showResyncBadge
+                                ? "bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100"
+                                : "bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+                            }`}
+                            title={showResyncBadge ? "Mise à jour requise — voir la fiche GéoDAE" : "Voir la fiche GéoDAE"}
                           >
-                            <CheckCircle className="h-3 w-3" />
+                            {showResyncBadge ? (
+                              <AlertTriangle className="h-3 w-3" />
+                            ) : (
+                              <CheckCircle className="h-3 w-3" />
+                            )}
                             {device.nom || `DAE ${i + 1}`}
-                            <span className="text-[10px] opacity-75">
-                              #{device.geodaeGid}
-                            </span>
+                            {device.geodaeGid && (
+                              <span className="text-[10px] opacity-75">
+                                #{device.geodaeGid}
+                              </span>
+                            )}
                           </button>
                         ) : (
                           <span
@@ -2161,6 +2181,30 @@ export default function DeclarationDetailPage() {
                             )}
                           </span>
                         )}
+                        {isSent && device.geodaeGid && (
+                          <button
+                            type="button"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              try {
+                                await navigator.clipboard.writeText(String(device.geodaeGid));
+                                toast.success(`GID ${device.geodaeGid} copié`);
+                              } catch {
+                                toast.error("Impossible de copier");
+                              }
+                            }}
+                            className={`inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded-b-md text-[10px] font-mono border transition-colors cursor-pointer ${
+                              showResyncBadge
+                                ? "bg-amber-50/60 border-amber-200 text-amber-900 hover:bg-amber-100"
+                                : "bg-green-50/60 border-green-200 text-[#18753C] hover:bg-green-100"
+                            }`}
+                            title="Cliquer pour copier le GID GéoDAE"
+                          >
+                            <Copy className="h-2.5 w-2.5 opacity-70" />
+                            GID GéoDAE :{" "}
+                            <span className="font-semibold">{device.geodaeGid}</span>
+                          </button>
+                        )}
                       </div>
                     );
                   })}
@@ -2171,7 +2215,7 @@ export default function DeclarationDetailPage() {
               <div className="shrink-0">
                 <Button
                   size="sm"
-                  onClick={() => setShowGeodaeConfirm(true)}
+                  onClick={openGeodaeSync}
                   className={
                     geodaeIsUpdate && geodaeFailed.length === 0
                       ? "bg-white text-[#000091] border border-[#000091] hover:bg-[#F5F5FE] shadow-none"
@@ -2203,7 +2247,7 @@ export default function DeclarationDetailPage() {
           onSubmitted={loadDecl}
           onNeedsResync={setNeedsResync}
           needsResync={needsResync}
-          onSyncToGeodae={() => setShowGeodaeConfirm(true)}
+          onSyncToGeodae={openGeodaeSync}
           onScrollToGeodae={() => geodaeCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
           onDeleteSyncedDevice={(serverId) => setDeleteFromFormId(serverId)}
         />
@@ -2239,7 +2283,7 @@ export default function DeclarationDetailPage() {
           if (allSucceeded !== false) setNeedsResync(false);
           await loadDecl();
         }}
-        onDiffsFound={(hasDiffs) => { if (hasDiffs) setNeedsResync(true); }}
+        onDiffsFound={(hasDiffs) => setNeedsResync(hasDiffs)}
         onAllDeleted={async () => {
           // Cancel the declaration and redirect
           await apiFetch(`/api/declarations/my/${id}/cancel`, {
@@ -2348,7 +2392,7 @@ export default function DeclarationDetailPage() {
               decl={decl}
               onResync={() => {
                 setGeodaeDetailDevice(null);
-                setShowGeodaeConfirm(true);
+                openGeodaeSync();
               }}
               onDelete={() => handleDeleteDevice(geodaeDetailDevice.id)}
               deleting={deletingDevice}

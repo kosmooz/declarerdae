@@ -9,6 +9,7 @@ import { UpdateDeclarationDraftDto } from "./dto/update-declaration-draft.dto";
 import { CreateDaeDeviceDto } from "./dto/create-dae-device.dto";
 import { UpdateDaeDeviceDto } from "./dto/update-dae-device.dto";
 import { computeDeclarationStep, isDeviceComplete } from "./compute-declaration-step";
+import { computeDeclarationNeedsResync } from "./needs-resync";
 
 export const DECLARATION_FIELDS = [
   "exptNom", "exptPrenom", "exptRais", "exptSiren", "exptSiret",
@@ -299,8 +300,15 @@ export class DeclarationsService {
           status: true,
           createdAt: true,
           updatedAt: true,
+          dataUpdatedAt: true,
           _count: { select: { daeDevices: true } },
-          daeDevices: { select: { geodaeStatus: true } },
+          daeDevices: {
+            select: {
+              geodaeStatus: true,
+              geodaeLastSync: true,
+              dataUpdatedAt: true,
+            },
+          },
         },
         orderBy: { createdAt: "desc" },
         skip: (page - 1) * limit,
@@ -320,6 +328,7 @@ export class DeclarationsService {
           deviceCount: d._count.daeDevices,
           geodaeSyncedCount: synced,
           geodaeTotalCount: d.daeDevices.length,
+          needsResync: computeDeclarationNeedsResync(d),
           _count: undefined,
           daeDevices: undefined,
         };
@@ -611,10 +620,22 @@ export class DeclarationsService {
     const updateData: Record<string, any> = pick(dto, DECLARATION_FIELDS);
     if (ip) updateData.ip = ip;
 
+    // Bumpe dataUpdatedAt seulement si au moins un champ data-level a vraiment
+    // changé. saveAll() côté front PATCH systématiquement la déclaration parent
+    // même quand seuls des devices ont été modifiés — sans cette garde, on
+    // marquerait toute la décl (et donc tous les devices synchronisés) comme
+    // nécessitant un resync.
+    const hasRealChange = Object.entries(updateData).some(([k, v]) => {
+      if (k === "ip") return false;
+      const current = (declaration as any)[k];
+      const cur = current == null ? "" : String(current);
+      const next = v == null ? "" : String(v);
+      return cur !== next;
+    });
+
     const merged = { ...declaration, ...updateData, daeDevices: declaration.daeDevices };
     updateData.step = computeDeclarationStep(merged);
-    // Vraie modification de données utilisateur (champs envoyés à GéoDAE).
-    updateData.dataUpdatedAt = new Date();
+    if (hasRealChange) updateData.dataUpdatedAt = new Date();
 
     await this.prisma.declaration.update({
       where: { id },
@@ -678,7 +699,17 @@ export class DeclarationsService {
     }
     this.assertEditable(device.declaration, userId);
 
-    const updateData = pick(dto, DEVICE_FIELDS);
+    const updateData: Record<string, any> = pick(dto, DEVICE_FIELDS);
+    // Bumpe device.dataUpdatedAt seulement si au moins un champ a vraiment
+    // changé (saveAll côté front envoie un PATCH même sur un device inchangé).
+    // device.updatedAt est inutilisable car aussi bumpé par les writes de sync.
+    const hasRealChange = Object.entries(updateData).some(([k, v]) => {
+      const current = (device as any)[k];
+      const cur = current == null ? "" : String(current);
+      const next = v == null ? "" : String(v);
+      return cur !== next;
+    });
+    if (hasRealChange) updateData.dataUpdatedAt = new Date();
 
     await this.prisma.daeDevice.update({
       where: { id: deviceId },
@@ -692,7 +723,9 @@ export class DeclarationsService {
     if (declaration) {
       await this.prisma.declaration.update({
         where: { id: declarationId },
-        data: { step: computeDeclarationStep(declaration) },
+        data: {
+          step: computeDeclarationStep(declaration),
+        },
       });
     }
 

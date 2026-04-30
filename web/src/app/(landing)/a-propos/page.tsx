@@ -115,9 +115,8 @@ export default function AProposPage() {
                 <h2 className="font-heading font-bold text-xl text-white mb-8 text-center">
                   Nos chiffres clés
                 </h2>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 text-center">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 text-center">
                   {[
-                    { value: "1 000+", label: "DAE déclarés" },
                     { value: "98%", label: "Taux de satisfaction" },
                     { value: "< 5 min", label: "Temps moyen" },
                     { value: "24h", label: "Délai attestation" },

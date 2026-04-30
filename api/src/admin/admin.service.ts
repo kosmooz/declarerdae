@@ -8,6 +8,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { MailService } from "../mail/mail.service";
 import { computeStep } from "../subscriptions/compute-step";
 import { isDeviceComplete } from "../declarations/compute-declaration-step";
+import { computeDeclarationNeedsResync } from "../declarations/needs-resync";
 import {
   DECLARATION_FIELDS,
   DEVICE_FIELDS,
@@ -598,14 +599,23 @@ export class AdminService {
         include: {
           _count: { select: { daeDevices: true } },
           user: { select: { id: true, email: true, emailVerified: true } },
-          daeDevices: { select: { geodaeStatus: true }, orderBy: { position: "asc" } },
+          daeDevices: {
+            select: {
+              geodaeStatus: true,
+              geodaeLastSync: true,
+              dataUpdatedAt: true,
+            },
+            orderBy: { position: "asc" },
+          },
         },
       }),
       this.prisma.declaration.count({ where }),
     ]);
 
     const declarations = rawDeclarations.map((d) => {
-      const geodaeSynced = d.daeDevices.filter((dev) => dev.geodaeStatus === "SYNCED").length;
+      const geodaeSynced = d.daeDevices.filter(
+        (dev) => dev.geodaeStatus === "SENT" || dev.geodaeStatus === "UPDATED",
+      ).length;
       const geodaeTotal = d.daeDevices.length;
       return {
         ...d,
@@ -615,6 +625,7 @@ export class AdminService {
         user: d.user,
         geodaeSynced,
         geodaeTotal,
+        needsResync: computeDeclarationNeedsResync(d),
       };
     });
 
@@ -715,15 +726,17 @@ export class AdminService {
         const deviceId = deviceDto.id;
         if (!deviceId) continue;
         const oldDevice = declaration.daeDevices.find((d) => d.id === deviceId);
-        const deviceUpdate = this.pickFields(deviceDto, DEVICE_FIELDS);
+        const deviceUpdate: Record<string, any> = this.pickFields(deviceDto, DEVICE_FIELDS);
         if (Object.keys(deviceUpdate).length > 0) {
           // Audit: compare device field changes
+          let hasRealChange = false;
           if (oldDevice) {
             for (const [key, newVal] of Object.entries(deviceUpdate)) {
               const oldVal = (oldDevice as any)[key];
               const oldStr = oldVal == null ? "" : String(oldVal);
               const newStr = newVal == null ? "" : String(newVal);
               if (oldStr !== newStr) {
+                hasRealChange = true;
                 auditEntries.push({
                   ...baseEntry,
                   action: "DEVICE_UPDATE",
@@ -736,6 +749,8 @@ export class AdminService {
               }
             }
           }
+          // Bumpe dataUpdatedAt seulement si une vraie valeur a changé.
+          if (hasRealChange) deviceUpdate.dataUpdatedAt = new Date();
           await this.prisma.daeDevice.update({
             where: { id: deviceId },
             data: deviceUpdate,
@@ -878,12 +893,13 @@ export class AdminService {
       });
     }
 
-    // Bumper dataUpdatedAt si une vraie modification de champ data a eu lieu
-    // (les FIELD_UPDATE concernent les champs envoyés à GéoDAE — exclut status, notes, step).
-    const hasDataFieldChange = auditEntries.some(
+    // Bumper decl.dataUpdatedAt SEULEMENT si un champ declaration-level a changé
+    // (FIELD_UPDATE). Les changements device-level bumpent device.dataUpdatedAt
+    // déjà fait plus haut — pas besoin de bumper la déclaration entière.
+    const hasDeclFieldChange = auditEntries.some(
       (e) => e.action === "FIELD_UPDATE" && !e.deviceId,
     );
-    if (hasDataFieldChange) declUpdate.dataUpdatedAt = new Date();
+    if (hasDeclFieldChange) declUpdate.dataUpdatedAt = new Date();
 
     return this.prisma.declaration.update({
       where: { id },
